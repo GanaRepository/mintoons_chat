@@ -1,7 +1,8 @@
 // lib/auth/config.ts - NextAuth configuration
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
+import type { Adapter } from 'next-auth/adapters';
+import { MongoDBAdapter } from '@auth/mongodb-adapter';
 import { MongoClient } from 'mongodb';
 import User from '@models/User';
 import { connectDB } from '@lib/database/connection';
@@ -28,7 +29,7 @@ interface ExtendedUser {
 }
 
 export const authOptions: NextAuthOptions = {
-  adapter: MongoDBAdapter(clientPromise),
+  adapter: MongoDBAdapter(clientPromise) as unknown as Adapter,
   providers: [
     CredentialsProvider({
       name: 'credentials',
