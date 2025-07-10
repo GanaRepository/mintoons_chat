@@ -10,6 +10,23 @@ import { validateUserLogin } from '@utils/validators';
 const client = new MongoClient(process.env.MONGODB_URI!);
 const clientPromise = client.connect();
 
+// Extended user type for NextAuth (matching the types/next-auth.d.ts)
+interface ExtendedUser {
+  id: string;
+  email: string;
+  name: string;
+  image?: string;
+  role: 'child' | 'mentor' | 'admin';
+  age: number;
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
+  isActive: boolean;
+  emailVerified: boolean;
+  storyCount: number;
+  totalPoints: number;
+  level: number;
+  streak: number;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise),
   providers: [
@@ -19,7 +36,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<ExtendedUser | null> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
@@ -31,8 +48,8 @@ export const authOptions: NextAuthOptions = {
           // Connect to database
           await connectDB();
 
-          // Find user with password
-          const user = await User.findByEmail(credentials.email);
+          // Find user with password using type assertion
+          const user = await (User as any).findByEmail(credentials.email);
           if (!user) {
             throw new Error('Invalid email or password');
           }
@@ -72,22 +89,26 @@ export const authOptions: NextAuthOptions = {
           // Reset login attempts on successful login
           if (user.loginAttempts > 0) {
             user.loginAttempts = 0;
-            user.lockUntil = undefined;
+            user.lockUntil = null; // Use null instead of undefined
           }
 
           // Update last login
           user.lastLoginAt = new Date();
           await user.save();
 
-          // Return user object for NextAuth
+          // Return user object for NextAuth (matching exact types)
           return {
             id: user._id.toString(),
             email: user.email,
             name: user.fullName,
             image: user.avatar,
-            role: user.role,
+            role: user.role as 'child' | 'mentor' | 'admin',
             age: user.age,
-            subscriptionTier: user.subscriptionTier,
+            subscriptionTier: user.subscriptionTier as
+              | 'FREE'
+              | 'BASIC'
+              | 'PREMIUM'
+              | 'PRO',
             isActive: user.isActive,
             emailVerified: user.emailVerified,
             storyCount: user.storyCount,
@@ -118,15 +139,15 @@ export const authOptions: NextAuthOptions = {
       // Initial sign in
       if (user) {
         token.id = user.id;
-        token.role = user.role;
-        token.age = user.age;
-        token.subscriptionTier = user.subscriptionTier;
-        token.isActive = user.isActive;
-        token.emailVerified = user.emailVerified;
-        token.storyCount = user.storyCount;
-        token.totalPoints = user.totalPoints;
-        token.level = user.level;
-        token.streak = user.streak;
+        token.role = (user as ExtendedUser).role;
+        token.age = (user as ExtendedUser).age;
+        token.subscriptionTier = (user as ExtendedUser).subscriptionTier;
+        token.isActive = (user as ExtendedUser).isActive;
+        token.emailVerified = (user as ExtendedUser).emailVerified;
+        token.storyCount = (user as ExtendedUser).storyCount;
+        token.totalPoints = (user as ExtendedUser).totalPoints;
+        token.level = (user as ExtendedUser).level;
+        token.streak = (user as ExtendedUser).streak;
       }
 
       // Update session trigger
@@ -134,7 +155,7 @@ export const authOptions: NextAuthOptions = {
         // Refresh user data from database
         try {
           await connectDB();
-          const dbUser = await User.findById(token.id);
+          const dbUser = await (User as any).findById(token.id);
           if (dbUser) {
             token.subscriptionTier = dbUser.subscriptionTier;
             token.storyCount = dbUser.storyCount;
@@ -152,7 +173,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     async session({ session, token }) {
-      if (token) {
+      if (token && session.user) {
         session.user.id = token.id;
         session.user.role = token.role;
         session.user.age = token.age;
@@ -172,15 +193,19 @@ export const authOptions: NextAuthOptions = {
       // Allows relative callback URLs
       if (url.startsWith('/')) return `${baseUrl}${url}`;
       // Allows callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) return url;
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // If URL parsing fails, return baseUrl
+      }
       return baseUrl;
     },
   },
 
   pages: {
     signIn: '/login',
-    signUp: '/register',
     error: '/login', // Error code passed in query string as ?error=
+    // Removed signUp as it's not a valid NextAuth page option
   },
 
   events: {
@@ -189,8 +214,11 @@ export const authOptions: NextAuthOptions = {
 
       // Track sign in analytics
       try {
-        const Analytics = (await import('@models/Analytics')).default;
-        // Could add sign-in tracking here
+        const { analyticsTracker } = await import('@lib/analytics/tracker');
+        await analyticsTracker.trackUserAction('login', user.id, {
+          provider: account?.provider || 'credentials',
+          isNewUser: isNewUser || false,
+        });
       } catch (error) {
         console.error('Error tracking sign in:', error);
       }
@@ -198,6 +226,16 @@ export const authOptions: NextAuthOptions = {
 
     async signOut({ session, token }) {
       console.log('User signed out:', { userId: token?.id });
+
+      // Track sign out analytics
+      try {
+        const { analyticsTracker } = await import('@lib/analytics/tracker');
+        if (token?.id) {
+          await analyticsTracker.trackUserAction('logout', token.id as string);
+        }
+      } catch (error) {
+        console.error('Error tracking sign out:', error);
+      }
     },
   },
 

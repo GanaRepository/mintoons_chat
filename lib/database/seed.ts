@@ -2,8 +2,22 @@
 import { connectDB } from './connection';
 import Story from '@models/Story';
 import User from '@models/User';
-import Achievement from '@models/Achievement';
 import { STORY_ELEMENTS, ACHIEVEMENTS } from '@utils/constants';
+import mongoose from 'mongoose';
+
+// Define Achievement interface
+interface AchievementDocument {
+  name: string;
+  description: string;
+  icon: string;
+  points: number;
+  type: 'story_milestone';
+  rarity: 'common';
+  color: string;
+  unlockedMessage: string;
+  isActive: boolean;
+  sortOrder: number;
+}
 
 // Sample stories for new users
 const SAMPLE_STORIES = [
@@ -82,7 +96,7 @@ export async function seedSampleStories(): Promise<void> {
     await connectDB();
 
     // Check if sample stories already exist
-    const existingStories = await Story.countDocuments({
+    const existingStories = await (Story as any).countDocuments({
       authorName: 'Sample Author',
     });
 
@@ -91,19 +105,19 @@ export async function seedSampleStories(): Promise<void> {
       return;
     }
 
-    // Create sample stories
-    const stories = await Story.create(
-      SAMPLE_STORIES.map(story => ({
-        ...story,
-        authorId: new (require('mongoose').Types.ObjectId)(), // Dummy ID
-        wordCount: story.content.split(' ').length,
-        readingTime: Math.ceil(story.content.split(' ').length / 200),
-        publishedAt: new Date(),
-        completedAt: new Date(),
-        views: Math.floor(Math.random() * 100) + 50,
-        likes: Math.floor(Math.random() * 20) + 5,
-      }))
-    );
+    // Create sample stories using type assertion
+    const storyDocs = SAMPLE_STORIES.map(story => ({
+      ...story,
+      authorId: new mongoose.Types.ObjectId(), // Dummy ID
+      wordCount: story.content.split(' ').length,
+      readingTime: Math.ceil(story.content.split(' ').length / 200),
+      publishedAt: new Date(),
+      completedAt: new Date(),
+      views: Math.floor(Math.random() * 100) + 50,
+      likes: Math.floor(Math.random() * 20) + 5,
+    }));
+
+    const stories = await (Story as any).create(storyDocs);
 
     console.log(`Created ${stories.length} sample stories`);
   } catch (error) {
@@ -116,8 +130,11 @@ export async function seedAchievements(): Promise<void> {
   try {
     await connectDB();
 
+    // Get or create Achievement model
+    const Achievement = getAchievementModel();
+
     // Check if achievements already exist
-    const existingAchievements = await Achievement.countDocuments();
+    const existingAchievements = await (Achievement as any).countDocuments();
 
     if (existingAchievements > 0) {
       console.log('Achievements already exist, skipping seeding');
@@ -126,7 +143,7 @@ export async function seedAchievements(): Promise<void> {
 
     // Convert constants to achievement documents
     const achievementDocs = Object.values(ACHIEVEMENTS).map(
-      (achievement, index) => ({
+      (achievement: any, index: number): AchievementDocument => ({
         ...achievement,
         type: 'story_milestone' as const,
         rarity: 'common' as const,
@@ -137,13 +154,58 @@ export async function seedAchievements(): Promise<void> {
       })
     );
 
-    const createdAchievements = await Achievement.create(achievementDocs);
+    const createdAchievements = await (Achievement as any).create(
+      achievementDocs
+    );
 
     console.log(`Created ${createdAchievements.length} achievements`);
   } catch (error) {
     console.error('Error seeding achievements:', error);
     throw error;
   }
+}
+
+/**
+ * Get or create Achievement model
+ */
+function getAchievementModel() {
+  if (mongoose.models.Achievement) {
+    return mongoose.models.Achievement;
+  }
+
+  const achievementSchema = new mongoose.Schema(
+    {
+      id: { type: String, required: true, unique: true },
+      name: { type: String, required: true },
+      description: { type: String, required: true },
+      icon: { type: String, required: true },
+      points: { type: Number, required: true, min: 0 },
+      type: {
+        type: String,
+        enum: ['story_milestone', 'creativity', 'grammar', 'streak', 'social'],
+        default: 'story_milestone',
+      },
+      rarity: {
+        type: String,
+        enum: ['common', 'rare', 'epic', 'legendary'],
+        default: 'common',
+      },
+      color: { type: String, default: 'blue' },
+      unlockedMessage: { type: String, required: true },
+      isActive: { type: Boolean, default: true },
+      sortOrder: { type: Number, default: 0 },
+    },
+    {
+      timestamps: true,
+    }
+  );
+
+  // Add indexes
+  achievementSchema.index({ type: 1, isActive: 1 });
+  achievementSchema.index({ rarity: 1 });
+  achievementSchema.index({ sortOrder: 1 });
+
+  return mongoose.model<AchievementDocument>('Achievement', achievementSchema);
 }
 
 export async function seedAll(): Promise<void> {
@@ -165,14 +227,14 @@ export async function createAdminUser(): Promise<void> {
   try {
     await connectDB();
 
-    const existingAdmin = await User.findOne({ role: 'admin' });
+    const existingAdmin = await (User as any).findOne({ role: 'admin' });
 
     if (existingAdmin) {
       console.log('Admin user already exists');
       return;
     }
 
-    const adminUser = await User.create({
+    const adminUserData = {
       firstName: 'Admin',
       lastName: 'User',
       email: process.env.ADMIN_EMAIL || 'admin@mintoons.com',
@@ -182,7 +244,9 @@ export async function createAdminUser(): Promise<void> {
       subscriptionTier: 'PRO',
       emailVerified: true,
       isActive: true,
-    });
+    };
+
+    const adminUser = await (User as any).create(adminUserData);
 
     console.log('Admin user created:', adminUser.email);
   } catch (error) {
@@ -190,3 +254,66 @@ export async function createAdminUser(): Promise<void> {
     throw error;
   }
 }
+
+// Helper function to clean up old sample data
+export async function cleanupSampleData(): Promise<void> {
+  try {
+    await connectDB();
+
+    // Remove sample stories
+    const deletedStories = await (Story as any).deleteMany({
+      authorName: 'Sample Author',
+    });
+
+    console.log(
+      `Cleaned up ${deletedStories.deletedCount || 0} sample stories`
+    );
+
+    // Remove achievements if needed
+    const Achievement = getAchievementModel();
+    const deletedAchievements = await (Achievement as any).deleteMany({
+      type: 'story_milestone',
+    });
+
+    console.log(
+      `Cleaned up ${deletedAchievements.deletedCount || 0} achievements`
+    );
+
+    console.log('Sample data cleanup completed');
+  } catch (error) {
+    console.error('Error cleaning up sample data:', error);
+    throw error;
+  }
+}
+
+// Utility function to reset database for development
+export async function resetDatabase(): Promise<void> {
+  try {
+    await connectDB();
+
+    console.log('⚠️  Resetting database...');
+
+    // Drop all collections
+    const collections = await mongoose.connection.db?.collections();
+    if (collections) {
+      for (const collection of collections) {
+        await collection.drop();
+        console.log(`Dropped collection: ${collection.collectionName}`);
+      }
+    }
+
+    console.log('Database reset completed');
+
+    // Re-seed with fresh data
+    await seedAll();
+    await createAdminUser();
+
+    console.log('Database re-seeded with fresh data');
+  } catch (error) {
+    console.error('Error resetting database:', error);
+    throw error;
+  }
+}
+
+// Export individual functions for selective seeding
+export { SAMPLE_STORIES, getAchievementModel };

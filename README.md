@@ -35,18 +35,31 @@ MINTOONS is a collaborative AI-powered story writing platform where children (ag
 ## ⚡ Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/mintoons.git
    cd mintoons
-   Install dependencies
-   bashnpm install
    ```
 
-Set up environment variables
-bashcp .env.example .env.local
-Fill in your API keys and database URLs.
-Run the development server
-bashnpm run dev
+2. **Install dependencies**
 
-Open your browser
-Navigate to http://localhost:3000
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Fill in your API keys and database URLs in the `.env.local` file.
+
+4. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser**
+   Navigate to [http://localhost:3000](http://localhost:3000)

@@ -1,8 +1,8 @@
 // lib/gamification/streaks.ts - Writing streak system
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
-import { Notification } from '@models/Notification';
-import { achievementManager } from './achievement';
+import Notification from '@models/Notification';
+import { achievementManager } from './achievements';
 import { webSocketManager } from '@lib/realtime/websockets';
 import { sendEmail } from '@lib/email/sender';
 
@@ -18,7 +18,7 @@ export class StreakManager {
     try {
       await connectDB();
 
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('User not found');
       }
@@ -118,7 +118,7 @@ export class StreakManager {
     try {
       await connectDB();
 
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('User not found');
       }
@@ -178,16 +178,23 @@ export class StreakManager {
       await connectDB();
 
       // Get all users with active streaks
-      const users = await User.find({
-        streak: { $gt: 0 },
-        isActive: true,
-      })
+      const users = await (User as any)
+        .find({
+          streak: { $gt: 0 },
+          isActive: true,
+        })
         .sort({ streak: -1 })
-        .limit(100);
+        .limit(100)
+        .exec();
 
-      const totalActiveStreaks = users.filter(user => user.streak > 0).length;
+      const totalActiveStreaks = users.filter(
+        (user: any) => user.streak > 0
+      ).length;
 
-      const totalStreakDays = users.reduce((sum, user) => sum + user.streak, 0);
+      const totalStreakDays = users.reduce(
+        (sum: number, user: any) => sum + user.streak,
+        0
+      );
       const averageStreak =
         totalActiveStreaks > 0
           ? Math.round((totalStreakDays / totalActiveStreaks) * 10) / 10
@@ -195,7 +202,7 @@ export class StreakManager {
 
       const longestCurrentStreak = users.length > 0 ? users[0].streak : 0;
 
-      const topUsers = users.slice(0, 10).map(user => ({
+      const topUsers = users.slice(0, 10).map((user: any) => ({
         userId: user._id.toString(),
         userName: `${user.firstName} ${user.lastName}`,
         streak: user.streak,
@@ -225,10 +232,12 @@ export class StreakManager {
     try {
       await connectDB();
 
-      await User.findByIdAndUpdate(userId, {
-        streak: 0,
-        lastActiveDate: null,
-      });
+      await (User as any)
+        .findByIdAndUpdate(userId, {
+          streak: 0,
+          lastActiveDate: null,
+        })
+        .exec();
 
       return true;
     } catch (error) {
@@ -248,10 +257,12 @@ export class StreakManager {
         throw new Error('Streak count must be non-negative');
       }
 
-      await User.findByIdAndUpdate(userId, {
-        streak: streakCount,
-        lastActiveDate: new Date(),
-      });
+      await (User as any)
+        .findByIdAndUpdate(userId, {
+          streak: streakCount,
+          lastActiveDate: new Date(),
+        })
+        .exec();
 
       return true;
     } catch (error) {
@@ -265,7 +276,7 @@ export class StreakManager {
   private async notifyStreakMilestone(user: any): Promise<void> {
     try {
       // Create notification
-      await Notification.create({
+      await (Notification as any).create({
         userId: user._id,
         type: 'streak_milestone',
         title: 'Writing Streak Milestone!',
@@ -310,7 +321,7 @@ export class StreakManager {
       if (user.streak < 3) return;
 
       // Create notification
-      await Notification.create({
+      await (Notification as any).create({
         userId: user._id,
         type: 'streak_broken',
         title: 'Writing Streak Reset',

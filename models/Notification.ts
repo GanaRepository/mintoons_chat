@@ -16,7 +16,16 @@ export interface NotificationDocument extends Document {
   data: Record<string, any>;
   isRead: boolean;
   readAt?: Date;
+  priority: number;
+  expiresAt?: Date;
   markAsRead(): Promise<void>;
+}
+
+// Static methods interface
+interface NotificationModel extends mongoose.Model<NotificationDocument> {
+  markAllAsRead(userId: string): Promise<any>;
+  getUnreadCount(userId: string): Promise<number>;
+  cleanup(days?: number): Promise<any>;
 }
 
 const notificationSchema = new Schema<NotificationDocument>(
@@ -133,5 +142,8 @@ notificationSchema.statics.cleanup = function (days: number = 30) {
 
 const Notification =
   mongoose.models.Notification ||
-  mongoose.model<NotificationDocument>('Notification', notificationSchema);
+  mongoose.model<NotificationDocument, NotificationModel>(
+    'Notification',
+    notificationSchema
+  );
 export default Notification;

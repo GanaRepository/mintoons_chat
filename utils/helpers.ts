@@ -1,6 +1,4 @@
 // utils/helpers.ts - General helper functions (consolidated from lib/)
-import { type ClassValue } from 'clsx';
-import { cn } from './cn';
 
 /**
  * Generate a random ID
@@ -24,7 +22,11 @@ export function generateSecureToken(length: number = 32): string {
   let result = '';
   const array = new Uint8Array(length);
 
-  if (typeof window !== 'undefined' && window.crypto) {
+  if (
+    typeof window !== 'undefined' &&
+    window.crypto &&
+    window.crypto.getRandomValues
+  ) {
     window.crypto.getRandomValues(array);
   } else {
     // Fallback for server-side
@@ -34,7 +36,7 @@ export function generateSecureToken(length: number = 32): string {
   }
 
   for (let i = 0; i < length; i++) {
-    result += chars[array[i] % chars.length];
+    result += chars[array[i]! % chars.length];
   }
   return result;
 }
@@ -184,20 +186,21 @@ export function safeJsonParse<T>(str: string, fallback: T): T {
  * Deep clone object
  */
 export function deepClone<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') return obj;
-  if (obj instanceof Date) return new Date(obj.getTime()) as unknown as T;
-  if (obj instanceof Array)
-    return obj.map(item => deepClone(item)) as unknown as T;
-  if (typeof obj === 'object') {
-    const clonedObj: any = {};
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        clonedObj[key] = deepClone(obj[key]);
-      }
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return new Date(obj.getTime()) as T;
+  if (Array.isArray(obj)) return obj.map(item => deepClone(item)) as T;
+
+  // Type assertion to tell TypeScript we know this is an object
+  const objAsRecord = obj as Record<string, any>;
+  const clonedObj: Record<string, any> = {};
+
+  for (const key in objAsRecord) {
+    if (Object.prototype.hasOwnProperty.call(objAsRecord, key)) {
+      clonedObj[key] = deepClone(objAsRecord[key]);
     }
-    return clonedObj;
   }
-  return obj;
+  return clonedObj as T;
 }
 
 /**
@@ -213,7 +216,10 @@ export function isEmpty(obj: any): boolean {
 /**
  * Pick specific properties from object
  */
-export function pick<T, K extends keyof T>(obj: T, keys: K[]): Pick<T, K> {
+export function pick<T extends object, K extends keyof T>(
+  obj: T,
+  keys: K[]
+): Pick<T, K> {
   const result = {} as Pick<T, K>;
   keys.forEach(key => {
     if (key in obj) {
@@ -263,7 +269,7 @@ export function shuffle<T>(array: T[]): T[] {
   const result = [...array];
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
+    [result[i]!, result[j]!] = [result[j]!, result[i]!];
   }
   return result;
 }
@@ -272,7 +278,8 @@ export function shuffle<T>(array: T[]): T[] {
  * Get random item from array
  */
 export function randomItem<T>(array: T[]): T | undefined {
-  return array[Math.floor(Math.random() * array.length)];
+  if (array.length === 0) return undefined;
+  return array[Math.floor(Math.random() * array.length)]!;
 }
 
 /**
@@ -360,17 +367,21 @@ export function downloadFile(blob: Blob, filename: string): void {
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
   try {
-    await navigator.clipboard.writeText(text);
-    return true;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } else {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      const success = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return success;
+    }
   } catch {
-    // Fallback for older browsers
-    const textArea = document.createElement('textarea');
-    textArea.value = text;
-    document.body.appendChild(textArea);
-    textArea.select();
-    const success = document.execCommand('copy');
-    document.body.removeChild(textArea);
-    return success;
+    return false;
   }
 }
 

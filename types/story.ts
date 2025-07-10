@@ -1,4 +1,6 @@
 // types/story.ts - Story-related types
+import { StoryAssessment } from './assessment';
+
 export type StoryStatus =
   | 'draft'
   | 'in_progress'

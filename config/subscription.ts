@@ -5,7 +5,7 @@ export interface SubscriptionTier {
   id: string;
   name: string;
   description: string;
-  price: number; // in USD cents (999 = $9.99)
+  price: number; // in USD dollars (9.99 = $9.99)
   storyLimit: number;
   features: string[];
   stripePriceId: string | null;
@@ -39,7 +39,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     id: 'basic',
     name: 'Basic',
     description: 'Great for regular young writers',
-    price: 999, // $9.99 - EASY TO CHANGE
+    price: 9.99, // $9.99 - EASY TO CHANGE
     storyLimit: 100, // EASY TO CHANGE
     features: [
       'Create up to 100 stories',
@@ -59,7 +59,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     id: 'premium',
     name: 'Premium',
     description: 'Perfect for aspiring storytellers',
-    price: 1999, // $19.99 - EASY TO CHANGE
+    price: 19.99, // $19.99 - EASY TO CHANGE
     storyLimit: 200, // EASY TO CHANGE
     features: [
       'Create up to 200 stories',
@@ -84,7 +84,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     id: 'pro',
     name: 'Pro',
     description: 'For serious young authors',
-    price: 3999, // $39.99 - EASY TO CHANGE
+    price: 39.99, // $39.99 - EASY TO CHANGE
     storyLimit: 300, // EASY TO CHANGE
     features: [
       'Create up to 300 stories',
@@ -105,7 +105,7 @@ export const SUBSCRIPTION_TIERS: Record<string, SubscriptionTier> = {
     badge: 'Best Value',
     color: 'gold',
   },
-};
+} as const;
 
 // UTILITY FUNCTIONS FOR SUBSCRIPTION MANAGEMENT
 export class SubscriptionConfig {
@@ -119,13 +119,15 @@ export class SubscriptionConfig {
   // Get tier by ID (case-insensitive)
   static getTier(tierId: string): SubscriptionTier | null {
     const upperTierId = tierId.toUpperCase();
-    return SUBSCRIPTION_TIERS[upperTierId] || null;
+    const tier = SUBSCRIPTION_TIERS[upperTierId];
+    return tier || null;
   }
 
   // Get story limit for a tier
   static getStoryLimit(tierId: string): number {
     const tier = this.getTier(tierId);
-    return tier ? tier.storyLimit : SUBSCRIPTION_TIERS.FREE.storyLimit;
+    // Use non-null assertion since we know FREE always exists
+    return tier ? tier.storyLimit : SUBSCRIPTION_TIERS.FREE!.storyLimit;
   }
 
   // Get price for a tier
@@ -135,9 +137,9 @@ export class SubscriptionConfig {
   }
 
   // Format price for display
-  static formatPrice(priceInCents: number): string {
-    if (priceInCents === 0) return 'Free';
-    return `$${(priceInCents / 100).toFixed(2)}`;
+  static formatPrice(priceInDollars: number): string {
+    if (priceInDollars === 0) return 'Free';
+    return `${priceInDollars.toFixed(2)}`;
   }
 
   // Get formatted price with period
@@ -182,7 +184,7 @@ export class SubscriptionConfig {
       return null; // Already at highest tier or tier not found
     }
 
-    return allTiers[currentIndex + 1];
+    return allTiers[currentIndex + 1] || null; // Ensure null is returned instead of undefined
   }
 
   // Get tier color class for UI
@@ -226,7 +228,10 @@ export class SubscriptionConfig {
     stripePriceId: string
   ): SubscriptionTier | null {
     const allTiers = this.getAllTiers();
-    return allTiers.find(tier => tier.stripePriceId === stripePriceId) || null;
+    const foundTier = allTiers.find(
+      tier => tier.stripePriceId === stripePriceId
+    );
+    return foundTier || null;
   }
 
   // Validate tier ID

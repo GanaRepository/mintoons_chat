@@ -1,18 +1,43 @@
 // models/AIProvider.ts - AI provider configuration model
 import mongoose, { Schema, Document } from 'mongoose';
-import type { AIConfiguration } from '@types/ai';
+import type { AIConfiguration } from '../types/ai';
 
-export interface AIProviderDocument
-  extends Omit<AIConfiguration, 'apiKey'>,
-    Document {
-  _id: mongoose.Types.ObjectId;
-  apiKey: string;
+export interface AIProviderDocument extends Document {
+  provider: 'openai' | 'anthropic' | 'google';
+  aiModel:
+    | 'gpt-4'
+    | 'gpt-4-turbo'
+    | 'claude-3-opus'
+    | 'claude-3-sonnet'
+    | 'gemini-pro';
+  apiKey?: string; // Make optional for delete operation
+  maxTokens: number;
+  temperature: number;
+  isActive: boolean;
+  costPerToken: number;
+  priority: number;
   usage: {
     requestsToday: number;
     tokensUsed: number;
     costToday: number;
     lastUsed: Date;
   };
+  rateLimits: {
+    requestsPerMinute: number;
+    requestsPerDay: number;
+    tokensPerDay: number;
+  };
+  performance: {
+    averageResponseTime: number;
+    successRate: number;
+    errorCount: number;
+    lastError: {
+      message: string;
+      timestamp: Date;
+    };
+  };
+  createdAt: Date;
+  updatedAt: Date;
   updateUsage(tokens: number, cost: number): Promise<void>;
   resetDailyUsage(): Promise<void>;
 }
@@ -26,7 +51,7 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       index: true,
     },
 
-    model: {
+    aiModel: {
       type: String,
       enum: [
         'gpt-4',
@@ -155,7 +180,7 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
 );
 
 // Indexes
-aiProviderSchema.index({ provider: 1, model: 1 }, { unique: true });
+aiProviderSchema.index({ provider: 1, aiModel: 1 }, { unique: true });
 aiProviderSchema.index({ isActive: 1, priority: -1 });
 
 // Virtual for availability status
@@ -205,7 +230,7 @@ aiProviderSchema.methods.resetDailyUsage = async function (
 aiProviderSchema.statics.getBestAvailable = function () {
   return this.findOne({
     isActive: true,
-    'usage.requestsToday': { $lt: this.rateLimits?.requestsPerDay || 1000 },
+    'usage.requestsToday': { $lt: 1000 }, // Use hardcoded value instead of accessing rateLimits
   }).sort({ priority: -1, 'performance.averageResponseTime': 1 });
 };
 

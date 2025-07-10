@@ -1,9 +1,41 @@
 // models/Comment.ts - Google Docs-style commenting system
 import mongoose, { Schema, Document } from 'mongoose';
-import type { Comment as CommentType } from '@types/comment';
+import type { Comment as CommentType } from '../types/comment';
 
-export interface CommentDocument extends Omit<CommentType, '_id'>, Document {
-  _id: mongoose.Types.ObjectId;
+export interface CommentDocument extends Document {
+  storyId: mongoose.Types.ObjectId;
+  authorId: mongoose.Types.ObjectId;
+  authorName: string;
+  authorRole: 'mentor' | 'admin';
+  content: string;
+  type:
+    | 'grammar'
+    | 'creativity'
+    | 'suggestion'
+    | 'praise'
+    | 'improvement'
+    | 'question';
+  highlightedText?: string;
+  highlightPosition?: {
+    start: number;
+    end: number;
+  };
+  parentCommentId?: mongoose.Types.ObjectId;
+  replies: mongoose.Types.ObjectId[];
+  status: 'active' | 'resolved' | 'archived';
+  resolvedBy?: mongoose.Types.ObjectId;
+  resolvedAt?: Date;
+  isHelpful: boolean;
+  helpfulCount: number;
+  helpfulBy: mongoose.Types.ObjectId[];
+  isPrivate: boolean;
+  isHighPriority: boolean;
+  isFlagged: boolean;
+  flaggedBy?: mongoose.Types.ObjectId;
+  flaggedReason?: string;
+  flaggedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
   addReply(replyData: any): Promise<CommentDocument>;
   markAsResolved(userId: string): Promise<void>;
   markAsHelpful(userId: string): Promise<void>;

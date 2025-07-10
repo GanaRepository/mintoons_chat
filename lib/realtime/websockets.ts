@@ -1,9 +1,10 @@
 // lib/realtime/websockets.ts - Socket.io server-side implementation
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
+import { Socket } from 'socket.io';
 import { getToken } from 'next-auth/jwt';
 import { connectDB } from '@lib/database/connection';
-import User from '@models/User';
+import jwt from 'jsonwebtoken';
 import Story from '@models/Story';
 import Comment from '@models/Comment';
 
@@ -48,10 +49,7 @@ export class WebSocketManager {
           return next(new Error('Authentication error'));
         }
 
-        const decoded = await getToken({
-          token,
-          secret: process.env.NEXTAUTH_SECRET!,
-        });
+        const decoded = jwt.verify(token, process.env.NEXTAUTH_SECRET!) as any;
 
         if (!decoded) {
           return next(new Error('Invalid token'));
@@ -157,8 +155,8 @@ export class WebSocketManager {
     try {
       await connectDB();
 
-      // Verify user can access this story
-      const story = await Story.findById(storyId);
+      // Verify user can access this story - cast to any
+      const story = await (Story as any).findById(storyId).exec();
       if (!story) {
         socket.emit('error', { message: 'Story not found' });
         return;
@@ -188,9 +186,11 @@ export class WebSocketManager {
       });
 
       // Send current story state
-      const comments = await Comment.find({ storyId })
+      const comments = await (Comment as any)
+        .find({ storyId })
         .populate('authorId', 'firstName lastName')
-        .sort({ createdAt: 1 });
+        .sort({ createdAt: 1 })
+        .exec();
 
       socket.emit('storyJoined', {
         storyId,
@@ -247,8 +247,8 @@ export class WebSocketManager {
         return;
       }
 
-      // Create comment
-      const comment = await Comment.create({
+      // Create comment - cast to any
+      const comment = await (Comment as any).create({
         storyId: data.storyId,
         authorId: socket.user!.id,
         authorName: socket.user!.name,
@@ -259,10 +259,10 @@ export class WebSocketManager {
         highlightPosition: data.highlightPosition,
       });
 
-      const populatedComment = await Comment.findById(comment._id).populate(
-        'authorId',
-        'firstName lastName avatar'
-      );
+      const populatedComment = await (Comment as any)
+        .findById(comment._id)
+        .populate('authorId', 'firstName lastName avatar')
+        .exec();
 
       // Broadcast to story room
       this.io?.to(`story:${data.storyId}`).emit('newComment', {
@@ -271,7 +271,7 @@ export class WebSocketManager {
       });
 
       // Notify story author if not in room
-      const story = await Story.findById(data.storyId);
+      const story = await (Story as any).findById(data.storyId).exec();
       if (story) {
         this.sendNotificationToUser(story.authorId.toString(), {
           type: 'mentor_comment',
@@ -297,7 +297,7 @@ export class WebSocketManager {
     try {
       await connectDB();
 
-      const comment = await Comment.findById(data.commentId);
+      const comment = await (Comment as any).findById(data.commentId).exec();
       if (!comment) {
         socket.emit('error', { message: 'Comment not found' });
         return;
@@ -350,7 +350,7 @@ export class WebSocketManager {
     try {
       await connectDB();
 
-      const story = await Story.findById(data.storyId);
+      const story = await (Story as any).findById(data.storyId).exec();
       if (!story) {
         socket.emit('error', { message: 'Story not found' });
         return;

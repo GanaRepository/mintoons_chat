@@ -24,7 +24,7 @@ export async function connectDB(): Promise<void> {
       socketTimeoutMS: 45000,
     });
 
-    connection.isConnected = db.connections[0].readyState;
+    connection.isConnected = db.connections[0]?.readyState ?? 0;
 
     console.log('MongoDB connected successfully');
 
@@ -73,7 +73,11 @@ export async function checkDBHealth(): Promise<{
     }
 
     // Ping the database
-    await mongoose.connection.db.admin().ping();
+    const db = mongoose.connection.db;
+    if (!db) {
+      throw new Error('Database connection is not available');
+    }
+    await db.admin().ping();
 
     return { status: 'healthy', message: 'Database connection is healthy' };
   } catch (error) {

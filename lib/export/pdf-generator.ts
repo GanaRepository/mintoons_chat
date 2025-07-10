@@ -1,5 +1,5 @@
 // lib/export/pdf-generator.ts - PDF generation for stories
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFPage, PDFFont } from 'pdf-lib';
 import { formatDate, formatUserName } from '@utils/formatters';
 
 interface StoryPDFData {
@@ -23,6 +23,22 @@ interface StoryPDFData {
     conflict: string;
     theme: string;
   };
+}
+
+interface StoryElements {
+  genre: string;
+  setting: string;
+  character: string;
+  mood: string;
+  conflict: string;
+  theme: string;
+}
+
+interface Assessment {
+  grammarScore: number;
+  creativityScore: number;
+  overallScore: number;
+  feedback: string;
 }
 
 export class PDFGenerator {
@@ -178,6 +194,7 @@ export class PDFGenerator {
       // Add each story
       for (let i = 0; i < stories.length; i++) {
         const story = stories[i];
+        if (!story) continue; // Skip if story is undefined
 
         // Add story separator page
         const page = pdfDoc.addPage([612, 792]);
@@ -209,7 +226,7 @@ export class PDFGenerator {
           storyDoc.getPageIndices()
         );
 
-        storyPages.forEach(page => pdfDoc.addPage(page));
+        storyPages.forEach((storyPage: PDFPage) => pdfDoc.addPage(storyPage));
       }
 
       return await pdfDoc.save();
@@ -220,9 +237,9 @@ export class PDFGenerator {
   }
 
   private addHeader(
-    page: any,
-    titleFont: any,
-    bodyFont: any,
+    page: PDFPage,
+    titleFont: PDFFont,
+    bodyFont: PDFFont,
     y: number,
     marginX: number
   ): void {
@@ -253,10 +270,10 @@ export class PDFGenerator {
   }
 
   private addStoryElements(
-    page: any,
-    elements: any,
-    bodyFont: any,
-    italicFont: any,
+    page: PDFPage,
+    elements: StoryElements,
+    bodyFont: PDFFont,
+    italicFont: PDFFont,
     startY: number,
     marginX: number,
     pageWidth: number
@@ -287,7 +304,7 @@ export class PDFGenerator {
       const x = marginX + (i % 2 === 0 ? 0 : columnWidth);
       const y = currentY - Math.floor(i / 2) * 15;
 
-      page.drawText(elementsList[i], {
+      page.drawText(elementsList[i] || '', {
         x,
         y,
         size: 11,
@@ -300,11 +317,11 @@ export class PDFGenerator {
   }
 
   private addAssessmentSection(
-    page: any,
-    pdfDoc: any,
-    assessment: any,
-    titleFont: any,
-    bodyFont: any,
+    page: PDFPage,
+    pdfDoc: PDFDocument,
+    assessment: Assessment,
+    titleFont: PDFFont,
+    bodyFont: PDFFont,
     startY: number,
     marginX: number,
     pageWidth: number
@@ -335,7 +352,7 @@ export class PDFGenerator {
       `Overall: ${assessment.overallScore}/100`,
     ];
 
-    scores.forEach(score => {
+    scores.forEach((score: string) => {
       page.drawText(score, {
         x: marginX,
         y: currentY,
@@ -379,9 +396,9 @@ export class PDFGenerator {
   }
 
   private addCoverPage(
-    pdfDoc: any,
-    titleFont: any,
-    bodyFont: any,
+    pdfDoc: PDFDocument,
+    titleFont: PDFFont,
+    bodyFont: PDFFont,
     userName: string,
     storyCount: number
   ): void {
@@ -435,9 +452,9 @@ export class PDFGenerator {
   }
 
   private addTableOfContents(
-    pdfDoc: any,
-    titleFont: any,
-    bodyFont: any,
+    pdfDoc: PDFDocument,
+    titleFont: PDFFont,
+    bodyFont: PDFFont,
     stories: StoryPDFData[]
   ): void {
     const page = pdfDoc.addPage([612, 792]);
@@ -453,7 +470,9 @@ export class PDFGenerator {
     });
     currentY -= 40;
 
-    stories.forEach((story, index) => {
+    stories.forEach((story: StoryPDFData, index: number) => {
+      if (!story) return; // Skip if story is undefined
+
       page.drawText(`${index + 1}. ${story.title}`, {
         x: marginX,
         y: currentY,
@@ -474,10 +493,10 @@ export class PDFGenerator {
     });
   }
 
-  private addFooter(pdfDoc: any, bodyFont: any): void {
+  private addFooter(pdfDoc: PDFDocument, bodyFont: PDFFont): void {
     const pages = pdfDoc.getPages();
 
-    pages.forEach((page, index) => {
+    pages.forEach((page: PDFPage, index: number) => {
       // Add page number
       page.drawText(`Page ${index + 1} of ${pages.length}`, {
         x: 520,
@@ -500,7 +519,7 @@ export class PDFGenerator {
 
   private wrapText(
     text: string,
-    font: any,
+    font: PDFFont,
     size: number,
     maxWidth: number
   ): string[] {

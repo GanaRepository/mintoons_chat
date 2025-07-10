@@ -1,19 +1,94 @@
 // models/Story.ts - Story model with AI collaboration
 import mongoose, { Schema, Document } from 'mongoose';
-import type { Story as StoryType } from '@types/story';
 
-export interface StoryDocument extends Omit<StoryType, '_id'>, Document {
+// Define AITurn interface
+interface AITurn {
+  turnNumber: number;
+  userInput: string;
+  aiResponse: string;
+  responseType: 'continue' | 'plot_twist' | 'new_character' | 'challenge';
+  wordCount: number;
+  timestamp: Date;
+}
+
+export interface StoryDocument extends Document {
   _id: mongoose.Types.ObjectId;
+  title: string;
+  content: string;
+  elements: {
+    genre: string;
+    setting: string;
+    character: string;
+    mood: string;
+    conflict: string;
+    theme: string;
+  };
+  status: 'draft' | 'in_progress' | 'completed' | 'published' | 'archived';
+
+  // Author information
+  authorId: mongoose.Types.ObjectId;
+  authorName: string;
+  authorAge: number;
+
+  // Story metrics
+  wordCount: number;
+  readingTime: number;
+
+  // AI collaboration data
+  aiTurns: AITurn[];
+  currentTurn: number;
+
+  // Assessment reference
+  assessment?: mongoose.Types.ObjectId;
+
+  // Social features
+  isPublic: boolean;
+  likes: number;
+  likedBy: mongoose.Types.ObjectId[];
+  views: number;
+  viewedBy: Array<{
+    userId: mongoose.Types.ObjectId;
+    viewedAt: Date;
+  }>;
+
+  // Mentor feedback
+  mentorId?: mongoose.Types.ObjectId;
+  mentorComments: mongoose.Types.ObjectId[];
+  hasUnreadComments: boolean;
+
+  // Content flags
+  isModerated: boolean;
+  moderationFlags: Array<{
+    type: string;
+    reason: string;
+    flaggedBy: mongoose.Types.ObjectId;
+    flaggedAt: Date;
+  }>;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+  completedAt?: Date;
+
+  // Methods
   calculateWordCount(): void;
   calculateReadingTime(): void;
   addAITurn(
     userInput: string,
     aiResponse: string,
-    responseType: string
+    responseType: AITurn['responseType']
   ): Promise<void>;
   incrementViews(): Promise<void>;
   addLike(userId: string): Promise<void>;
   removeLike(userId: string): Promise<void>;
+}
+
+// Static methods interface
+interface StoryModel extends mongoose.Model<StoryDocument> {
+  getPopularStories(limit?: number): Promise<StoryDocument[]>;
+  getRecentStories(limit?: number): Promise<StoryDocument[]>;
+  searchStories(query: string, filters?: any): Promise<StoryDocument[]>;
 }
 
 const aiTurnSchema = new Schema(
@@ -350,7 +425,7 @@ storySchema.methods.addAITurn = async function (
   this: StoryDocument,
   userInput: string,
   aiResponse: string,
-  responseType: string
+  responseType: AITurn['responseType']
 ): Promise<void> {
   const userWordCount = userInput
     .trim()
@@ -416,7 +491,7 @@ storySchema.methods.removeLike = async function (
   }
 };
 
-// Static method to get popular stories
+// Static methods - using simple function declarations to avoid complex typing
 storySchema.statics.getPopularStories = function (limit: number = 10) {
   return this.find({
     status: 'published',
@@ -431,7 +506,6 @@ storySchema.statics.getPopularStories = function (limit: number = 10) {
     );
 };
 
-// Static method to get recent stories
 storySchema.statics.getRecentStories = function (limit: number = 10) {
   return this.find({
     status: 'published',
@@ -446,7 +520,6 @@ storySchema.statics.getRecentStories = function (limit: number = 10) {
     );
 };
 
-// Static method to search stories
 storySchema.statics.searchStories = function (
   query: string,
   filters: any = {}
@@ -473,8 +546,9 @@ storySchema.statics.searchStories = function (
       high_school: [16, 18],
     };
 
-    if (ageRanges[filters.ageGroup]) {
-      const [min, max] = ageRanges[filters.ageGroup];
+    const ageRange = ageRanges[filters.ageGroup];
+    if (ageRange) {
+      const [min, max] = ageRange;
       searchCriteria.authorAge = { $gte: min, $lte: max };
     }
   }
@@ -487,7 +561,7 @@ storySchema.statics.searchStories = function (
     );
 };
 
-// Export the model
+// Export the model - removing complex interface typing
 const Story =
   mongoose.models.Story || mongoose.model<StoryDocument>('Story', storySchema);
 export default Story;

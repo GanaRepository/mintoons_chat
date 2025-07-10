@@ -174,16 +174,20 @@ export function formatUserName(user: {
   name?: string;
   email?: string;
 }): string {
+  // Check for first and last name
   if (user.firstName && user.lastName) {
     return `${user.firstName} ${user.lastName}`;
   }
 
-  if (user.name) {
+  // Check for full name
+  if (user.name && user.name.trim()) {
     return user.name;
   }
 
-  if (user.email) {
-    return user.email.split('@')[0];
+  // Check for email and extract username
+  if (user.email && user.email.trim()) {
+    const emailParts = user.email.split('@');
+    return emailParts[0] || 'Anonymous User';
   }
 
   return 'Anonymous User';

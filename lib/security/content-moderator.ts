@@ -3,7 +3,7 @@ import { connectDB } from '@lib/database/connection';
 import Story from '@models/Story';
 import Comment from '@models/Comment';
 import User from '@models/User';
-import { Notification } from '@models/Notification';
+import Notification from '@models/Notification';
 import { sendEmail } from '@lib/email/sender';
 
 interface ModerationResult {
@@ -103,8 +103,6 @@ export class ContentModerationSystem {
    * Moderate comment content
    */
   async moderateComment(commentContent: string): Promise<ModerationResult> {
-    // Similar implementation to moderateStory but with stricter rules
-    // since comments are from mentors to children
     try {
       // Initialize result
       const result: ModerationResult = {
@@ -181,7 +179,7 @@ export class ContentModerationSystem {
     try {
       await connectDB();
 
-      const story = await Story.findById(storyId);
+      const story = await (Story as any).findById(storyId).exec();
       if (!story) {
         throw new Error('Story not found');
       }
@@ -194,7 +192,6 @@ export class ContentModerationSystem {
         flaggedBy,
         flaggedAt: new Date(),
       });
-      // Continuing lib/security/content-moderation.ts
 
       await story.save();
 
@@ -224,7 +221,7 @@ export class ContentModerationSystem {
     try {
       await connectDB();
 
-      const comment = await Comment.findById(commentId);
+      const comment = await (Comment as any).findById(commentId).exec();
       if (!comment) {
         throw new Error('Comment not found');
       }
@@ -266,18 +263,22 @@ export class ContentModerationSystem {
       let flaggedComments: any[] = [];
 
       if (contentType === 'story' || contentType === 'all') {
-        flaggedStories = await Story.find({ isModerated: true })
+        flaggedStories = await (Story as any)
+          .find({ isModerated: true })
           .populate('authorId', 'firstName lastName email age')
           .sort({ updatedAt: -1 })
-          .limit(contentType === 'all' ? Math.floor(limit / 2) : limit);
+          .limit(contentType === 'all' ? Math.floor(limit / 2) : limit)
+          .exec();
       }
 
       if (contentType === 'comment' || contentType === 'all') {
-        flaggedComments = await Comment.find({ isFlagged: true })
+        flaggedComments = await (Comment as any)
+          .find({ isFlagged: true })
           .populate('authorId', 'firstName lastName email role')
           .populate('storyId', 'title authorId')
           .sort({ flaggedAt: -1 })
-          .limit(contentType === 'all' ? Math.floor(limit / 2) : limit);
+          .limit(contentType === 'all' ? Math.floor(limit / 2) : limit)
+          .exec();
       }
 
       if (contentType === 'all') {
@@ -324,7 +325,7 @@ export class ContentModerationSystem {
       await connectDB();
 
       if (contentType === 'story') {
-        const story = await Story.findById(contentId);
+        const story = await (Story as any).findById(contentId).exec();
         if (!story) {
           throw new Error('Story not found');
         }
@@ -358,7 +359,7 @@ export class ContentModerationSystem {
           );
         }
       } else {
-        const comment = await Comment.findById(contentId);
+        const comment = await (Comment as any).findById(contentId).exec();
         if (!comment) {
           throw new Error('Comment not found');
         }
@@ -410,7 +411,7 @@ export class ContentModerationSystem {
     try {
       await connectDB();
 
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('User not found');
       }
@@ -419,10 +420,12 @@ export class ContentModerationSystem {
       let riskScore = 0;
 
       // Check for multiple flagged stories
-      const flaggedStoryCount = await Story.countDocuments({
-        authorId: userId,
-        isModerated: true,
-      });
+      const flaggedStoryCount = await (Story as any)
+        .countDocuments({
+          authorId: userId,
+          isModerated: true,
+        })
+        .exec();
 
       if (flaggedStoryCount > 0) {
         reasons.push(`User has ${flaggedStoryCount} flagged stories`);
@@ -431,10 +434,12 @@ export class ContentModerationSystem {
 
       // Check for multiple flagged comments (for mentors)
       if (user.role === 'mentor') {
-        const flaggedCommentCount = await Comment.countDocuments({
-          authorId: userId,
-          isFlagged: true,
-        });
+        const flaggedCommentCount = await (Comment as any)
+          .countDocuments({
+            authorId: userId,
+            isFlagged: true,
+          })
+          .exec();
 
         if (flaggedCommentCount > 0) {
           reasons.push(`Mentor has ${flaggedCommentCount} flagged comments`);
@@ -490,11 +495,11 @@ export class ContentModerationSystem {
   ): Promise<void> {
     try {
       // Get all admin users
-      const admins = await User.find({ role: 'admin' });
+      const admins = await (User as any).find({ role: 'admin' }).exec();
 
       for (const admin of admins) {
         // Create notification
-        await Notification.create({
+        await (Notification as any).create({
           userId: admin._id,
           type: 'content_flagged',
           title: `Flagged ${contentType}`,
@@ -521,7 +526,7 @@ export class ContentModerationSystem {
   ): Promise<void> {
     try {
       // Create notification
-      await Notification.create({
+      await (Notification as any).create({
         userId,
         type: 'content_reviewed',
         title: `Your ${contentType} has been ${result}`,
@@ -535,7 +540,7 @@ export class ContentModerationSystem {
       });
 
       // Get user data for email
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) return;
 
       // Send email notification

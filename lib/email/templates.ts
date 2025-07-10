@@ -476,12 +476,12 @@ function renderWeeklyProgressTemplate(data: TemplateData): EmailTemplate {
             </div>
             
             ${
-              data.highlights.length > 0
+              data.highlights && data.highlights.length > 0
                 ? `
             <div class="section">
               <h3>🌟 This Week's Highlights</h3>
               <div>
-                ${data.highlights.map(highlight => `<div class="list-item">${highlight}</div>`).join('')}
+                ${(data.highlights as string[]).map((highlight: string) => `<div class="list-item">${highlight}</div>`).join('')}
               </div>
             </div>
             `
@@ -489,12 +489,12 @@ function renderWeeklyProgressTemplate(data: TemplateData): EmailTemplate {
             }
             
             ${
-              data.improvementAreas.length > 0
+              data.improvementAreas && data.improvementAreas.length > 0
                 ? `
             <div class="section">
               <h3>💡 Areas to Focus On</h3>
               <div>
-                ${data.improvementAreas.map(area => `<div class="list-item">${area}</div>`).join('')}
+                ${(data.improvementAreas as string[]).map((area: string) => `<div class="list-item">${area}</div>`).join('')}
               </div>
             </div>
             `
@@ -502,12 +502,12 @@ function renderWeeklyProgressTemplate(data: TemplateData): EmailTemplate {
             }
             
             ${
-              data.nextWeekGoals.length > 0
+              data.nextWeekGoals && data.nextWeekGoals.length > 0
                 ? `
             <div class="section">
               <h3>🎯 Goals for Next Week</h3>
               <div>
-                ${data.nextWeekGoals.map(goal => `<div class="list-item">${goal}</div>`).join('')}
+                ${(data.nextWeekGoals as string[]).map((goal: string) => `<div class="list-item">${goal}</div>`).join('')}
               </div>
             </div>
             `
@@ -538,28 +538,28 @@ function renderWeeklyProgressTemplate(data: TemplateData): EmailTemplate {
   🔥 Writing Streak: ${data.weeklyStats.streak} days
   
   ${
-    data.highlights.length > 0
+    data.highlights && data.highlights.length > 0
       ? `
   🌟 This Week's Highlights:
-  ${data.highlights.map(highlight => `- ${highlight}`).join('\n')}
+  ${(data.highlights as string[]).map((highlight: string) => `- ${highlight}`).join('\n')}
   `
       : ''
   }
   
   ${
-    data.improvementAreas.length > 0
+    data.improvementAreas && data.improvementAreas.length > 0
       ? `
   💡 Areas to Focus On:
-  ${data.improvementAreas.map(area => `- ${area}`).join('\n')}
+  ${(data.improvementAreas as string[]).map((area: string) => `- ${area}`).join('\n')}
   `
       : ''
   }
   
   ${
-    data.nextWeekGoals.length > 0
+    data.nextWeekGoals && data.nextWeekGoals.length > 0
       ? `
   🎯 Goals for Next Week:
-  ${data.nextWeekGoals.map(goal => `- ${goal}`).join('\n')}
+  ${(data.nextWeekGoals as string[]).map((goal: string) => `- ${goal}`).join('\n')}
   `
       : ''
   }
@@ -608,7 +608,7 @@ function renderSubscriptionWelcomeTemplate(data: TemplateData): EmailTemplate {
             <div class="feature-list">
               <h3>✨ Your Premium Features:</h3>
               <div>
-                ${data.features.map(feature => `<div class="feature-item">${feature}</div>`).join('')}
+                ${data.features && (data.features as string[]).map((feature: string) => `<div class="feature-item">${feature}</div>`).join('')}
               </div>
             </div>
             
@@ -633,7 +633,7 @@ function renderSubscriptionWelcomeTemplate(data: TemplateData): EmailTemplate {
   Congratulations on upgrading to MINTOONS ${data.tier}! You now have access to amazing premium features:
   
   ✨ Your Premium Features:
-  ${data.features.map(feature => `- ${feature}`).join('\n')}
+  ${data.features && (data.features as string[]).map((feature: string) => `- ${feature}`).join('\n')}
   
   Your subscription is now active and you can start enjoying all these premium benefits right away!
   
@@ -828,7 +828,7 @@ function renderPaymentSuccessTemplate(data: TemplateData): EmailTemplate {
          
          <div class="payment-details">
            <p><strong>Payment Details:</strong></p>
-           <p>Amount: $${data.amount}</p>
+           <p>Amount: ${data.amount}</p>
            <p>Plan: MINTOONS ${data.tier}</p>
            <p>Next billing date: ${new Date(data.nextBillingDate).toLocaleDateString()}</p>
          </div>
@@ -852,7 +852,7 @@ Hi ${data.firstName},
 Your payment has been processed successfully!
 
 Payment Details:
-Amount: $${data.amount}
+Amount: ${data.amount}
 Plan: MINTOONS ${data.tier}
 Next billing date: ${new Date(data.nextBillingDate).toLocaleDateString()}
 
@@ -896,7 +896,7 @@ function renderPaymentFailedTemplate(data: TemplateData): EmailTemplate {
          <h2>Hi ${data.firstName},</h2>
          
          <div class="warning-box">
-           <p><strong>We couldn't process your payment of $${data.amount}</strong></p>
+           <p><strong>We couldn't process your payment of ${data.amount}</strong></p>
            
            <p>This might be due to:</p>
            <div class="reasons">
@@ -927,7 +927,7 @@ function renderPaymentFailedTemplate(data: TemplateData): EmailTemplate {
 
 Hi ${data.firstName},
 
-We couldn't process your payment of $${data.amount}
+We couldn't process your payment of ${data.amount}
 
 This might be due to:
 - Insufficient funds

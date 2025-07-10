@@ -112,3 +112,29 @@ export interface AIAnalytics {
   costByProvider: Record<AIProvider, number>;
   requestsByType: Record<string, number>;
 }
+
+// Document interfaces for MongoDB models
+export interface AIProviderDocument {
+  _id?: string;
+  provider: string;
+  model: string;
+  isActive: boolean;
+  costPerToken: number;
+  performance: {
+    averageResponseTime: number;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface AnalyticsDocument {
+  _id?: string;
+  date: Date;
+  type: string;
+  metrics: {
+    aiRequests: number;
+    aiCost: number;
+  };
+  createdAt?: Date;
+  updatedAt?: Date;
+}

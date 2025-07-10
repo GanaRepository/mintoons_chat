@@ -18,7 +18,7 @@ export class StripeManager {
     try {
       await connectDB();
 
-      const user = await User.findById(userId);
+      const user = await (User as any).findById(userId).exec();
       if (!user) {
         throw new Error('User not found');
       }
@@ -113,7 +113,12 @@ export class StripeManager {
         throw new Error('No subscription found in session');
       }
 
+      // Fix: Add type assertion and null check
       const subscription = session.subscription as Stripe.Subscription;
+      if (!subscription || !subscription.id) {
+        throw new Error('Invalid subscription object');
+      }
+
       const userId = session.metadata?.userId;
       const tierId = session.metadata?.tierId;
 
@@ -124,33 +129,37 @@ export class StripeManager {
       await connectDB();
 
       // Update or create subscription record
-      await Subscription.findOneAndUpdate(
-        { userId },
-        {
-          tier: tierId.toUpperCase(),
-          status: subscription.status,
-          stripeSubscriptionId: subscription.id,
-          stripeCustomerId: subscription.customer as string,
-          stripePriceId: subscription.items.data[0].price.id,
-          currentPeriodStart: new Date(
-            subscription.current_period_start * 1000
-          ),
-          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-        },
-        { upsert: true, new: true }
-      );
+      await (Subscription as any)
+        .findOneAndUpdate(
+          { userId },
+          {
+            tier: tierId.toUpperCase(),
+            status: subscription.status,
+            stripeSubscriptionId: subscription.id,
+            stripeCustomerId: subscription.customer as string,
+            stripePriceId: subscription.items?.data?.[0]?.price?.id,
+            currentPeriodStart: new Date(
+              subscription.current_period_start * 1000
+            ),
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          },
+          { upsert: true, new: true }
+        )
+        .exec();
 
       // Update user's subscription tier
-      await User.findByIdAndUpdate(userId, {
-        subscriptionTier: tierId.toUpperCase(),
-        subscriptionStatus: subscription.status,
-        subscriptionId: subscription.id,
-      });
+      await (User as any)
+        .findByIdAndUpdate(userId, {
+          subscriptionTier: tierId.toUpperCase(),
+          subscriptionStatus: subscription.status,
+          subscriptionId: subscription.id,
+        })
+        .exec();
 
       // Send welcome email
-      const user = await User.findById(userId);
-      if (user) {
+      const user = await (User as any).findById(userId).exec();
+      if (user?.email) {
         await sendEmail({
           to: user.email,
           subject: 'Welcome to MINTOONS Premium!',
@@ -158,7 +167,7 @@ export class StripeManager {
           data: {
             firstName: user.firstName,
             tier: tierId,
-            features: SUBSCRIPTION_TIERS[tierId.toUpperCase()].features,
+            features: SUBSCRIPTION_TIERS[tierId.toUpperCase()]?.features || [],
           },
         });
       }
@@ -182,7 +191,9 @@ export class StripeManager {
     try {
       await connectDB();
 
-      const subscription = await Subscription.findOne({ userId });
+      const subscription = await (Subscription as any)
+        .findOne({ userId })
+        .exec();
       if (!subscription || !subscription.stripeSubscriptionId) {
         throw new Error('No active subscription found');
       }
@@ -195,10 +206,12 @@ export class StripeManager {
         subscription.canceledAt = new Date();
 
         // Downgrade to free tier
-        await User.findByIdAndUpdate(userId, {
-          subscriptionTier: 'FREE',
-          subscriptionStatus: 'canceled',
-        });
+        await (User as any)
+          .findByIdAndUpdate(userId, {
+            subscriptionTier: 'FREE',
+            subscriptionStatus: 'canceled',
+          })
+          .exec();
       } else {
         // Cancel at period end
         await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
@@ -212,8 +225,8 @@ export class StripeManager {
       await subscription.save();
 
       // Send cancellation email
-      const user = await User.findById(userId);
-      if (user) {
+      const user = await (User as any).findById(userId).exec();
+      if (user?.email) {
         await sendEmail({
           to: user.email,
           subject: 'Subscription Cancellation Confirmed',
@@ -238,7 +251,9 @@ export class StripeManager {
     try {
       await connectDB();
 
-      const subscription = await Subscription.findOne({ userId });
+      const subscription = await (Subscription as any)
+        .findOne({ userId })
+        .exec();
       if (!subscription || !subscription.stripeSubscriptionId) {
         throw new Error('No subscription found');
       }
@@ -255,9 +270,11 @@ export class StripeManager {
       await subscription.save();
 
       // Update user status
-      await User.findByIdAndUpdate(userId, {
-        subscriptionStatus: 'active',
-      });
+      await (User as any)
+        .findByIdAndUpdate(userId, {
+          subscriptionStatus: 'active',
+        })
+        .exec();
     } catch (error) {
       console.error('Error reactivating subscription:', error);
       throw error;
@@ -306,9 +323,12 @@ export class StripeManager {
 
     await connectDB();
 
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: invoice.subscription,
-    }).populate('userId');
+    const subscription = await (Subscription as any)
+      .findOne({
+        stripeSubscriptionId: invoice.subscription,
+      })
+      .populate('userId')
+      .exec();
 
     if (subscription && subscription.userId) {
       // Reset usage for new billing period
@@ -316,17 +336,19 @@ export class StripeManager {
 
       // Send payment confirmation email
       const user = subscription.userId as any;
-      await sendEmail({
-        to: user.email,
-        subject: 'Payment Successful - MINTOONS',
-        template: 'payment_success',
-        data: {
-          firstName: user.firstName,
-          amount: (invoice.amount_paid / 100).toFixed(2),
-          tier: subscription.tier,
-          nextBillingDate: subscription.currentPeriodEnd,
-        },
-      });
+      if (user?.email) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Payment Successful - MINTOONS',
+          template: 'payment_success',
+          data: {
+            firstName: user.firstName || 'Valued Customer',
+            amount: (invoice.amount_paid / 100).toFixed(2),
+            tier: subscription.tier,
+            nextBillingDate: subscription.currentPeriodEnd,
+          },
+        });
+      }
     }
   }
 
@@ -335,9 +357,12 @@ export class StripeManager {
 
     await connectDB();
 
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: invoice.subscription,
-    }).populate('userId');
+    const subscription = await (Subscription as any)
+      .findOne({
+        stripeSubscriptionId: invoice.subscription,
+      })
+      .populate('userId')
+      .exec();
 
     if (subscription && subscription.userId) {
       // Update subscription status
@@ -345,22 +370,26 @@ export class StripeManager {
       await subscription.save();
 
       // Update user status
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionStatus: 'past_due',
-      });
+      await (User as any)
+        .findByIdAndUpdate(subscription.userId, {
+          subscriptionStatus: 'past_due',
+        })
+        .exec();
 
       // Send payment failed email
       const user = subscription.userId as any;
-      await sendEmail({
-        to: user.email,
-        subject: 'Payment Failed - MINTOONS',
-        template: 'payment_failed',
-        data: {
-          firstName: user.firstName,
-          amount: (invoice.amount_due / 100).toFixed(2),
-          retryDate: new Date(invoice.next_payment_attempt! * 1000),
-        },
-      });
+      if (user?.email && invoice.next_payment_attempt) {
+        await sendEmail({
+          to: user.email,
+          subject: 'Payment Failed - MINTOONS',
+          template: 'payment_failed',
+          data: {
+            firstName: user.firstName || 'Valued Customer',
+            amount: (invoice.amount_due / 100).toFixed(2),
+            retryDate: new Date(invoice.next_payment_attempt * 1000),
+          },
+        });
+      }
     }
   }
 
@@ -369,9 +398,11 @@ export class StripeManager {
   ): Promise<void> {
     await connectDB();
 
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: stripeSubscription.id,
-    });
+    const subscription = await (Subscription as any)
+      .findOne({
+        stripeSubscriptionId: stripeSubscription.id,
+      })
+      .exec();
 
     if (subscription) {
       subscription.status = stripeSubscription.status;
@@ -386,9 +417,11 @@ export class StripeManager {
       await subscription.save();
 
       // Update user status
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionStatus: stripeSubscription.status,
-      });
+      await (User as any)
+        .findByIdAndUpdate(subscription.userId, {
+          subscriptionStatus: stripeSubscription.status,
+        })
+        .exec();
     }
   }
 
@@ -397,9 +430,11 @@ export class StripeManager {
   ): Promise<void> {
     await connectDB();
 
-    const subscription = await Subscription.findOne({
-      stripeSubscriptionId: stripeSubscription.id,
-    });
+    const subscription = await (Subscription as any)
+      .findOne({
+        stripeSubscriptionId: stripeSubscription.id,
+      })
+      .exec();
 
     if (subscription) {
       subscription.status = 'canceled';
@@ -407,20 +442,22 @@ export class StripeManager {
       await subscription.save();
 
       // Downgrade user to free tier
-      await User.findByIdAndUpdate(subscription.userId, {
-        subscriptionTier: 'FREE',
-        subscriptionStatus: 'canceled',
-      });
+      await (User as any)
+        .findByIdAndUpdate(subscription.userId, {
+          subscriptionTier: 'FREE',
+          subscriptionStatus: 'canceled',
+        })
+        .exec();
 
       // Send subscription ended email
-      const user = await User.findById(subscription.userId);
-      if (user) {
+      const user = await (User as any).findById(subscription.userId).exec();
+      if (user?.email) {
         await sendEmail({
           to: user.email,
           subject: 'Subscription Ended - MINTOONS',
           template: 'subscription_ended',
           data: {
-            firstName: user.firstName,
+            firstName: user.firstName || 'Valued Customer',
             endDate: new Date(),
             renewUrl: `${process.env.APP_URL}/pricing`,
           },
@@ -443,12 +480,19 @@ export class StripeManager {
     try {
       await connectDB();
 
-      const subscription = await Subscription.findOne({ userId });
+      const subscription = await (Subscription as any)
+        .findOne({ userId })
+        .exec();
       if (!subscription) {
         throw new Error('No subscription found');
       }
 
+      // Fix: Check if tier exists and provide fallback
       const tier = SUBSCRIPTION_TIERS[subscription.tier];
+      if (!tier) {
+        throw new Error(`Invalid subscription tier: ${subscription.tier}`);
+      }
+
       const usagePercentage = Math.round(
         (subscription.storiesUsed / tier.storyLimit) * 100
       );
@@ -478,7 +522,9 @@ export class StripeManager {
     try {
       await connectDB();
 
-      const subscription = await Subscription.findOne({ userId });
+      const subscription = await (Subscription as any)
+        .findOne({ userId })
+        .exec();
       if (!subscription) {
         throw new Error('No subscription found');
       }
@@ -486,21 +532,26 @@ export class StripeManager {
       subscription.storiesUsed += 1;
       await subscription.save();
 
-      // Check if approaching limit and send notification
+      // Fix: Check if tier exists and provide fallback
       const tier = SUBSCRIPTION_TIERS[subscription.tier];
+      if (!tier) {
+        console.error(`Invalid subscription tier: ${subscription.tier}`);
+        return; // Exit early if tier is invalid
+      }
+
       const usagePercentage =
         (subscription.storiesUsed / tier.storyLimit) * 100;
 
       if (usagePercentage >= 80 && usagePercentage < 85) {
         // Send 80% usage warning
-        const user = await User.findById(userId);
-        if (user) {
+        const user = await (User as any).findById(userId).exec();
+        if (user?.email) {
           await sendEmail({
             to: user.email,
             subject: 'Story Limit Warning - MINTOONS',
             template: 'usage_warning',
             data: {
-              firstName: user.firstName,
+              firstName: user.firstName || 'Valued Customer',
               storiesUsed: subscription.storiesUsed,
               storyLimit: tier.storyLimit,
               remaining: tier.storyLimit - subscription.storiesUsed,
@@ -510,14 +561,14 @@ export class StripeManager {
         }
       } else if (usagePercentage >= 100) {
         // Send limit reached notification
-        const user = await User.findById(userId);
-        if (user) {
+        const user = await (User as any).findById(userId).exec();
+        if (user?.email) {
           await sendEmail({
             to: user.email,
             subject: 'Story Limit Reached - MINTOONS',
             template: 'limit_reached',
             data: {
-              firstName: user.firstName,
+              firstName: user.firstName || 'Valued Customer',
               tier: subscription.tier,
               resetDate: subscription.currentPeriodEnd,
               upgradeUrl: `${process.env.APP_URL}/pricing`,

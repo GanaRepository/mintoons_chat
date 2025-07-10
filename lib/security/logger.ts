@@ -28,9 +28,9 @@ const logEventSchema = new mongoose.Schema({
   data: { type: mongoose.Schema.Types.Mixed },
 });
 
-// Initialize model
-const LogEvent =
-  mongoose.models.LogEvent || mongoose.model('LogEvent', logEventSchema);
+// Initialize model with casting
+const LogEvent = (mongoose.models.LogEvent ||
+  mongoose.model('LogEvent', logEventSchema)) as any;
 
 export class SecurityLogger {
   private logPath: string;
@@ -188,8 +188,12 @@ export class SecurityLogger {
       }
 
       const [logs, total] = await Promise.all([
-        LogEvent.find(query).sort({ timestamp: -1 }).skip(offset).limit(limit),
-        LogEvent.countDocuments(query),
+        LogEvent.find(query)
+          .sort({ timestamp: -1 })
+          .skip(offset)
+          .limit(limit)
+          .exec(),
+        LogEvent.countDocuments(query).exec(),
       ]);
 
       return { logs, total };
@@ -211,7 +215,7 @@ export class SecurityLogger {
 
       const result = await LogEvent.deleteMany({
         timestamp: { $lt: cutoffDate },
-      });
+      }).exec();
 
       return result.deletedCount || 0;
     } catch (error) {

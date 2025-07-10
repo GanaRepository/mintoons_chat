@@ -1,0 +1,37 @@
+{
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+
+  // ---- Formatting & linting ----
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // ---- NEW: Auto-save ----
+  "files.autoSave": "afterDelay", // off | afterDelay | onFocusChange | onWindowChange
+  "files.autoSaveDelay": 1000, // delay in ms (only used with afterDelay)
+
+  // ---- Language associations ----
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+  "tailwindCSS.includeLanguages": {
+    "typescript": "typescript",
+    "typescriptreact": "typescriptreact"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+    ["cx\\(([^)]*)\\)", "(?:'|\"|`)([^']*)(?:'|\"|`)"]
+  ],
+  "emmet.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
+  },
+
+  // ---- Editor behaviour ----
+  "editor.quickSuggestions": { "strings": true },
+  "editor.autoClosingBrackets": "always",
+  "editor.autoClosingQuotes": "always"
+}

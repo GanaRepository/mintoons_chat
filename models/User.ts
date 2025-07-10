@@ -1,15 +1,76 @@
 // models/User.ts - User model with role-based features
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import type { User as UserType } from '@types/user';
 
-export interface UserDocument extends Omit<UserType, '_id'>, Document {
+export interface UserDocument extends Document {
   _id: mongoose.Types.ObjectId;
+  firstName: string;
+  lastName: string;
+  email: string;
   password: string;
+  age: number;
+  role: 'child' | 'mentor' | 'admin';
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
+  isActive: boolean;
+  emailVerified: boolean;
+  avatar?: string;
+  bio?: string;
+  parentEmail?: string;
+
+  // Subscription details
+  stripeCustomerId?: string;
+  subscriptionId?: string;
+  subscriptionStatus:
+    | 'active'
+    | 'canceled'
+    | 'past_due'
+    | 'trialing'
+    | 'incomplete';
+  subscriptionExpires?: Date;
+
+  // Story tracking
+  storyCount: number;
+  lastStoryCreated?: Date;
+
+  // Gamification
+  totalPoints: number;
+  level: number;
+  streak: number;
+  lastActiveDate: Date;
+
+  // Mentor-specific fields
+  assignedStudents: mongoose.Types.ObjectId[];
+  mentoringSince?: Date;
+
+  // Email preferences
+  emailPreferences: {
+    notifications: boolean;
+    mentorFeedback: boolean;
+    achievements: boolean;
+    weeklyReports: boolean;
+    marketing: boolean;
+  };
+
+  // Security
+  lastLoginAt?: Date;
+  loginAttempts: number;
+  lockUntil?: Date;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Methods
   comparePassword(candidatePassword: string): Promise<boolean>;
   incrementStoryCount(): Promise<void>;
   updateStreak(): Promise<void>;
   addPoints(points: number): Promise<void>;
+}
+
+// Static methods interface
+interface UserModel extends mongoose.Model<UserDocument> {
+  findByEmail(email: string): Promise<UserDocument | null>;
+  getLeaderboard(ageGroup?: string, limit?: number): Promise<UserDocument[]>;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -205,8 +266,8 @@ const userSchema = new Schema<UserDocument>(
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {
-        delete ret.password;
-        delete ret.__v;
+        delete (ret as any).password;
+        delete (ret as any).__v;
         return ret;
       },
     },
@@ -239,20 +300,42 @@ userSchema.virtual('ageGroup').get(function (this: UserDocument) {
 
 // Virtual for subscription status
 userSchema.virtual('canCreateStory').get(function (this: UserDocument) {
-  const { SubscriptionConfig } = require('@config/subscription');
-  return SubscriptionConfig.canCreateStory(
-    this.subscriptionTier,
-    this.storyCount
-  );
+  try {
+    const { SubscriptionConfig } = require('@config/subscription');
+    return SubscriptionConfig.canCreateStory(
+      this.subscriptionTier,
+      this.storyCount
+    );
+  } catch (error) {
+    // Fallback if config is not available
+    const limits: Record<string, number> = {
+      FREE: 50,
+      BASIC: 100,
+      PREMIUM: 200,
+      PRO: 300,
+    };
+    return this.storyCount < (limits[this.subscriptionTier] || 50);
+  }
 });
 
 // Virtual for remaining stories
 userSchema.virtual('remainingStories').get(function (this: UserDocument) {
-  const { SubscriptionConfig } = require('@config/subscription');
-  return SubscriptionConfig.getRemainingStories(
-    this.subscriptionTier,
-    this.storyCount
-  );
+  try {
+    const { SubscriptionConfig } = require('@config/subscription');
+    return SubscriptionConfig.getRemainingStories(
+      this.subscriptionTier,
+      this.storyCount
+    );
+  } catch (error) {
+    // Fallback if config is not available
+    const limits: Record<string, number> = {
+      FREE: 50,
+      BASIC: 100,
+      PREMIUM: 200,
+      PRO: 300,
+    };
+    return Math.max(0, (limits[this.subscriptionTier] || 50) - this.storyCount);
+  }
 });
 
 // Pre-save middleware to hash password
@@ -337,12 +420,12 @@ userSchema.methods.addPoints = async function (
   await this.save();
 };
 
-// Static method to find by email
+// Static method to find by email - simplified typing
 userSchema.statics.findByEmail = function (email: string) {
   return this.findOne({ email: email.toLowerCase() }).select('+password');
 };
 
-// Static method to get leaderboard
+// Static method to get leaderboard - simplified typing
 userSchema.statics.getLeaderboard = function (
   ageGroup?: string,
   limit: number = 10
@@ -359,8 +442,9 @@ userSchema.statics.getLeaderboard = function (
       high_school: [16, 18],
     };
 
-    if (ageRanges[ageGroup]) {
-      const [min, max] = ageRanges[ageGroup];
+    const ageRange = ageRanges[ageGroup];
+    if (ageRange) {
+      const [min, max] = ageRange;
       match.age = { $gte: min, $lte: max };
     }
   }
@@ -373,7 +457,7 @@ userSchema.statics.getLeaderboard = function (
     );
 };
 
-// Export the model
+// Export the model - simplified typing
 const User =
   mongoose.models.User || mongoose.model<UserDocument>('User', userSchema);
 export default User;

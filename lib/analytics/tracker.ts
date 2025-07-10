@@ -15,6 +15,35 @@ interface TrackingEvent {
   referrer?: string;
 }
 
+// Define interfaces for better type safety
+interface EventCounts {
+  [eventType: string]: number;
+}
+
+interface UserEvents {
+  [eventType: string]: Set<string>;
+}
+
+interface SessionAnalytics {
+  totalEvents: number;
+  eventTypes: EventCounts;
+  sessions: Record<string, any[]>;
+  dailyActivity: Record<string, number>;
+  mostActiveHours: Record<number, number>;
+}
+
+interface EventLogDocument {
+  eventType: string;
+  userId?: string;
+  data: Record<string, any>;
+  timestamp: Date;
+  sessionId?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  path?: string;
+  referrer?: string;
+}
+
 // Event types for tracking
 export const TRACKING_EVENTS = {
   // User events
@@ -282,14 +311,20 @@ export class AnalyticsTracker {
       await connectDB();
 
       // Group events by day for analytics aggregation
-      const eventsByDay: Record<string, any[]> = {};
+      const eventsByDay: Record<string, TrackingEvent[]> = {};
 
-      eventsToProcess.forEach(event => {
-        const dateKey = event.timestamp.toISOString().split('T')[0];
-        if (!eventsByDay[dateKey]) {
-          eventsByDay[dateKey] = [];
+      eventsToProcess.forEach((event: TrackingEvent) => {
+        const dateKey = event.timestamp
+          ? event.timestamp.toISOString().split('T')[0]
+          : null;
+        if (dateKey) {
+          if (!eventsByDay[dateKey]) {
+            eventsByDay[dateKey] = [];
+          }
+          eventsByDay[dateKey].push(event);
+        } else {
+          console.warn('Event with invalid timestamp:', event);
         }
-        eventsByDay[dateKey].push(event);
       });
 
       // Process each day's events
@@ -317,11 +352,11 @@ export class AnalyticsTracker {
     date.setHours(0, 0, 0, 0);
 
     // Aggregate events by type
-    const eventCounts: Record<string, number> = {};
-    const userEvents: Record<string, Set<string>> = {};
+    const eventCounts: EventCounts = {};
+    const userEvents: UserEvents = {};
     let totalEvents = 0;
 
-    events.forEach(event => {
+    events.forEach((event: TrackingEvent) => {
       totalEvents++;
 
       // Count events by type
@@ -330,23 +365,25 @@ export class AnalyticsTracker {
       // Track unique users per event type
       if (event.userId) {
         if (!userEvents[event.eventType]) {
-          userEvents[event.eventType] = new Set();
+          userEvents[event.eventType] = new Set<string>();
         }
-        userEvents[event.eventType].add(event.userId);
+        userEvents[event.eventType]!.add(event.userId);
       }
     });
 
-    // Update analytics record
-    await Analytics.findOneAndUpdate(
+    // Update analytics record with proper type casting
+    await (Analytics as any).findOneAndUpdate(
       { date, type: 'daily' },
       {
         $inc: {
           'metrics.totalEvents': totalEvents,
           ...Object.fromEntries(
-            Object.entries(eventCounts).map(([eventType, count]) => [
-              `eventCounts.${eventType}`,
-              count,
-            ])
+            Object.entries(eventCounts).map(
+              ([eventType, count]: [string, number]) => [
+                `eventCounts.${eventType}`,
+                count,
+              ]
+            )
           ),
         },
         $set: {
@@ -357,32 +394,53 @@ export class AnalyticsTracker {
     );
 
     // Store individual events for detailed analysis (optional, for recent events only)
-    const recentEvents = events.filter(event => {
+    const recentEvents = events.filter((event: TrackingEvent) => {
       const eventAge = Date.now() - event.timestamp.getTime();
       return eventAge < 7 * 24 * 60 * 60 * 1000; // Keep for 7 days
     });
 
     if (recentEvents.length > 0) {
-      // Store in a separate collection for detailed analysis
-      const EventLog =
-        mongoose.models.EventLog ||
-        mongoose.model(
-          'EventLog',
-          new mongoose.Schema({
-            eventType: String,
-            userId: String,
-            data: mongoose.Schema.Types.Mixed,
-            timestamp: Date,
-            sessionId: String,
-            ipAddress: String,
-            userAgent: String,
-            path: String,
-            referrer: String,
-          })
-        );
-
-      await EventLog.insertMany(recentEvents);
+      try {
+        // Get or create EventLog model
+        const EventLog = this.getEventLogModel();
+        await (EventLog as any).insertMany(recentEvents);
+      } catch (error) {
+        console.error('Error inserting events to EventLog:', error);
+      }
     }
+  }
+
+  /**
+   * Get or create EventLog model
+   */
+  private getEventLogModel() {
+    if (mongoose.models.EventLog) {
+      return mongoose.models.EventLog;
+    }
+
+    const eventLogSchema = new mongoose.Schema(
+      {
+        eventType: { type: String, required: true, index: true },
+        userId: { type: String, index: true },
+        data: { type: mongoose.Schema.Types.Mixed, default: {} },
+        timestamp: { type: Date, required: true, index: true },
+        sessionId: { type: String, index: true },
+        ipAddress: String,
+        userAgent: String,
+        path: String,
+        referrer: String,
+      },
+      {
+        timestamps: true,
+      }
+    );
+
+    // Add indexes for better query performance
+    eventLogSchema.index({ eventType: 1, timestamp: -1 });
+    eventLogSchema.index({ userId: 1, timestamp: -1 });
+    eventLogSchema.index({ sessionId: 1, timestamp: -1 });
+
+    return mongoose.model<EventLogDocument>('EventLog', eventLogSchema);
   }
 
   /**
@@ -391,23 +449,36 @@ export class AnalyticsTracker {
   async getUserSessionAnalytics(
     userId: string,
     days: number = 30
-  ): Promise<any> {
+  ): Promise<SessionAnalytics | null> {
     try {
       await connectDB();
 
       const startDate = new Date();
       startDate.setDate(startDate.getDate() - days);
 
-      const EventLog = mongoose.models.EventLog;
-      if (!EventLog) return null;
+      const EventLog = this.getEventLogModel();
 
-      const userEvents = await EventLog.find({
-        userId,
-        timestamp: { $gte: startDate },
-      }).sort({ timestamp: -1 });
+      const userEvents = await (EventLog as any)
+        .find({
+          userId,
+          timestamp: { $gte: startDate },
+        })
+        .sort({ timestamp: -1 })
+        .lean()
+        .exec();
+
+      if (!userEvents || userEvents.length === 0) {
+        return {
+          totalEvents: 0,
+          eventTypes: {},
+          sessions: {},
+          dailyActivity: {},
+          mostActiveHours: {},
+        };
+      }
 
       // Analyze user behavior
-      const sessionAnalytics = {
+      const sessionAnalytics: SessionAnalytics = {
         totalEvents: userEvents.length,
         eventTypes: {},
         sessions: {},
@@ -415,7 +486,7 @@ export class AnalyticsTracker {
         mostActiveHours: {},
       };
 
-      userEvents.forEach(event => {
+      (userEvents as EventLogDocument[]).forEach((event: EventLogDocument) => {
         // Count by event type
         sessionAnalytics.eventTypes[event.eventType] =
           (sessionAnalytics.eventTypes[event.eventType] || 0) + 1;
@@ -425,16 +496,20 @@ export class AnalyticsTracker {
           if (!sessionAnalytics.sessions[event.sessionId]) {
             sessionAnalytics.sessions[event.sessionId] = [];
           }
-          sessionAnalytics.sessions[event.sessionId].push(event);
+          sessionAnalytics.sessions[event.sessionId]!.push(event);
         }
 
         // Daily activity
-        const dateKey = event.timestamp.toISOString().split('T')[0];
-        sessionAnalytics.dailyActivity[dateKey] =
-          (sessionAnalytics.dailyActivity[dateKey] || 0) + 1;
+        const dateKey = event.timestamp
+          ? event.timestamp.toISOString().split('T')[0]
+          : '';
+        if (dateKey) {
+          sessionAnalytics.dailyActivity[dateKey] =
+            (sessionAnalytics.dailyActivity[dateKey] || 0) + 1;
+        }
 
         // Hour of day activity
-        const hour = event.timestamp.getHours();
+        const hour = event.timestamp ? event.timestamp.getHours() : 0;
         sessionAnalytics.mostActiveHours[hour] =
           (sessionAnalytics.mostActiveHours[hour] || 0) + 1;
       });
@@ -447,10 +522,115 @@ export class AnalyticsTracker {
   }
 
   /**
+   * Get event statistics for a date range
+   */
+  async getEventStatistics(
+    startDate: Date,
+    endDate: Date,
+    eventTypes?: string[]
+  ): Promise<{
+    totalEvents: number;
+    eventsByType: EventCounts;
+    uniqueUsers: number;
+    topUsers: Array<{ userId: string; eventCount: number }>;
+  } | null> {
+    try {
+      await connectDB();
+
+      const EventLog = this.getEventLogModel();
+
+      const matchCriteria: any = {
+        timestamp: { $gte: startDate, $lte: endDate },
+      };
+
+      if (eventTypes && eventTypes.length > 0) {
+        matchCriteria.eventType = { $in: eventTypes };
+      }
+
+      const [eventStats, uniqueUsers, topUsers] = await Promise.all([
+        // Event counts by type
+        (EventLog as any).aggregate([
+          { $match: matchCriteria },
+          { $group: { _id: '$eventType', count: { $sum: 1 } } },
+        ]),
+
+        // Unique users count
+        (EventLog as any).distinct('userId', matchCriteria),
+
+        // Top users by event count
+        (EventLog as any).aggregate([
+          { $match: { ...matchCriteria, userId: { $exists: true } } },
+          { $group: { _id: '$userId', eventCount: { $sum: 1 } } },
+          { $sort: { eventCount: -1 } },
+          { $limit: 10 },
+          { $project: { userId: '$_id', eventCount: 1, _id: 0 } },
+        ]),
+      ]);
+
+      const eventsByType: EventCounts = {};
+      let totalEvents = 0;
+
+      (eventStats as any[]).forEach((stat: any) => {
+        eventsByType[stat._id] = stat.count;
+        totalEvents += stat.count;
+      });
+
+      return {
+        totalEvents,
+        eventsByType,
+        uniqueUsers: (uniqueUsers as string[]).length,
+        topUsers: topUsers as Array<{ userId: string; eventCount: number }>,
+      };
+    } catch (error) {
+      console.error('Error getting event statistics:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clean up old events
+   */
+  async cleanupOldEvents(daysToKeep: number = 30): Promise<void> {
+    try {
+      await connectDB();
+
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
+
+      const EventLog = this.getEventLogModel();
+      const result = await (EventLog as any).deleteMany({
+        timestamp: { $lt: cutoffDate },
+      });
+
+      const deletedCount =
+        result && typeof result.deletedCount === 'number'
+          ? result.deletedCount
+          : 0;
+      console.log(`Cleaned up ${deletedCount} old events`);
+    } catch (error) {
+      console.error('Error cleaning up old events:', error);
+    }
+  }
+
+  /**
    * Force flush events (for testing/shutdown)
    */
   async forceFlush(): Promise<void> {
     await this.flush();
+  }
+
+  /**
+   * Get current queue size
+   */
+  getQueueSize(): number {
+    return this.eventQueue.length;
+  }
+
+  /**
+   * Check if currently processing
+   */
+  isCurrentlyProcessing(): boolean {
+    return this.isProcessing;
   }
 }
 

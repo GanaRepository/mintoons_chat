@@ -1,15 +1,54 @@
 // models/Subscription.ts - Subscription and billing model
 import mongoose, { Schema, Document } from 'mongoose';
-import type { UserSubscription } from '@types/subscription';
 
-export interface SubscriptionDocument
-  extends Omit<UserSubscription, '_id'>,
-    Document {
+export interface SubscriptionDocument extends Document {
   _id: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
+  tier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
+  status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
+
+  // Stripe details
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  stripePriceId?: string;
+
+  // Billing
+  currentPeriodStart: Date;
+  currentPeriodEnd: Date;
+  cancelAtPeriodEnd: boolean;
+  canceledAt?: Date;
+
+  // Usage tracking
+  storiesUsed: number;
+  storiesRemaining: number;
+
+  // Trial information
+  trialStart?: Date;
+  trialEnd?: Date;
+
+  // Billing history reference
+  lastPaymentDate?: Date;
+  nextPaymentDate?: Date;
+
+  // Proration and credits
+  prorationCredit: number;
+
+  // Timestamps
+  createdAt: Date;
+  updatedAt: Date;
+
+  // Methods
   updateUsage(storiesUsed: number): Promise<void>;
   resetUsage(): Promise<void>;
-  cancelAtPeriodEnd(): Promise<void>;
+  cancelSubscriptionAtPeriodEnd(): Promise<void>;
   reactivate(): Promise<void>;
+}
+
+// Static methods interface
+interface SubscriptionModel extends mongoose.Model<SubscriptionDocument> {
+  findExpiring(days?: number): Promise<SubscriptionDocument[]>;
+  findOverdue(): Promise<SubscriptionDocument[]>;
+  getStats(): Promise<any[]>;
 }
 
 const subscriptionSchema = new Schema<SubscriptionDocument>(
@@ -144,9 +183,21 @@ subscriptionSchema.virtual('daysUntilRenewal').get(function (
 subscriptionSchema.virtual('usagePercentage').get(function (
   this: SubscriptionDocument
 ) {
-  const { SubscriptionConfig } = require('@config/subscription');
-  const limit = SubscriptionConfig.getStoryLimit(this.tier);
-  return Math.min(100, Math.round((this.storiesUsed / limit) * 100));
+  try {
+    const { SubscriptionConfig } = require('@config/subscription');
+    const limit = SubscriptionConfig.getStoryLimit(this.tier);
+    return Math.min(100, Math.round((this.storiesUsed / limit) * 100));
+  } catch (error) {
+    // Fallback if config is not available
+    const limits: Record<string, number> = {
+      FREE: 50,
+      BASIC: 100,
+      PREMIUM: 200,
+      PRO: 300,
+    };
+    const limit = limits[this.tier] || 50;
+    return Math.min(100, Math.round((this.storiesUsed / limit) * 100));
+  }
 });
 
 // Virtual for can create story
@@ -158,9 +209,21 @@ subscriptionSchema.virtual('canCreateStory').get(function (
 
 // Pre-save middleware to calculate remaining stories
 subscriptionSchema.pre('save', function (this: SubscriptionDocument, next) {
-  const { SubscriptionConfig } = require('@config/subscription');
-  const limit = SubscriptionConfig.getStoryLimit(this.tier);
-  this.storiesRemaining = Math.max(0, limit - this.storiesUsed);
+  try {
+    const { SubscriptionConfig } = require('@config/subscription');
+    const limit = SubscriptionConfig.getStoryLimit(this.tier);
+    this.storiesRemaining = Math.max(0, limit - this.storiesUsed);
+  } catch (error) {
+    // Fallback if config is not available
+    const limits: Record<string, number> = {
+      FREE: 50,
+      BASIC: 100,
+      PREMIUM: 200,
+      PRO: 300,
+    };
+    const limit = limits[this.tier] || 50;
+    this.storiesRemaining = Math.max(0, limit - this.storiesUsed);
+  }
   next();
 });
 
@@ -171,7 +234,7 @@ subscriptionSchema.pre(
     if (this.isModified('tier') || this.isModified('status')) {
       try {
         const User = mongoose.model('User');
-        await User.findByIdAndUpdate(this.userId, {
+        await (User as any).findByIdAndUpdate(this.userId, {
           subscriptionTier: this.tier,
           subscriptionStatus: this.status,
         });
@@ -210,8 +273,8 @@ subscriptionSchema.methods.resetUsage = async function (
   await this.save();
 };
 
-// Method to cancel at period end
-subscriptionSchema.methods.cancelAtPeriodEnd = async function (
+// Method to cancel at period end - renamed to avoid conflict
+subscriptionSchema.methods.cancelSubscriptionAtPeriodEnd = async function (
   this: SubscriptionDocument
 ): Promise<void> {
   this.cancelAtPeriodEnd = true;
@@ -229,7 +292,7 @@ subscriptionSchema.methods.reactivate = async function (
   await this.save();
 };
 
-// Static method to find expiring subscriptions
+// Static methods - simplified typing
 subscriptionSchema.statics.findExpiring = function (days: number = 3) {
   const futureDate = new Date();
   futureDate.setDate(futureDate.getDate() + days);
@@ -241,7 +304,6 @@ subscriptionSchema.statics.findExpiring = function (days: number = 3) {
   }).populate('userId', 'firstName lastName email');
 };
 
-// Static method to find overdue subscriptions
 subscriptionSchema.statics.findOverdue = function () {
   const now = new Date();
 
@@ -251,7 +313,6 @@ subscriptionSchema.statics.findOverdue = function () {
   }).populate('userId', 'firstName lastName email');
 };
 
-// Static method to get subscription statistics
 subscriptionSchema.statics.getStats = function () {
   return this.aggregate([
     {

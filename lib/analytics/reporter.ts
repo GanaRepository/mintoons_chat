@@ -63,6 +63,29 @@ interface ContentMetrics {
   contentQualityTrends: any[];
 }
 
+// Define aggregation result interfaces
+interface StoryStatsResult {
+  _id: null;
+  avgWordCount: number;
+  totalWords: number;
+  avgAssessmentScore?: number;
+}
+
+interface TierBreakdownResult {
+  _id: string;
+  count: number;
+}
+
+interface AgeBreakdownResult {
+  _id: string;
+  count: number;
+}
+
+interface GenreResult {
+  _id: string;
+  count: number;
+}
+
 export class AnalyticsReporter {
   /**
    * Generate dashboard metrics
@@ -101,20 +124,20 @@ export class AnalyticsReporter {
         subscriptions,
         storyStats,
       ] = await Promise.all([
-        User.countDocuments({ isActive: true }),
-        User.countDocuments({
+        (User as any).countDocuments({ isActive: true }),
+        (User as any).countDocuments({
           isActive: true,
           lastActiveDate: { $gte: startDate },
         }),
-        User.countDocuments({
+        (User as any).countDocuments({
           createdAt: { $gte: startDate },
         }),
-        Story.countDocuments(),
-        Story.countDocuments({
+        (Story as any).countDocuments(),
+        (Story as any).countDocuments({
           status: { $in: ['completed', 'published'] },
         }),
-        Subscription.find({ status: 'active' }),
-        Story.aggregate([
+        (Subscription as any).find({ status: 'active' }).lean().exec(),
+        (Story as any).aggregate([
           {
             $group: {
               _id: null,
@@ -122,25 +145,30 @@ export class AnalyticsReporter {
               totalWords: { $sum: '$wordCount' },
             },
           },
-        ]),
+        ]) as Promise<StoryStatsResult[]>,
       ]);
 
-      // Calculate revenue
-      const revenue = subscriptions.reduce((total, sub) => {
-        const tier = SUBSCRIPTION_TIERS[sub.tier];
-        return total + (tier ? tier.price / 100 : 0);
-      }, 0);
+      // Calculate revenue with type safety
+      const revenue = (subscriptions as any[]).reduce(
+        (total: number, sub: any) => {
+          const tier =
+            SUBSCRIPTION_TIERS[sub.tier as keyof typeof SUBSCRIPTION_TIERS];
+          return total + (tier ? tier.price : 0);
+        },
+        0
+      );
 
       // Calculate conversion rate (paying users / total users)
-      const payingUsers = subscriptions.filter(
-        sub => sub.tier !== 'FREE'
+      const payingUsers = (subscriptions as any[]).filter(
+        (sub: any) => sub.tier !== 'FREE'
       ).length;
       const conversionRate =
         totalUsers > 0 ? (payingUsers / totalUsers) * 100 : 0;
 
       // Calculate engagement metrics
       const avgStoriesPerUser = totalUsers > 0 ? totalStories / totalUsers : 0;
-      const avgWordsPerStory = storyStats[0]?.avgWordCount || 0;
+      const storyStatsTyped = storyStats as StoryStatsResult[];
+      const avgWordsPerStory = storyStatsTyped[0]?.avgWordCount || 0;
 
       return {
         totalUsers,
@@ -170,31 +198,42 @@ export class AnalyticsReporter {
     try {
       await connectDB();
 
-      const subscriptions = await Subscription.find({
-        status: 'active',
-        createdAt: { $gte: options.startDate, $lte: options.endDate },
-      });
+      const subscriptions = await (Subscription as any)
+        .find({
+          status: 'active',
+          createdAt: { $gte: options.startDate, $lte: options.endDate },
+        })
+        .lean()
+        .exec();
 
       // Calculate total revenue
-      const totalRevenue = subscriptions.reduce((total, sub) => {
-        const tier = SUBSCRIPTION_TIERS[sub.tier];
-        return total + (tier ? tier.price / 100 : 0);
-      }, 0);
+      const totalRevenue = (subscriptions as any[]).reduce(
+        (total: number, sub: any) => {
+          const tier =
+            SUBSCRIPTION_TIERS[sub.tier as keyof typeof SUBSCRIPTION_TIERS];
+          return total + (tier ? tier.price : 0);
+        },
+        0
+      );
 
       // Calculate MRR (Monthly Recurring Revenue)
-      const monthlyRecurringRevenue = subscriptions.reduce((total, sub) => {
-        const tier = SUBSCRIPTION_TIERS[sub.tier];
-        return total + (tier ? tier.price / 100 : 0);
-      }, 0);
+      const monthlyRecurringRevenue = (subscriptions as any[]).reduce(
+        (total: number, sub: any) => {
+          const tier =
+            SUBSCRIPTION_TIERS[sub.tier as keyof typeof SUBSCRIPTION_TIERS];
+          return total + (tier ? tier.price : 0);
+        },
+        0
+      );
 
       // Calculate ARPU (Average Revenue Per User)
-      const totalUsers = await User.countDocuments({ isActive: true });
+      const totalUsers = await (User as any).countDocuments({ isActive: true });
       const averageRevenuePerUser =
         totalUsers > 0 ? totalRevenue / totalUsers : 0;
 
       // Subscription breakdown
-      const subscriptionBreakdown = subscriptions.reduce(
-        (breakdown, sub) => {
+      const subscriptionBreakdown = (subscriptions as any[]).reduce(
+        (breakdown: Record<string, number>, sub: any) => {
           breakdown[sub.tier] = (breakdown[sub.tier] || 0) + 1;
           return breakdown;
         },
@@ -233,19 +272,19 @@ export class AnalyticsReporter {
         usersByAge,
         topUsers,
       ] = await Promise.all([
-        User.countDocuments({ isActive: true }),
-        User.countDocuments({
+        (User as any).countDocuments({ isActive: true }),
+        (User as any).countDocuments({
           isActive: true,
           lastActiveDate: { $gte: options.startDate },
         }),
-        User.countDocuments({
+        (User as any).countDocuments({
           createdAt: { $gte: options.startDate, $lte: options.endDate },
         }),
-        User.aggregate([
+        (User as any).aggregate([
           { $match: { isActive: true } },
           { $group: { _id: '$subscriptionTier', count: { $sum: 1 } } },
-        ]),
-        User.aggregate([
+        ]) as Promise<TierBreakdownResult[]>,
+        (User as any).aggregate([
           { $match: { isActive: true } },
           {
             $group: {
@@ -262,24 +301,27 @@ export class AnalyticsReporter {
               count: { $sum: 1 },
             },
           },
-        ]),
-        User.find({ isActive: true, role: 'child' })
+        ]) as Promise<AgeBreakdownResult[]>,
+        (User as any)
+          .find({ isActive: true, role: 'child' })
           .sort({ totalPoints: -1 })
           .limit(10)
-          .select('firstName lastName totalPoints level storyCount'),
+          .select('firstName lastName totalPoints level storyCount')
+          .lean()
+          .exec(),
       ]);
 
-      // Convert aggregation results to objects
-      const tierBreakdown = usersByTier.reduce(
-        (obj, item) => {
+      // Convert aggregation results to objects with type safety
+      const tierBreakdown = (usersByTier as TierBreakdownResult[]).reduce(
+        (obj: Record<string, number>, item: TierBreakdownResult) => {
           obj[item._id] = item.count;
           return obj;
         },
         {} as Record<string, number>
       );
 
-      const ageBreakdown = usersByAge.reduce(
-        (obj, item) => {
+      const ageBreakdown = (usersByAge as AgeBreakdownResult[]).reduce(
+        (obj: Record<string, number>, item: AgeBreakdownResult) => {
           obj[item._id] = item.count;
           return obj;
         },
@@ -292,7 +334,7 @@ export class AnalyticsReporter {
         newUsers,
         usersByTier: tierBreakdown,
         usersByAge: ageBreakdown,
-        topUsersByPoints: topUsers,
+        topUsersByPoints: topUsers as any[],
         retentionRate: 0, // Would need historical data
       };
     } catch (error) {
@@ -315,14 +357,14 @@ export class AnalyticsReporter {
         popularGenres,
         topStories,
       ] = await Promise.all([
-        Story.countDocuments({
+        (Story as any).countDocuments({
           createdAt: { $gte: options.startDate, $lte: options.endDate },
         }),
-        Story.countDocuments({
+        (Story as any).countDocuments({
           status: { $in: ['completed', 'published'] },
           createdAt: { $gte: options.startDate, $lte: options.endDate },
         }),
-        Story.aggregate([
+        (Story as any).aggregate([
           {
             $match: {
               createdAt: { $gte: options.startDate, $lte: options.endDate },
@@ -335,8 +377,8 @@ export class AnalyticsReporter {
               avgAssessmentScore: { $avg: '$assessment.overallScore' },
             },
           },
-        ]),
-        Story.aggregate([
+        ]) as Promise<StoryStatsResult[]>,
+        (Story as any).aggregate([
           {
             $match: {
               createdAt: { $gte: options.startDate, $lte: options.endDate },
@@ -345,27 +387,33 @@ export class AnalyticsReporter {
           { $group: { _id: '$elements.genre', count: { $sum: 1 } } },
           { $sort: { count: -1 } },
           { $limit: 10 },
-        ]),
-        Story.find({
-          status: 'published',
-          isPublic: true,
-          createdAt: { $gte: options.startDate, $lte: options.endDate },
-        })
+        ]) as Promise<GenreResult[]>,
+        (Story as any)
+          .find({
+            status: 'published',
+            isPublic: true,
+            createdAt: { $gte: options.startDate, $lte: options.endDate },
+          })
           .sort({ likes: -1, views: -1 })
           .limit(10)
-          .select('title authorName wordCount likes views'),
+          .select('title authorName wordCount likes views')
+          .lean()
+          .exec(),
       ]);
+
+      const storyStatsTyped = storyStats as StoryStatsResult[];
+      const popularGenresTyped = popularGenres as GenreResult[];
 
       return {
         totalStories,
         completedStories,
-        averageWordCount: storyStats[0]?.avgWordCount || 0,
-        averageAssessmentScore: storyStats[0]?.avgAssessmentScore || 0,
-        popularGenres: popularGenres.map(genre => ({
+        averageWordCount: storyStatsTyped[0]?.avgWordCount || 0,
+        averageAssessmentScore: storyStatsTyped[0]?.avgAssessmentScore || 0,
+        popularGenres: popularGenresTyped.map((genre: GenreResult) => ({
           genre: genre._id,
           count: genre.count,
         })),
-        topStories,
+        topStories: topStories as any[],
         contentQualityTrends: [], // Would need historical data
       };
     } catch (error) {
@@ -387,10 +435,13 @@ export class AnalyticsReporter {
     try {
       await connectDB();
 
-      const analytics = await Analytics.find({
-        date: { $gte: options.startDate, $lte: options.endDate },
-        type: 'daily',
-      });
+      const analytics = await (Analytics as any)
+        .find({
+          date: { $gte: options.startDate, $lte: options.endDate },
+          type: 'daily',
+        })
+        .lean()
+        .exec();
 
       const report = {
         totalRequests: 0,
@@ -400,14 +451,14 @@ export class AnalyticsReporter {
         costByProvider: {} as Record<string, number>,
       };
 
-      analytics.forEach(day => {
-        if (day.metrics.aiRequests) {
+      (analytics as any[]).forEach((day: any) => {
+        if (day.metrics?.aiRequests) {
           report.totalRequests += day.metrics.aiRequests;
         }
-        if (day.metrics.aiCost) {
+        if (day.metrics?.aiCost) {
           report.totalCost += day.metrics.aiCost;
         }
-        if (day.metrics.averageResponseTime) {
+        if (day.metrics?.averageResponseTime) {
           report.averageResponseTime += day.metrics.averageResponseTime;
         }
       });
@@ -496,29 +547,31 @@ export class AnalyticsReporter {
         totalStories,
         storyStats,
       ] = await Promise.all([
-        User.countDocuments({
+        (User as any).countDocuments({
           isActive: true,
           lastActiveDate: { $gte: dayAgo },
         }),
-        User.countDocuments({
+        (User as any).countDocuments({
           isActive: true,
           lastActiveDate: { $gte: weekAgo },
         }),
-        User.countDocuments({
+        (User as any).countDocuments({
           isActive: true,
           lastActiveDate: { $gte: monthAgo },
         }),
-        User.countDocuments({ isActive: true }),
-        Story.countDocuments(),
-        Story.aggregate([
+        (User as any).countDocuments({ isActive: true }),
+        (Story as any).countDocuments(),
+        (Story as any).aggregate([
           {
             $group: {
               _id: null,
               avgWordCount: { $avg: '$wordCount' },
             },
           },
-        ]),
+        ]) as Promise<StoryStatsResult[]>,
       ]);
+
+      const storyStatsTyped = storyStats as StoryStatsResult[];
 
       return {
         dailyActiveUsers,
@@ -526,7 +579,7 @@ export class AnalyticsReporter {
         monthlyActiveUsers,
         averageSessionDuration: 0, // Would need session tracking
         averageStoriesPerUser: totalUsers > 0 ? totalStories / totalUsers : 0,
-        averageWordsPerStory: storyStats[0]?.avgWordCount || 0,
+        averageWordsPerStory: storyStatsTyped[0]?.avgWordCount || 0,
         retentionRates: {
           '1day': totalUsers > 0 ? (dailyActiveUsers / totalUsers) * 100 : 0,
           '7day': totalUsers > 0 ? (weeklyActiveUsers / totalUsers) * 100 : 0,
@@ -546,7 +599,7 @@ export class AnalyticsReporter {
     try {
       await connectDB();
 
-      const cohorts = await User.aggregate([
+      const cohorts = await (User as any).aggregate([
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
@@ -569,27 +622,27 @@ export class AnalyticsReporter {
 
       // For each cohort, calculate retention rates
       const cohortAnalysis = await Promise.all(
-        cohorts.map(async cohort => {
+        (cohorts as any[]).map(async (cohort: any) => {
           const cohortUsers = cohort.users;
 
           // Calculate retention for different time periods
           const retention = await Promise.all([
             // 1 week retention
-            User.countDocuments({
+            (User as any).countDocuments({
               _id: { $in: cohortUsers },
               lastActiveDate: {
                 $gte: new Date(cohort._id.year, cohort._id.month - 1, 7),
               },
             }),
             // 1 month retention
-            User.countDocuments({
+            (User as any).countDocuments({
               _id: { $in: cohortUsers },
               lastActiveDate: {
                 $gte: new Date(cohort._id.year, cohort._id.month, 1),
               },
             }),
             // 3 month retention
-            User.countDocuments({
+            (User as any).countDocuments({
               _id: { $in: cohortUsers },
               lastActiveDate: {
                 $gte: new Date(cohort._id.year, cohort._id.month + 2, 1),
@@ -679,8 +732,8 @@ export class AnalyticsReporter {
       }
 
       const funnelData = await Promise.all(
-        funnelSteps.map(async step => {
-          const users = await EventLog.distinct('userId', {
+        funnelSteps.map(async (step: string) => {
+          const users = await (EventLog as any).distinct('userId', {
             eventType: step,
             timestamp: { $gte: options.startDate, $lte: options.endDate },
           });
@@ -693,14 +746,13 @@ export class AnalyticsReporter {
 
       // Calculate conversion rates and dropoff rates
       const totalUsers = funnelData[0]?.users || 0;
-      const steps = funnelData.map((step, index) => {
+      const steps = funnelData.map((step: any, index: number) => {
         const conversionRate =
           totalUsers > 0 ? (step.users / totalUsers) * 100 : 0;
+        const previousStepUsers = funnelData[index - 1]?.users || 0;
         const dropoffRate =
-          index > 0
-            ? ((funnelData[index - 1].users - step.users) /
-                funnelData[index - 1].users) *
-              100
+          index > 0 && previousStepUsers > 0
+            ? ((previousStepUsers - step.users) / previousStepUsers) * 100
             : 0;
 
         return {
@@ -765,7 +817,7 @@ export class AnalyticsReporter {
 
     // Add data rows (simplified)
     if (Array.isArray(data)) {
-      data.forEach(row => {
+      data.forEach((row: any) => {
         csvRows.push(Object.values(row).join(','));
       });
     }
@@ -822,16 +874,19 @@ export class AnalyticsReporter {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
 
       const [activeUsers, recentActivity] = await Promise.all([
-        User.countDocuments({
+        (User as any).countDocuments({
           lastActiveDate: { $gte: fiveMinutesAgo },
         }),
         // Get recent activity from event log if available
         mongoose.models.EventLog
-          ? mongoose.models.EventLog.find({
-              timestamp: { $gte: oneHourAgo },
-            })
+          ? (mongoose.models.EventLog as any)
+              .find({
+                timestamp: { $gte: oneHourAgo },
+              })
               .sort({ timestamp: -1 })
               .limit(50)
+              .lean()
+              .exec()
           : [],
       ]);
 

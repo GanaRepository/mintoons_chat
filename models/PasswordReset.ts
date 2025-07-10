@@ -11,9 +11,17 @@ export interface PasswordResetDocument extends Document {
   usedAt?: Date;
   ipAddress?: string;
   userAgent?: string;
+  attempts: number;
+  maxAttempts: number;
   generateToken(): string;
   isExpired(): boolean;
   markAsUsed(): Promise<void>;
+}
+
+// Static methods interface
+interface PasswordResetModel extends mongoose.Model<PasswordResetDocument> {
+  cleanupExpired(): Promise<any>;
+  findValidToken(token: string): Promise<PasswordResetDocument | null>;
 }
 
 const passwordResetSchema = new Schema<PasswordResetDocument>(
@@ -137,5 +145,8 @@ passwordResetSchema.statics.findValidToken = function (token: string) {
 
 const PasswordReset =
   mongoose.models.PasswordReset ||
-  mongoose.model<PasswordResetDocument>('PasswordReset', passwordResetSchema);
+  mongoose.model<PasswordResetDocument, PasswordResetModel>(
+    'PasswordReset',
+    passwordResetSchema
+  );
 export default PasswordReset;

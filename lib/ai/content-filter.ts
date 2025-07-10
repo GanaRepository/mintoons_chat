@@ -1,5 +1,5 @@
 // lib/ai/content-filter.ts - Age-appropriate content filtering
-import { getContentRating, filterAIResponse } from '@utils/age-restrictions';
+import { getContentRating, filterAIResponse } from '@/utils/age-restrictions';
 
 interface ContentFlags {
   isAppropriate: boolean;
@@ -131,7 +131,7 @@ export class ContentFilter {
               replacement
             );
             flags.suggestedModifications.push(
-              `Replaced ${matches[0]} with ${replacement}`
+              `Replaced ${matches[0] || 'text'} with ${replacement}`
             );
           }
         }
@@ -274,12 +274,12 @@ export class ContentFilter {
     }
   }
 
-  private getContextualReplacement(baseReplacement: string): string {
+  private getContextualReplacement(baseReplacement?: string): string {
+    if (!baseReplacement) return '';
     const alternatives = this.positiveReplacements[baseReplacement];
-    if (alternatives && alternatives.length > 0) {
-      return alternatives[Math.floor(Math.random() * alternatives.length)];
-    }
-    return baseReplacement;
+    return alternatives && alternatives.length > 0
+      ? alternatives[Math.floor(Math.random() * alternatives.length)]!
+      : baseReplacement; // Ensure baseReplacement is returned as a default
   }
 
   private enhancePositiveTone(content: string): string {
@@ -298,7 +298,7 @@ export class ContentFilter {
       const prefix =
         encouragingPrefixes[
           Math.floor(Math.random() * encouragingPrefixes.length)
-        ];
+        ] ?? 'wonderful';
       return content.replace(
         /\b(adventure|journey|story|tale)\b/gi,
         `${prefix} $1`

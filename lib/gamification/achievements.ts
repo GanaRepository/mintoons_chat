@@ -1,93 +1,101 @@
-// lib/gamification/achievement.ts - Achievement system
+// lib/gamification/achievement.ts - Direct fix for union type issues
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
 import { Achievement, UserAchievement } from '@models/Achievement';
-import { Notification } from '@models/Notification';
+import Notification from '@models/Notification';
 import { sendEmail } from '@lib/email/sender';
 import { webSocketManager } from '@lib/realtime/websockets';
-import { ACHIEVEMENTS } from '@utils/constants';
-import type {
-  Achievement as AchievementType,
-  UserAchievement as UserAchievementType,
-} from '@types/achievement';
+
+type SimpleUserAchievement = any; // Simple type to avoid conflicts
+type SimpleAchievement = any;
+type EventData = {
+  storyId?: string;
+  scores?: {
+    grammarScore?: number;
+    creativityScore?: number;
+    overallScore?: number;
+  };
+  totalWords?: number;
+  streak?: number;
+};
 
 export class AchievementManager {
-  /**
-   * Check and award achievements based on user activity
-   */
   async checkAndAwardAchievements(
     userId: string,
     eventType: string,
-    eventData: any
-  ): Promise<UserAchievementType[]> {
+    eventData: EventData
+  ): Promise<SimpleUserAchievement[]> {
     try {
+      if (!userId || !eventType || !eventData) {
+        throw new Error('Invalid input parameters');
+      }
+
       await connectDB();
+      const newAchievements: SimpleUserAchievement[] = [];
 
-      const newAchievements: UserAchievementType[] = [];
-
-      // Get user data
-      const user = await User.findById(userId);
+      // Use explicit any casting for User model too
+      const user = await (User as any).findById(userId);
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Process different event types
       switch (eventType) {
         case 'story_completed':
           await this.processStoryCompletion(user, eventData, newAchievements);
           break;
-
         case 'assessment_received':
           await this.processAssessment(user, eventData, newAchievements);
           break;
-
         case 'streak_updated':
           await this.processStreakUpdate(user, eventData, newAchievements);
           break;
-
         case 'words_milestone':
           await this.processWordsMilestone(user, eventData, newAchievements);
           break;
+        default:
+          throw new Error(`Unknown event type: ${eventType}`);
       }
 
-      // Notify user about new achievements
-      for (const achievement of newAchievements) {
-        await this.notifyUser(user, achievement);
-      }
+      await Promise.all(
+        newAchievements.map(async achievement => {
+          await this.notifyUser(user, achievement);
+        })
+      );
 
       return newAchievements;
     } catch (error) {
-      console.error('Error checking achievements:', error);
+      console.error(
+        `Error in checkAndAwardAchievements for userId: ${userId}, eventType: ${eventType}`,
+        error
+      );
       return [];
     }
   }
 
-  /**
-   * Get all achievements for a user
-   */
   async getUserAchievements(userId: string): Promise<{
-    earned: UserAchievementType[];
-    progress: UserAchievementType[];
-    next: AchievementType[];
+    earned: SimpleUserAchievement[];
+    progress: SimpleUserAchievement[];
+    next: SimpleAchievement[];
   }> {
     try {
       await connectDB();
 
-      // Get user's earned achievements
-      const userAchievements = await UserAchievement.find({ userId })
+      // Direct method calls with explicit any casting
+      const userAchievements = (await UserAchievement.find({ userId })
         .populate('achievement')
-        .sort({ completedAt: -1 });
+        .sort({ completedAt: -1 })
+        .lean()
+        .exec()) as any[];
 
-      // Split into completed and in-progress
       const earned = userAchievements.filter(a => a.isCompleted);
       const progress = userAchievements.filter(
         a => !a.isCompleted && a.progress > 0
       );
 
-      // Get all possible achievements
-      const allAchievements = await Achievement.find({ isActive: true });
+      const allAchievements = (await Achievement.find({ isActive: true })
+        .lean()
+        .exec()) as any[];
 
-      // Find achievements user hasn't started yet
       const earnedIds = new Set(earned.map(a => a.achievementId));
       const progressIds = new Set(progress.map(a => a.achievementId));
       const next = allAchievements.filter(
@@ -101,35 +109,31 @@ export class AchievementManager {
     }
   }
 
-  /**
-   * Award an achievement to user
-   */
   async awardAchievement(
     userId: string,
     achievementId: string,
     triggerEvent: string,
     storyId?: string
-  ): Promise<UserAchievementType | null> {
+  ): Promise<SimpleUserAchievement | null> {
     try {
       await connectDB();
 
-      // Find achievement
-      const achievement = await Achievement.findOne({ id: achievementId });
+      const achievement = await Achievement.findOne({
+        id: achievementId,
+      }).exec();
       if (!achievement) {
         throw new Error(`Achievement not found: ${achievementId}`);
       }
 
-      // Check if user already has this achievement
       const existingAchievement = await UserAchievement.findOne({
         userId,
         achievementId,
-      });
+      }).exec();
 
       if (existingAchievement?.isCompleted) {
-        return null; // Already earned
+        return null;
       }
 
-      // Award achievement
       const userAchievement =
         existingAchievement ||
         new UserAchievement({
@@ -150,42 +154,38 @@ export class AchievementManager {
 
       await userAchievement.save();
 
-      // Add points to user
-      const user = await User.findById(userId);
-      if (user) {
+      const user = await (User as any).findById(userId);
+      if (user && user.addPoints) {
         await user.addPoints(achievement.points);
       }
 
-      return userAchievement;
+      return userAchievement.toObject();
     } catch (error) {
       console.error('Error awarding achievement:', error);
       return null;
     }
   }
 
-  /**
-   * Update achievement progress
-   */
   async updateProgress(
     userId: string,
     achievementId: string,
     currentValue: number,
     maxValue: number
-  ): Promise<UserAchievementType | null> {
+  ): Promise<SimpleUserAchievement | null> {
     try {
       await connectDB();
 
-      // Find achievement
-      const achievement = await Achievement.findOne({ id: achievementId });
+      const achievement = await Achievement.findOne({
+        id: achievementId,
+      }).exec();
       if (!achievement) {
         throw new Error(`Achievement not found: ${achievementId}`);
       }
 
-      // Get or create user achievement
       let userAchievement = await UserAchievement.findOne({
         userId,
         achievementId,
-      });
+      }).exec();
 
       if (!userAchievement) {
         userAchievement = new UserAchievement({
@@ -197,55 +197,46 @@ export class AchievementManager {
         });
       }
 
-      // Don't update if already completed
       if (userAchievement.isCompleted) {
-        return userAchievement;
+        return userAchievement.toObject();
       }
 
-      // Calculate progress percentage
-      const progressPercentage = Math.min(
-        100,
-        Math.round((currentValue / maxValue) * 100)
-      );
+      const progressPercentage =
+        maxValue > 0
+          ? Math.min(100, Math.round((currentValue / maxValue) * 100))
+          : 0;
       userAchievement.progress = progressPercentage;
 
-      // Complete if 100%
       if (progressPercentage >= 100) {
         userAchievement.isCompleted = true;
         userAchievement.completedAt = new Date();
         userAchievement.triggerEvent = 'progress_complete';
 
-        // Add points to user
-        const user = await User.findById(userId);
-        if (user) {
+        const user = await (User as any).findById(userId);
+        if (user && user.addPoints) {
           await user.addPoints(achievement.points);
         }
       }
 
       await userAchievement.save();
-
-      return userAchievement;
+      return userAchievement.toObject();
     } catch (error) {
       console.error('Error updating achievement progress:', error);
       return null;
     }
   }
 
-  /**
-   * Reset achievements (admin only)
-   */
   async resetAchievements(userId: string): Promise<boolean> {
     try {
       await connectDB();
 
-      // Delete user achievements
-      await UserAchievement.deleteMany({ userId });
-
-      // Reset user points and level
-      await User.findByIdAndUpdate(userId, {
-        totalPoints: 0,
-        level: 1,
-      });
+      await UserAchievement.deleteMany({ userId }).exec();
+      await (User as any)
+        .findByIdAndUpdate(userId, {
+          totalPoints: 0,
+          level: 1,
+        })
+        .exec();
 
       return true;
     } catch (error) {
@@ -254,14 +245,11 @@ export class AchievementManager {
     }
   }
 
-  // Private helper methods
-
   private async processStoryCompletion(
     user: any,
-    eventData: any,
-    newAchievements: UserAchievementType[]
+    eventData: EventData,
+    newAchievements: SimpleUserAchievement[]
   ): Promise<void> {
-    // Award "First Story" achievement for first completion
     if (user.storyCount === 1) {
       const achievement = await this.awardAchievement(
         user._id,
@@ -269,13 +257,9 @@ export class AchievementManager {
         'story_completed',
         eventData.storyId
       );
-
-      if (achievement) {
-        newAchievements.push(achievement);
-      }
+      if (achievement) newAchievements.push(achievement);
     }
 
-    // Check "Prolific Writer" achievement
     if (user.storyCount >= 10) {
       const achievement = await this.awardAchievement(
         user._id,
@@ -283,33 +267,30 @@ export class AchievementManager {
         'story_completed',
         eventData.storyId
       );
-
-      if (achievement) {
-        newAchievements.push(achievement);
-      }
+      if (achievement) newAchievements.push(achievement);
     }
 
-    // Update progress for story count achievements
     const milestones = [5, 10, 25, 50, 100];
-    for (const milestone of milestones) {
-      const achievementId = `stories_${milestone}`;
-      await this.updateProgress(
-        user._id,
-        achievementId,
-        user.storyCount,
-        milestone
-      );
-    }
+    await Promise.all(
+      milestones.map(async milestone => {
+        await this.updateProgress(
+          user._id,
+          `stories_${milestone}`,
+          user.storyCount,
+          milestone
+        );
+      })
+    );
   }
 
   private async processAssessment(
     user: any,
-    eventData: any,
-    newAchievements: UserAchievementType[]
+    eventData: EventData,
+    newAchievements: SimpleUserAchievement[]
   ): Promise<void> {
-    const { grammarScore, creativityScore, overallScore } = eventData.scores;
+    const scores = eventData.scores || {};
+    const { grammarScore = 0, creativityScore = 0, overallScore = 0 } = scores;
 
-    // Check "Grammar Master" achievement
     if (grammarScore >= 90) {
       const achievement = await this.awardAchievement(
         user._id,
@@ -317,13 +298,9 @@ export class AchievementManager {
         'assessment_received',
         eventData.storyId
       );
-
-      if (achievement) {
-        newAchievements.push(achievement);
-      }
+      if (achievement) newAchievements.push(achievement);
     }
 
-    // Check "Creative Writer" achievement
     if (creativityScore >= 90) {
       const achievement = await this.awardAchievement(
         user._id,
@@ -331,77 +308,74 @@ export class AchievementManager {
         'assessment_received',
         eventData.storyId
       );
-
-      if (achievement) {
-        newAchievements.push(achievement);
-      }
+      if (achievement) newAchievements.push(achievement);
     }
 
-    // Update progress for score-based achievements
-    await this.updateProgress(user._id, 'grammar_90', grammarScore, 90);
-    await this.updateProgress(user._id, 'creativity_90', creativityScore, 90);
-    await this.updateProgress(user._id, 'overall_90', overallScore, 90);
+    await Promise.all([
+      this.updateProgress(user._id, 'grammar_90', grammarScore, 90),
+      this.updateProgress(user._id, 'creativity_90', creativityScore, 90),
+      this.updateProgress(user._id, 'overall_90', overallScore, 90),
+    ]);
   }
 
   private async processStreakUpdate(
     user: any,
-    eventData: any,
-    newAchievements: UserAchievementType[]
+    eventData: EventData,
+    newAchievements: SimpleUserAchievement[]
   ): Promise<void> {
-    // Check "Streak Master" achievement
     if (user.streak >= 7) {
       const achievement = await this.awardAchievement(
         user._id,
         'streak_master',
         'streak_updated'
       );
-
-      if (achievement) {
-        newAchievements.push(achievement);
-      }
+      if (achievement) newAchievements.push(achievement);
     }
 
-    // Update progress for streak achievements
     const streakMilestones = [3, 7, 14, 30, 60, 90];
-    for (const milestone of streakMilestones) {
-      const achievementId = `streak_${milestone}`;
-      await this.updateProgress(
-        user._id,
-        achievementId,
-        user.streak,
-        milestone
-      );
-    }
+    await Promise.all(
+      streakMilestones.map(async milestone => {
+        await this.updateProgress(
+          user._id,
+          `streak_${milestone}`,
+          user.streak,
+          milestone
+        );
+      })
+    );
   }
 
   private async processWordsMilestone(
     user: any,
-    eventData: any,
-    newAchievements: UserAchievementType[]
+    eventData: EventData,
+    newAchievements: SimpleUserAchievement[]
   ): Promise<void> {
-    const { totalWords } = eventData;
+    const { totalWords = 0 } = eventData;
 
-    // Update progress for word count achievements
     const wordMilestones = [1000, 5000, 10000, 25000, 50000, 100000];
-    for (const milestone of wordMilestones) {
-      const achievementId = `words_${milestone}`;
-      await this.updateProgress(user._id, achievementId, totalWords, milestone);
-    }
+    await Promise.all(
+      wordMilestones.map(async milestone => {
+        await this.updateProgress(
+          user._id,
+          `words_${milestone}`,
+          totalWords,
+          milestone
+        );
+      })
+    );
   }
 
   private async notifyUser(
     user: any,
-    achievement: UserAchievementType
+    achievement: SimpleUserAchievement
   ): Promise<void> {
     try {
-      // Get achievement details
       const achievementData = await Achievement.findById(
         achievement.achievement
-      );
+      ).exec();
       if (!achievementData) return;
 
-      // Create notification
-      await Notification.create({
+      await (Notification as any).create({
         userId: user._id,
         type: 'achievement_unlocked',
         title: 'Achievement Unlocked!',
@@ -414,7 +388,6 @@ export class AchievementManager {
         },
       });
 
-      // Send real-time notification
       webSocketManager.sendToUser(user._id.toString(), 'achievementUnlocked', {
         achievement: {
           id: achievement.achievementId,
@@ -426,8 +399,7 @@ export class AchievementManager {
         },
       });
 
-      // Send email notification (if enabled)
-      if (user.emailPreferences?.achievements) {
+      if (user.emailPreferences?.achievements && process.env.APP_URL) {
         await sendEmail({
           to: user.email,
           subject: `🏆 Achievement Unlocked: ${achievementData.name}!`,
@@ -450,5 +422,4 @@ export class AchievementManager {
   }
 }
 
-// Export singleton instance
 export const achievementManager = new AchievementManager();
