@@ -1,11 +1,20 @@
 // types/subscription.ts - Subscription-related types
 export type SubscriptionTierType = 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
+
 export type SubscriptionStatus =
   | 'active'
   | 'canceled'
   | 'past_due'
   | 'trialing'
   | 'incomplete';
+
+// Add the missing PaymentStatus type
+export type PaymentStatus =
+  | 'succeeded'
+  | 'pending'
+  | 'failed'
+  | 'canceled'
+  | 'requires_action';
 
 export interface SubscriptionTier {
   id: string;
@@ -22,7 +31,7 @@ export interface SubscriptionTier {
 }
 
 export interface UserSubscription {
-  _id: string;
+  id: string;
   userId: string;
   tier: SubscriptionTierType;
   status: SubscriptionStatus;
@@ -58,13 +67,14 @@ export interface SubscriptionUsage {
 }
 
 export interface BillingHistory {
-  _id: string;
+  id: string;
   userId: string;
   subscriptionId: string;
   amount: number;
   currency: string;
-  status: 'paid' | 'pending' | 'failed';
+  status: PaymentStatus;
   invoiceId: string;
+  tier: string;
   invoiceUrl?: string;
   description: string;
   paidAt?: Date;
@@ -114,4 +124,18 @@ export interface PricingCalculation {
   savings?: number;
   pricePerStory: number;
   features: string[];
+}
+
+export interface SubscriptionTier {
+  id: string;
+  name: string;
+  description: string;
+  price: number; // in cents
+  storyLimit: number;
+  features: string[];
+  stripePriceId: string | null;
+  isPopular?: boolean;
+  sortOrder: number;
+  badge?: string;
+  color: string;
 }

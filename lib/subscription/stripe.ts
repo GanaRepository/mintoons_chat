@@ -585,3 +585,21 @@ export class StripeManager {
 
 // Export singleton instance
 export const stripeManager = new StripeManager();
+
+// Add this export function at the bottom of stripe.ts
+export async function createCheckoutSession(params: {
+  priceId: string | null;
+  userId: string;
+  tier: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<string> {
+  const stripeManager = new StripeManager();
+  const session = await stripeManager.createCheckoutSession(
+    params.userId,
+    params.tier,
+    params.successUrl,
+    params.cancelUrl
+  );
+  return session.url || '';
+}

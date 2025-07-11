@@ -21,8 +21,7 @@ import { Badge } from '@components/ui/badge';
 import { Dropdown } from '@components/ui/dropdown';
 import { CommentSystem } from './CommentSystem';
 import { formatDate, formatTimeAgo, formatNumber } from '@utils/formatters';
-import { calculateReadingTime } from '@utils/helpers';
-import { shareStory } from '@utils/helpers';
+import { calculateReadingTime, shareStory, countWords } from '@utils/helpers';
 import type { Story } from '../../../types/story';
 
 interface StoryViewerProps {
@@ -41,11 +40,11 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const { data: session } = useSession();
   const [showComments, setShowComments] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(story.likes?.length || 0);
+  const [likesCount, setLikesCount] = useState(story.likes || 0);
   const [viewsCount, setViewsCount] = useState(story.views || 0);
 
   useEffect(() => {
-    setIsLiked(story.likes?.includes(session?.user.id || '') || false);
+    setIsLiked(story.likedBy?.includes(session?.user.id || '') || false);
 
     // Track view
     if (session?.user.id !== story.authorId) {
@@ -73,7 +72,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       if (response.ok) {
         const newIsLiked = !isLiked;
         setIsLiked(newIsLiked);
-        setLikesCount(prev => (newIsLiked ? prev + 1 : prev - 1));
+        setLikesCount((prev: number) => (newIsLiked ? prev + 1 : prev - 1));
         onLike?.(story.id);
       }
     } catch (error) {

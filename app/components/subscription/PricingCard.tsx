@@ -11,7 +11,7 @@ import { Badge } from '@components/ui/badge';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
 import { formatPrice } from '@utils/formatters';
 import { createCheckoutSession } from '@lib/subscription/stripe';
-import type { SubscriptionTier } from '@types/subscription';
+import type { SubscriptionTier } from '../../../types/subscription';
 
 interface PricingCardProps {
   tier: SubscriptionTier;

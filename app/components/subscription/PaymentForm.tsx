@@ -5,11 +5,11 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { CreditCard, Lock, Check } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
-import { 
-  Elements, 
-  CardElement, 
-  useStripe, 
-  useElements 
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements,
 } from '@stripe/react-stripe-js';
 import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
@@ -20,7 +20,9 @@ import { SUBSCRIPTION_TIERS } from '@config/subscription';
 import { formatPrice } from '@utils/formatters';
 import type { SubscriptionTier } from '../../../types/subscription';
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
 
 interface PaymentFormProps {
   selectedTier: SubscriptionTier;
@@ -35,7 +37,7 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
   userEmail,
   onSuccess,
   onError,
-  onCancel
+  onCancel,
 }) => {
   const stripe = useStripe();
   const elements = useElements();
@@ -46,7 +48,7 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
     country: 'US',
   });
 
-  const tierConfig = SUBSCRIPTION_TIERS[selectedTier];
+  const tierConfig = selectedTier;
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -66,17 +68,20 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
 
     try {
       // Create payment method
-      const { error: paymentMethodError, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-          name: customerInfo.name,
-          email: customerInfo.email,
-        },
-      });
+      const { error: paymentMethodError, paymentMethod } =
+        await stripe.createPaymentMethod({
+          type: 'card',
+          card: cardElement,
+          billing_details: {
+            name: customerInfo.name,
+            email: customerInfo.email,
+          },
+        });
 
       if (paymentMethodError) {
-        onError(paymentMethodError.message || 'Payment method creation failed.');
+        onError(
+          paymentMethodError.message || 'Payment method creation failed.'
+        );
         return;
       }
 
@@ -138,24 +143,23 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
   };
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="mx-auto max-w-md">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="space-y-6"
       >
         {/* Plan Summary */}
-        <Card className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20">
+        <Card className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 dark:from-purple-900/20 dark:to-blue-900/20">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold text-gray-900 dark:text-white">
-                {selectedTier} Plan
+                {selectedTier.name} Plan
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {tierConfig.storyLimit === -1 
-                  ? 'Unlimited stories' 
-                  : `${tierConfig.storyLimit} stories/month`
-                }
+                {tierConfig.storyLimit === -1
+                  ? 'Unlimited stories'
+                  : `${tierConfig.storyLimit} stories/month`}
               </p>
             </div>
             <div className="text-right">
@@ -169,24 +173,28 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
 
         {/* Customer Information */}
         <Card className="p-6">
-          <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+          <h4 className="mb-4 font-semibold text-gray-900 dark:text-white">
             Customer Information
           </h4>
-          
+
           <div className="space-y-4">
             <Input
               label="Full Name"
               value={customerInfo.name}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, name: e.target.value }))}
+              onChange={e =>
+                setCustomerInfo(prev => ({ ...prev, name: e.target.value }))
+              }
               placeholder="Enter your full name"
               required
             />
-            
+
             <Input
               label="Email Address"
               type="email"
               value={customerInfo.email}
-              onChange={(e) => setCustomerInfo(prev => ({ ...prev, email: e.target.value }))}
+              onChange={e =>
+                setCustomerInfo(prev => ({ ...prev, email: e.target.value }))
+              }
               placeholder="Enter your email"
               required
             />
@@ -195,12 +203,16 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
 
         {/* Payment Information */}
         <Card className="p-6">
-          <div className="flex items-center space-x-2 mb-4">
+          <div className="mb-4 flex items-center space-x-2">
             <CreditCard className="text-gray-600" size={20} />
             <h4 className="font-semibold text-gray-900 dark:text-white">
               Payment Information
             </h4>
-            <Badge variant="success" size="sm" className="flex items-center space-x-1">
+            <Badge
+              variant="success"
+              size="sm"
+              className="flex items-center space-x-1"
+            >
               <Lock size={10} />
               <span>Secure</span>
             </Badge>
@@ -208,23 +220,23 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Card Information
               </label>
-              <div className="p-3 border border-gray-300 dark:border-gray-600 rounded-lg">
+              <div className="rounded-lg border border-gray-300 p-3 dark:border-gray-600">
                 <CardElement options={cardElementOptions} />
               </div>
             </div>
 
             {/* Security Features */}
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
+            <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+              <div className="mb-2 flex items-center space-x-2">
                 <Lock className="text-green-600" size={16} />
                 <span className="text-sm font-medium text-gray-900 dark:text-white">
                   Your payment is secure
                 </span>
               </div>
-              <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
+              <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
                 <li className="flex items-center space-x-2">
                   <Check size={12} className="text-green-500" />
                   <span>256-bit SSL encryption</span>
@@ -250,12 +262,11 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
                 isLoading={isProcessing}
                 className="w-full"
               >
-                {isProcessing 
-                  ? 'Processing...' 
-                  : `Subscribe for ${formatPrice(tierConfig.price)}/month`
-                }
+                {isProcessing
+                  ? 'Processing...'
+                  : `Subscribe for ${formatPrice(tierConfig.price)}/month`}
               </Button>
-              
+
               <Button
                 type="button"
                 variant="ghost"
@@ -270,11 +281,17 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
             <div className="text-center">
               <p className="text-xs text-gray-500 dark:text-gray-400">
                 By subscribing, you agree to our{' '}
-                <a href="/terms" className="text-purple-600 hover:text-purple-700">
+                <a
+                  href="/terms"
+                  className="text-purple-600 hover:text-purple-700"
+                >
                   Terms of Service
                 </a>{' '}
                 and{' '}
-                <a href="/privacy" className="text-purple-600 hover:text-purple-700">
+                <a
+                  href="/privacy"
+                  className="text-purple-600 hover:text-purple-700"
+                >
                   Privacy Policy
                 </a>
               </p>
@@ -286,7 +303,7 @@ const PaymentFormContent: React.FC<PaymentFormProps> = ({
   );
 };
 
-export const PaymentForm: React.FC<PaymentFormProps> = (props) => {
+export const PaymentForm: React.FC<PaymentFormProps> = props => {
   return (
     <Elements stripe={stripePromise}>
       <PaymentFormContent {...props} />

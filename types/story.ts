@@ -48,7 +48,7 @@ export interface Story {
   readingTime: number;
   likes: number;
   likedBy?: string[]; // 👈 for “isLiked” check
-  comments?: number; // 👈 total comment count
+  comments?: any[]; // 👈 total comment count
   views: number;
 
   /* AI collaboration */
@@ -60,6 +60,14 @@ export interface Story {
   mentorId?: string;
   mentorComments: string[];
   hasUnreadComments: boolean;
+
+  /* Related content */
+  relatedStories?: Array<{
+    // Add missing property
+    id: string;
+    title: string;
+    authorName: string;
+  }>;
 
   /* Visibility & timestamps */
   isPublic: boolean;

@@ -3,13 +3,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Download, 
-  Calendar, 
+import {
+  Download,
+  Calendar,
   CreditCard,
   Check,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
 } from 'lucide-react';
 import { Card } from '@components/ui/card';
 import { Button } from '@components/ui/button';
@@ -18,7 +18,10 @@ import { Skeleton } from '@components/ui/skeleton';
 import { Alert } from '@components/ui/alert';
 import { formatDate, formatPrice } from '@utils/formatters';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
-import type { BillingHistory as BillingHistoryType, PaymentStatus } from '../../../types/subscription';
+import type {
+  BillingHistory as BillingHistoryType,
+  PaymentStatus,
+} from '../../../types/subscription';
 
 interface BillingHistoryProps {
   userId: string;
@@ -27,9 +30,11 @@ interface BillingHistoryProps {
 
 export const BillingHistory: React.FC<BillingHistoryProps> = ({
   userId,
-  className
+  className,
 }) => {
-  const [billingHistory, setBillingHistory] = useState<BillingHistoryType[]>([]);
+  const [billingHistory, setBillingHistory] = useState<BillingHistoryType[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,13 +45,13 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
   const fetchBillingHistory = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch('/api/subscription/billing-history');
       if (!response.ok) {
         throw new Error('Failed to fetch billing history');
       }
-      
+
       const data = await response.json();
       setBillingHistory(data.billingHistory || []);
     } catch (error) {
@@ -59,7 +64,9 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
 
   const handleDownloadInvoice = async (invoiceId: string) => {
     try {
-      const response = await fetch(`/api/subscription/invoices/${invoiceId}/download`);
+      const response = await fetch(
+        `/api/subscription/invoices/${invoiceId}/download`
+      );
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -94,7 +101,7 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
     };
 
     const Icon = icons[status];
-    
+
     return (
       <Badge variant={variants[status]} className="flex items-center space-x-1">
         <Icon size={12} />
@@ -109,7 +116,10 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
         <div className="space-y-4">
           <Skeleton lines={1} width="60%" />
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+            >
               <div className="space-y-2">
                 <Skeleton width="120px" height="16px" />
                 <Skeleton width="80px" height="14px" />
@@ -128,9 +138,9 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
         <Alert variant="error" title="Error Loading Billing History">
           {error}
         </Alert>
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={fetchBillingHistory}
           className="mt-4"
         >
@@ -143,7 +153,7 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
 
   return (
     <Card className={`p-6 ${className}`}>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
           Billing History
         </h3>
@@ -154,11 +164,17 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
       </div>
 
       {billingHistory.length === 0 ? (
-        <div className="text-center py-8">
-          <CreditCard size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">No billing history found</p>
+        <div className="py-8 text-center">
+          <CreditCard
+            size={48}
+            className="mx-auto mb-4 text-gray-300 dark:text-gray-600"
+          />
+          <p className="text-gray-500 dark:text-gray-400">
+            No billing history found
+          </p>
           <p className="text-sm text-gray-400 dark:text-gray-500">
-            Your payment history will appear here once you make your first payment.
+            Your payment history will appear here once you make your first
+            payment.
           </p>
         </div>
       ) : (
@@ -169,13 +185,13 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+              className="flex items-center justify-between rounded-lg border border-gray-200 p-4 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
             >
               <div className="flex items-center space-x-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                <div className="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/20">
                   <CreditCard className="text-purple-600" size={20} />
                 </div>
-                
+
                 <div>
                   <div className="flex items-center space-x-2">
                     <h4 className="font-medium text-gray-900 dark:text-white">
@@ -183,8 +199,8 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                     </h4>
                     {getStatusBadge(item.status)}
                   </div>
-                  
-                  <div className="flex items-center space-x-4 mt-1 text-sm text-gray-600 dark:text-gray-400">
+
+                  <div className="mt-1 flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center space-x-1">
                       <Calendar size={14} />
                       <span>{formatDate(item.createdAt)}</span>
