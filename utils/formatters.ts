@@ -276,3 +276,14 @@ export function formatSubscriptionStatus(status: string): {
       return { label: 'Unknown', color: 'gray' };
   }
 }
+
+// Define this function in a suitable file, such as utils/formatters.ts
+export function formatErrorMessage(error: any): string {
+  if (typeof error === 'string') {
+    return error;
+  }
+  if (error.message) {
+    return error.message;
+  }
+  return 'An unknown error occurred';
+}

@@ -472,6 +472,8 @@ export const ERROR_MESSAGES = {
   NETWORK_ERROR: 'Network error. Please check your connection.',
   FILE_TOO_LARGE: 'File is too large. Maximum size is 10MB.',
   INVALID_FILE_TYPE: 'Invalid file type. Please upload a valid image or PDF.',
+  INVALID_EMAIL: 'Please enter a valid email address.',
+  EMAIL_ALREADY_USED: 'This email is already registered. Please use a different email.',
 } as const;
 
 // Success Messages

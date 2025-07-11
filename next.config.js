@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -26,7 +28,13 @@ const nextConfig = {
   webpack: config => {
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@': require('path').resolve(__dirname),
+      '@': path.resolve(__dirname),
+      '@config': path.resolve(__dirname, 'config'),
+      '@utils': path.resolve(__dirname, 'utils'),
+      '@types': path.resolve(__dirname, 'types'),
+      '@lib': path.resolve(__dirname, 'lib'),
+      '@models': path.resolve(__dirname, 'models'),
+      '@components': path.resolve(__dirname, 'app/components'),
     };
     return config;
   },

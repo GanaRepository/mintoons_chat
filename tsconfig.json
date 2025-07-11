@@ -1,13 +1,15 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "dom.iterable", "es6"],
+    "target": "es2023",
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -17,28 +19,23 @@
         "name": "next"
       }
     ],
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@config/*": ["config/*"],
-      "@utils/*": ["utils/*"],
-      "@types/*": ["types/*"],
-      "@lib/*": ["lib/*"],
-      "@models/*": ["models/*"],
-      "@components/*": ["app/components/*"]
+      "@config/*": ["./config/*"],
+      "@utils/*": ["./utils/*"],
+      "@types/*": ["./types/*"],
+      "@lib/*": ["./lib/*"],
+      "@models/*": ["./models/*"],
+      "@components/*": ["./app/components/*"]
     },
-    "target": "es2017",
-    "forceConsistentCasingInFileNames": true,
-    "noUncheckedIndexedAccess": true
+    "types": ["node"]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "global.d.ts",
-    "lib/**/*",
-    "types/**/*"
+    "tailwind.config.ts"
   ],
   "exclude": ["node_modules"]
 }

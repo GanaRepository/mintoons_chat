@@ -25,39 +25,40 @@ export interface StoryElements {
 }
 
 export interface Story {
-  _id: string;
+  /* IDs */
+  id: string;
+
+  /* Core */
   title: string;
   content: string;
   elements: StoryElements;
   status: StoryStatus;
 
-  // Author information
+  /* Author */
   authorId: string;
   authorName: string;
   authorAge: number;
 
-  // Story metrics
+  /* Metrics & social */
   wordCount: number;
   readingTime: number;
-
-  // AI collaboration data
-  aiTurns: AITurn[];
-  currentTurn: number;
-
-  // Assessment
-  assessment?: StoryAssessment;
-
-  // Social features
-  isPublic: boolean;
   likes: number;
+  likedBy?: string[]; // 👈 for “isLiked” check
+  comments?: number; // 👈 total comment count
   views: number;
 
-  // Mentor feedback
+  /* AI collaboration */
+  aiTurns: AITurn[];
+  currentTurn: number;
+  assessment?: StoryAssessment;
+
+  /* Mentor feedback */
   mentorId?: string;
   mentorComments: string[];
   hasUnreadComments: boolean;
 
-  // Timestamps
+  /* Visibility & timestamps */
+  isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;

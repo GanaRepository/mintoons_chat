@@ -1,5 +1,6 @@
 // utils/helpers.ts - General helper functions (consolidated from lib/)
-
+import { STORY_ELEMENTS } from '@utils/constants';
+import type { StoryElements } from '../types/story';
 /**
  * Generate a random ID
  */
@@ -275,9 +276,9 @@ export function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Get random item from array
+ * Get one random element from an array (works with *readonly* arrays too)
  */
-export function randomItem<T>(array: T[]): T | undefined {
+export function randomItem<T>(array: readonly T[]): T | undefined {
   if (array.length === 0) return undefined;
   return array[Math.floor(Math.random() * array.length)]!;
 }
@@ -459,4 +460,45 @@ export async function retryWithBackoff<T>(
   }
 
   throw lastError;
+}
+
+// utils/helpers.ts
+export function getStoryStatusColor(
+  status: string
+): 'default' | 'purple' | 'success' | 'warning' | 'error' | 'info' {
+  switch (status) {
+    case 'draft':
+      return 'warning';
+    case 'in_progress':
+      return 'purple';
+    case 'completed':
+      return 'info';
+    case 'published':
+      return 'success';
+    case 'archived':
+      return 'error';
+    default:
+      return 'default';
+  }
+}
+
+export function generateRandomElement(
+  elementType: keyof StoryElements
+): string {
+  switch (elementType) {
+    case 'genre':
+      return randomItem(STORY_ELEMENTS.GENRES)?.name ?? '';
+    case 'setting':
+      return randomItem(STORY_ELEMENTS.SETTINGS)?.name ?? '';
+    case 'character':
+      return randomItem(STORY_ELEMENTS.CHARACTERS)?.name ?? '';
+    case 'mood':
+      return randomItem(STORY_ELEMENTS.MOODS)?.name ?? '';
+    case 'conflict':
+      return randomItem(STORY_ELEMENTS.CONFLICTS)?.name ?? '';
+    case 'theme':
+      return randomItem(STORY_ELEMENTS.THEMES)?.name ?? '';
+    default:
+      return '';
+  }
 }
