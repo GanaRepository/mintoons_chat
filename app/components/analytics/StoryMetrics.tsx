@@ -26,8 +26,8 @@ import {
 } from '@utils/helpers';
 import { getStoryAnalytics } from '@lib/analytics/reporter';
 import { STORY_ELEMENTS } from '@utils/constants';
-import type { StoryAnalytics, TimeRange } from '@types/analytics';
-import type { StoryStatus } from '@types/story';
+import type { StoryAnalytics, TimeRange } from '../../../types/analytics';
+import type { StoryStatus } from '../../../types/story';
 
 interface StoryMetricsProps {
   timeRange?: TimeRange;
@@ -93,7 +93,7 @@ export const StoryMetrics: React.FC<StoryMetricsProps> = ({
     );
   }
 
-  const averageRating = calculateAverageRating(metrics.ratingDistribution);
+  const averageRating = calculateAverageRating(metrics.ratingDistribution ?? []);
   const engagementRate = calculateEngagementRate(
     metrics.totalViews,
     metrics.totalLikes,
@@ -218,7 +218,7 @@ export const StoryMetrics: React.FC<StoryMetricsProps> = ({
                   case 'published':
                     return 'success';
                   case 'completed':
-                    return 'info';
+                    return 'success';
                   case 'in_progress':
                     return 'warning';
                   case 'draft':

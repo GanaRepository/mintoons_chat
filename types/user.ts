@@ -1,6 +1,7 @@
 // types/user.ts - User-related types
 export type UserRole = 'child' | 'mentor' | 'admin';
 
+// Update the User interface in types/user.ts
 export interface User {
   id: string;
   firstName: string;
@@ -30,9 +31,11 @@ export interface User {
   level: number;
   streak: number;
   lastActiveDate?: Date;
+  achievements?: string[];
+  streakData?: StreakData; // Add this line
 
   // Mentor-specific fields
-  assignedStudents?: string[]; // Array of student IDs
+  assignedStudents?: string[];
   mentoringSince?: Date;
 
   // Timestamps
@@ -127,4 +130,12 @@ export interface UserUpdateData {
   bio?: string;
   avatar?: string;
   preferences?: Partial<UserPreferences>;
+}
+
+export interface StreakData {
+  current: number;
+  longest: number;
+  lastStoryDate: Date | null;
+  milestones: number[];
+  totalRewards: number;
 }

@@ -287,3 +287,12 @@ export function formatErrorMessage(error: any): string {
   }
   return 'An unknown error occurred';
 }
+
+// Add this function to utils/formatters.ts
+
+/**
+ * Format time ago (alias for formatRelativeTime for compatibility)
+ */
+export function formatTimeAgo(date: string | Date): string {
+  return formatRelativeTime(date);
+}

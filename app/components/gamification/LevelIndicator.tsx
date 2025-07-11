@@ -7,10 +7,15 @@ import { Star, TrendingUp, Target, Award } from 'lucide-react';
 import { Card } from '@components/ui/card';
 import { Badge } from '@components/ui/badge';
 import { ProgressBar } from '@components/ui/progress-bar';
-import { calculateUserLevel, getPointsForNextLevel, getLevelBenefits } from '@utils/helpers';
+import {
+  calculateUserLevel,
+  getPointsForNextLevel,
+  getLevelBenefits,
+} from '@utils/helpers';
 import { formatNumber } from '@utils/formatters';
 import { LEVEL_THRESHOLDS, LEVEL_REWARDS } from '@utils/constants';
-import type { User } from '@types/user';
+import type { User } from '../../../types/user';
+
 
 interface LevelIndicatorProps {
   user: User;
@@ -25,7 +30,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   showDetails = true,
   compact = false,
   animated = true,
-  className
+  className,
 }) => {
   const currentLevel = calculateUserLevel(user.totalPoints || 0);
   const currentPoints = user.totalPoints || 0;
@@ -63,7 +68,9 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   if (compact) {
     return (
       <div className={`flex items-center space-x-3 ${className}`}>
-        <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getLevelColor(currentLevel)} flex items-center justify-center text-white font-bold`}>
+        <div
+          className={`h-10 w-10 rounded-full bg-gradient-to-br ${getLevelColor(currentLevel)} flex items-center justify-center font-bold text-white`}
+        >
           {currentLevel}
         </div>
         <div className="flex-1">
@@ -94,11 +101,11 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
               initial={animated ? { scale: 0 } : {}}
               animate={animated ? { scale: 1 } : {}}
               transition={{ type: 'spring', stiffness: 200 }}
-              className={`w-16 h-16 rounded-full bg-gradient-to-br ${getLevelColor(currentLevel)} flex items-center justify-center text-white text-xl font-bold shadow-lg`}
+              className={`h-16 w-16 rounded-full bg-gradient-to-br ${getLevelColor(currentLevel)} flex items-center justify-center text-xl font-bold text-white shadow-lg`}
             >
               {currentLevel}
             </motion.div>
-            
+
             <div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                 Level {currentLevel}
@@ -130,7 +137,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
               {formatNumber(pointsNeededForNext - currentPoints)} points needed
             </span>
           </div>
-          
+
           <ProgressBar
             value={progressInCurrentLevel}
             max={pointsNeededInLevel}
@@ -138,7 +145,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
             size="lg"
             className="bg-gradient-to-r from-purple-500 to-pink-500"
           />
-          
+
           <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>{formatNumber(pointsForCurrentLevel)} pts</span>
             <span>{Math.round(levelProgress)}% complete</span>
@@ -149,42 +156,48 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
         {showDetails && (
           <>
             {/* Level Stats */}
-            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-3 gap-4 border-t border-gray-200 pt-4 dark:border-gray-700">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {user.storyCount || 0}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Stories</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Stories
+                </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {user.streak || 0}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Day Streak</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Day Streak
+                </div>
               </div>
-              
+
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {user.achievements?.length || 0}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Achievements</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  Achievements
+                </div>
               </div>
             </div>
 
             {/* Current Level Benefits */}
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-              <div className="flex items-center space-x-2 mb-2">
+            <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
+              <div className="mb-2 flex items-center space-x-2">
                 <Award className="text-purple-600" size={16} />
                 <span className="text-sm font-medium text-purple-800 dark:text-purple-200">
                   Level {currentLevel} Benefits
                 </span>
               </div>
-              
-              <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+
+              <ul className="space-y-1 text-sm text-purple-700 dark:text-purple-300">
                 {getLevelBenefits(currentLevel).map((benefit, index) => (
                   <li key={index} className="flex items-center space-x-2">
-                    <div className="w-1.5 h-1.5 bg-purple-600 rounded-full flex-shrink-0" />
+                    <div className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-purple-600" />
                     <span>{benefit}</span>
                   </li>
                 ))}
@@ -193,8 +206,8 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
 
             {/* Next Level Preview */}
             {currentLevel < 100 && (
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 p-4 dark:from-blue-900/20 dark:to-purple-900/20">
+                <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Target className="text-blue-600" size={16} />
                     <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
@@ -205,9 +218,10 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
                     {formatNumber(pointsNeededForNext)} points
                   </Badge>
                 </div>
-                
+
                 <p className="text-sm text-blue-700 dark:text-blue-300">
-                  Unlock new features and earn the "{getLevelTitle(currentLevel + 1)}" title!
+                  Unlock new features and earn the "
+                  {getLevelTitle(currentLevel + 1)}" title!
                 </p>
               </div>
             )}

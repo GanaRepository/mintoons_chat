@@ -396,42 +396,64 @@ export const FILE_CONFIG = {
   },
 } as const;
 
-// Achievement Types
+// Replace your ACHIEVEMENTS constant with this complete version:
 export const ACHIEVEMENTS = {
-  FIRST_STORY: {
+  first_story: {
     id: 'first_story',
     name: 'First Story',
     description: 'Completed your very first story!',
     icon: '📝',
     points: 10,
+    type: 'story_milestone' as const,
+    rarity: 'common' as const,
+    criteria: {
+      storiesCompleted: 1,
+    },
+    color: 'blue',
+    unlockedMessage: 'Congratulations on your first story!',
+    isActive: true,
+    sortOrder: 1,
+    createdAt: new Date(),
+    unlockedAt: null,
+    prerequisites: [],
   },
-  CREATIVE_WRITER: {
+  creative_writer: {
     id: 'creative_writer',
     name: 'Creative Writer',
     description: 'Scored 90+ on creativity assessment',
     icon: '🎨',
     points: 25,
+    type: 'creativity' as const,
+    rarity: 'uncommon' as const,
+    criteria: {
+      creativityScore: 90,
+    },
+    color: 'purple',
+    unlockedMessage: 'Your creativity shines!',
+    isActive: true,
+    sortOrder: 2,
+    createdAt: new Date(),
+    unlockedAt: null,
+    prerequisites: [],
   },
-  GRAMMAR_MASTER: {
+  grammar_master: {
     id: 'grammar_master',
     name: 'Grammar Master',
     description: 'Perfect grammar score!',
     icon: '📚',
-    points: 25,
-  },
-  STREAK_MASTER: {
-    id: 'streak_master',
-    name: 'Streak Master',
-    description: 'Written stories for 7 days in a row',
-    icon: '🔥',
     points: 50,
-  },
-  PROLIFIC_WRITER: {
-    id: 'prolific_writer',
-    name: 'Prolific Writer',
-    description: 'Completed 10 stories',
-    icon: '✍️',
-    points: 100,
+    type: 'grammar' as const,
+    rarity: 'rare' as const,
+    criteria: {
+      grammarScore: 100,
+    },
+    color: 'green',
+    unlockedMessage: 'Perfect grammar achieved!',
+    isActive: true,
+    sortOrder: 3,
+    createdAt: new Date(),
+    unlockedAt: null,
+    prerequisites: [],
   },
 } as const;
 
@@ -473,7 +495,8 @@ export const ERROR_MESSAGES = {
   FILE_TOO_LARGE: 'File is too large. Maximum size is 10MB.',
   INVALID_FILE_TYPE: 'Invalid file type. Please upload a valid image or PDF.',
   INVALID_EMAIL: 'Please enter a valid email address.',
-  EMAIL_ALREADY_USED: 'This email is already registered. Please use a different email.',
+  EMAIL_ALREADY_USED:
+    'This email is already registered. Please use a different email.',
 } as const;
 
 // Success Messages
@@ -545,4 +568,172 @@ export const TIME_CONSTANTS = {
   DAY: 24 * 60 * 60 * 1000,
   WEEK: 7 * 24 * 60 * 60 * 1000,
   MONTH: 30 * 24 * 60 * 60 * 1000,
+} as const;
+
+// Add these functions to utils/constants.ts
+export function getAchievementProgress(
+  achievementId: string,
+  user: any
+): { current: number; target: number } {
+  const achievement = ACHIEVEMENTS[achievementId as keyof typeof ACHIEVEMENTS];
+  if (!achievement) return { current: 0, target: 0 };
+
+  switch (achievementId) {
+    case 'first_story':
+      return { current: Math.min(user.storyCount || 0, 1), target: 1 };
+    case 'creative_writer':
+      return { current: user.bestCreativityScore || 0, target: 90 };
+    case 'grammar_master':
+      return { current: user.bestGrammarScore || 0, target: 100 };
+    default:
+      return { current: 0, target: 1 };
+  }
+}
+
+export function isAchievementUnlocked(
+  achievementId: string,
+  user: any
+): boolean {
+  const progress = getAchievementProgress(achievementId, user);
+  return progress.current >= progress.target;
+}
+
+// Add these to utils/constants.ts
+
+// Level System Constants
+export const LEVEL_THRESHOLDS = [
+  0, // Level 1: 0 points
+  100, // Level 2: 100 points
+  250, // Level 3: 250 points
+  450, // Level 4: 450 points
+  700, // Level 5: 700 points
+  1000, // Level 6: 1000 points
+  1350, // Level 7: 1350 points
+  1750, // Level 8: 1750 points
+  2200, // Level 9: 2200 points
+  2700, // Level 10: 2700 points
+  3250, // Level 11: 3250 points
+  3850, // Level 12: 3850 points
+  4500, // Level 13: 4500 points
+  5200, // Level 14: 5200 points
+  5950, // Level 15: 5950 points
+  6750, // Level 16: 6750 points
+  7600, // Level 17: 7600 points
+  8500, // Level 18: 8500 points
+  9450, // Level 19: 9450 points
+  10450, // Level 20: 10450 points
+  // Continue pattern for higher levels...
+] as const;
+
+// Change from 'as const' to regular object to make it mutable
+export const LEVEL_REWARDS: Record<number, string[]> = {
+  1: ['Welcome to MINTOONS!', 'Access to story creation'],
+  2: ['Basic achievement tracking', 'Profile customization'],
+  3: ['Advanced story elements', 'Comment on stories'],
+  4: ['Story sharing enabled', 'Basic analytics'],
+  5: ['Mentor feedback access', 'Story templates'],
+  10: ['Advanced analytics', 'Export stories as PDF'],
+  15: ['Premium story elements', 'Collaboration features'],
+  20: ['Master storyteller badge', 'Special achievements'],
+  25: ['Elite writer status', 'Priority support'],
+  30: ['Legendary achievements', 'Beta feature access'],
+  50: ['Hall of Fame entry', 'Lifetime benefits'],
+};
+
+// Add these to utils/constants.ts
+
+// Streak Milestones
+export const STREAK_MILESTONES = [
+  {
+    days: 3,
+    name: 'Getting Started',
+    points: 15,
+    description: 'Write for 3 consecutive days',
+  },
+  {
+    days: 7,
+    name: 'Weekly Writer',
+    points: 50,
+    description: 'Complete your first week',
+  },
+  {
+    days: 14,
+    name: 'Dedicated Author',
+    points: 100,
+    description: 'Two weeks of consistent writing',
+  },
+  {
+    days: 30,
+    name: 'Monthly Master',
+    points: 250,
+    description: 'A full month of writing',
+  },
+  {
+    days: 60,
+    name: 'Persistent Writer',
+    points: 500,
+    description: 'Two months of dedication',
+  },
+  {
+    days: 90,
+    name: 'Quarterly Champion',
+    points: 750,
+    description: 'Three months of excellence',
+  },
+  {
+    days: 180,
+    name: 'Half-Year Hero',
+    points: 1500,
+    description: 'Six months of commitment',
+  },
+  {
+    days: 365,
+    name: 'Annual Legend',
+    points: 3000,
+    description: 'A full year of writing',
+  },
+] as const;
+
+// Streak Rewards
+export const STREAK_REWARDS = {
+  3: {
+    points: 15,
+    title: 'Getting Started',
+    message: 'Great job on your first 3-day streak!',
+  },
+  7: {
+    points: 50,
+    title: 'Weekly Writer',
+    message: "Amazing! You've completed your first week of writing.",
+  },
+  14: {
+    points: 100,
+    title: 'Dedicated Author',
+    message: 'Incredible dedication! Two weeks of consistent writing.',
+  },
+  30: {
+    points: 250,
+    title: 'Monthly Master',
+    message: 'Outstanding! A full month of daily writing.',
+  },
+  60: {
+    points: 500,
+    title: 'Persistent Writer',
+    message: 'Exceptional! Two months of unwavering commitment.',
+  },
+  90: {
+    points: 750,
+    title: 'Quarterly Champion',
+    message: 'Legendary! Three months of writing excellence.',
+  },
+  180: {
+    points: 1500,
+    title: 'Half-Year Hero',
+    message: 'Phenomenal! Six months of consistent creativity.',
+  },
+  365: {
+    points: 3000,
+    title: 'Annual Legend',
+    message: 'LEGENDARY STATUS! A full year of daily writing!',
+  },
 } as const;

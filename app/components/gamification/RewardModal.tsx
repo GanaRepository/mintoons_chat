@@ -3,22 +3,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trophy, 
-  Star, 
-  Crown, 
-  Sparkles,
-  Gift,
-  X
-} from 'lucide-react';
+import { Trophy, Star, Crown, Sparkles, Gift, X } from 'lucide-react';
 import { Modal } from '@components/ui/modal';
 import { Button } from '@components/ui/button';
 import { Badge } from '@components/ui/badge';
 import { ProgressRing } from './ProgressRing';
 import { formatNumber } from '@utils/formatters';
 import { playRewardSound } from '@utils/helpers';
-import type { Achievement } from '@types/achievement';
-import type { RewardType, Reward } from '@types/gamification';
+import type { Achievement } from '../../../types/achievement';
+import type { RewardType, Reward } from '../../../types/gamification';
 
 interface RewardModalProps {
   isOpen: boolean;
@@ -35,22 +28,24 @@ export const RewardModal: React.FC<RewardModalProps> = ({
   reward,
   onClaim,
   autoClose = false,
-  showConfetti = true
+  showConfetti = true,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
-  const [confettiParticles, setConfettiParticles] = useState<Array<{
-    id: number;
-    x: number;
-    y: number;
-    rotation: number;
-    color: string;
-  }>>([]);
+  const [confettiParticles, setConfettiParticles] = useState<
+    Array<{
+      id: number;
+      x: number;
+      y: number;
+      rotation: number;
+      color: string;
+    }>
+  >([]);
 
   useEffect(() => {
     if (isOpen) {
       // Play reward sound
       playRewardSound();
-      
+
       // Generate confetti
       if (showConfetti) {
         const particles = Array.from({ length: 50 }, (_, i) => ({
@@ -58,14 +53,16 @@ export const RewardModal: React.FC<RewardModalProps> = ({
           x: Math.random() * 100,
           y: Math.random() * 100,
           rotation: Math.random() * 360,
-          color: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'][Math.floor(Math.random() * 4)]
+          color: ['#fbbf24', '#f59e0b', '#d97706', '#92400e'][
+            Math.floor(Math.random() * 4)
+          ],
         }));
         setConfettiParticles(particles);
       }
-      
+
       // Show details after animation
       setTimeout(() => setShowDetails(true), 800);
-      
+
       // Auto close if enabled
       if (autoClose) {
         setTimeout(() => onClose(), 3000);
@@ -75,23 +72,35 @@ export const RewardModal: React.FC<RewardModalProps> = ({
 
   const getRewardIcon = (type: RewardType) => {
     switch (type) {
-      case 'achievement': return Trophy;
-      case 'level_up': return Crown;
-      case 'streak': return Star;
-      case 'points': return Sparkles;
-      case 'special': return Gift;
-      default: return Trophy;
+      case 'achievement':
+        return Trophy;
+      case 'level_up':
+        return Crown;
+      case 'streak':
+        return Star;
+      case 'points':
+        return Sparkles;
+      case 'special':
+        return Gift;
+      default:
+        return Trophy;
     }
   };
 
   const getRewardColor = (type: RewardType) => {
     switch (type) {
-      case 'achievement': return 'from-yellow-400 to-orange-500';
-      case 'level_up': return 'from-purple-500 to-pink-500';
-      case 'streak': return 'from-orange-400 to-red-500';
-      case 'points': return 'from-blue-500 to-purple-500';
-      case 'special': return 'from-green-500 to-teal-500';
-      default: return 'from-gray-400 to-gray-500';
+      case 'achievement':
+        return 'from-yellow-400 to-orange-500';
+      case 'level_up':
+        return 'from-purple-500 to-pink-500';
+      case 'streak':
+        return 'from-orange-400 to-red-500';
+      case 'points':
+        return 'from-blue-500 to-purple-500';
+      case 'special':
+        return 'from-green-500 to-teal-500';
+      default:
+        return 'from-gray-400 to-gray-500';
     }
   };
 
@@ -108,27 +117,27 @@ export const RewardModal: React.FC<RewardModalProps> = ({
       <div className="relative">
         {/* Confetti Animation */}
         {showConfetti && (
-          <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            {confettiParticles.map((particle) => (
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            {confettiParticles.map(particle => (
               <motion.div
                 key={particle.id}
                 initial={{
                   x: `${particle.x}%`,
                   y: '-10%',
                   rotate: particle.rotation,
-                  scale: 0
+                  scale: 0,
                 }}
                 animate={{
                   y: '110%',
                   rotate: particle.rotation + 360,
-                  scale: [0, 1, 1, 0]
+                  scale: [0, 1, 1, 0],
                 }}
                 transition={{
                   duration: 3,
                   ease: 'easeOut',
-                  times: [0, 0.1, 0.9, 1]
+                  times: [0, 0.1, 0.9, 1],
                 }}
-                className="absolute w-2 h-2 rounded"
+                className="absolute h-2 w-2 rounded"
                 style={{ backgroundColor: particle.color }}
               />
             ))}
@@ -144,20 +153,22 @@ export const RewardModal: React.FC<RewardModalProps> = ({
               type: 'spring',
               stiffness: 260,
               damping: 20,
-              delay: 0.2
+              delay: 0.2,
             }}
             className="flex justify-center"
           >
-            <div className={`w-24 h-24 rounded-full bg-gradient-to-br ${colorGradient} flex items-center justify-center shadow-2xl`}>
+            <div
+              className={`h-24 w-24 rounded-full bg-gradient-to-br ${colorGradient} flex items-center justify-center shadow-2xl`}
+            >
               <motion.div
                 animate={{
                   scale: [1, 1.1, 1],
-                  rotate: [0, 5, -5, 0]
+                  rotate: [0, 5, -5, 0],
                 }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
-                  repeatDelay: 1
+                  repeatDelay: 1,
                 }}
               >
                 <Icon className="text-white" size={40} />
@@ -171,7 +182,7 @@ export const RewardModal: React.FC<RewardModalProps> = ({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            <h2 className="mb-2 text-2xl font-bold text-gray-900 dark:text-white">
               {reward.title}
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
@@ -187,9 +198,9 @@ export const RewardModal: React.FC<RewardModalProps> = ({
               transition={{ delay: 0.6 }}
               className="flex justify-center"
             >
-              <Badge variant="warning" className="text-lg px-4 py-2">
-                <Star size={16} className="mr-2" />
-                +{formatNumber(reward.points)} Points
+              <Badge variant="warning" className="px-4 py-2 text-lg">
+                <Star size={16} className="mr-2" />+
+                {formatNumber(reward.points)} Points
               </Badge>
             </motion.div>
           )}
@@ -229,8 +240,8 @@ export const RewardModal: React.FC<RewardModalProps> = ({
               >
                 {/* Achievement Details */}
                 {reward.type === 'achievement' && reward.achievement && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                  <div className="rounded-lg bg-yellow-50 p-4 dark:bg-yellow-900/20">
+                    <h3 className="mb-2 font-semibold text-yellow-800 dark:text-yellow-200">
                       Achievement Unlocked!
                     </h3>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300">
@@ -241,8 +252,8 @@ export const RewardModal: React.FC<RewardModalProps> = ({
 
                 {/* Streak Details */}
                 {reward.type === 'streak' && reward.streakDays && (
-                  <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-                    <h3 className="font-semibold text-orange-800 dark:text-orange-200 mb-2">
+                  <div className="rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
+                    <h3 className="mb-2 font-semibold text-orange-800 dark:text-orange-200">
                       {reward.streakDays} Day Writing Streak!
                     </h3>
                     <p className="text-sm text-orange-700 dark:text-orange-300">
@@ -253,11 +264,11 @@ export const RewardModal: React.FC<RewardModalProps> = ({
 
                 {/* Level Up Benefits */}
                 {reward.type === 'level_up' && reward.newLevel && (
-                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                    <h3 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">
+                  <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
+                    <h3 className="mb-2 font-semibold text-purple-800 dark:text-purple-200">
                       Level {reward.newLevel} Benefits
                     </h3>
-                    <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-1">
+                    <ul className="space-y-1 text-sm text-purple-700 dark:text-purple-300">
                       <li>• Access to advanced AI writing tools</li>
                       <li>• New story templates and themes</li>
                       <li>• Priority support from mentors</li>
@@ -289,7 +300,7 @@ export const RewardModal: React.FC<RewardModalProps> = ({
                 Claim Reward
               </Button>
             )}
-            
+
             <Button
               variant="outline"
               size="lg"
@@ -306,9 +317,9 @@ export const RewardModal: React.FC<RewardModalProps> = ({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
-              className="pt-4 border-t border-gray-200 dark:border-gray-700"
+              className="border-t border-gray-200 pt-4 dark:border-gray-700"
             >
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+              <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
                 Share your achievement with friends!
               </p>
               <Button
@@ -320,7 +331,7 @@ export const RewardModal: React.FC<RewardModalProps> = ({
                     navigator.share({
                       title: `I just earned the "${reward.title}" achievement on MINTOONS!`,
                       text: reward.description,
-                      url: window.location.origin
+                      url: window.location.origin,
                     });
                   }
                 }}

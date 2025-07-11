@@ -3,28 +3,42 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Award, 
-  Star, 
-  Trophy, 
+import {
+  Award,
+  Star,
+  Trophy,
   Target,
   Zap,
   Crown,
   Heart,
-  BookOpen
+  BookOpen,
 } from 'lucide-react';
 import { Card } from '@components/ui/card';
 import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
 import { Modal } from '@components/ui/modal';
-import { ACHIEVEMENTS, getAchievementProgress, isAchievementUnlocked } from '@utils/constants';
+import {
+  ACHIEVEMENTS,
+  getAchievementProgress,
+  isAchievementUnlocked,
+} from '@utils/constants';
 import { formatNumber, formatDate } from '@utils/formatters';
 import { calculateAchievementProgress } from '@utils/helpers';
-import type { Achievement, AchievementType, AchievementProgress } from '@types/achievement';
-import type { User } from '@types/user';
+import type {
+  Achievement,
+  AchievementType,
+  AchievementProgress,
+} from '../../../types/achievement';
+import type { User } from '../../../types/user';
+
+// Extended Achievement interface for UI purposes
+interface ExtendedAchievement extends Achievement {
+  unlockedAt?: Date;
+  prerequisites?: string[];
+}
 
 interface AchievementBadgeProps {
-  achievement: Achievement;
+  achievement: ExtendedAchievement;
   user: User;
   isUnlocked?: boolean;
   progress?: AchievementProgress;
@@ -42,21 +56,22 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
   size = 'md',
   showProgress = true,
   onClick,
-  className
+  className,
 }) => {
   const [showDetails, setShowDetails] = useState(false);
-  
-  const isUnlocked = propIsUnlocked ?? isAchievementUnlocked(achievement.id, user);
-  const progress = propProgress ?? calculateAchievementProgress(achievement, user);
+
+  const isUnlocked =
+    propIsUnlocked ?? isAchievementUnlocked(achievement.id, user);
+  const progress =
+    propProgress ?? calculateAchievementProgress(achievement, user);
 
   const getAchievementIcon = (type: AchievementType) => {
-    const iconMap = {
-      story_count: BookOpen,
+    const iconMap: Record<AchievementType, React.ComponentType<any>> = {
+      story_milestone: BookOpen,
+      quality_score: Star,
+      streak: Zap,
       creativity: Star,
       grammar: Award,
-      streak: Zap,
-      engagement: Heart,
-      milestone: Trophy,
       special: Crown,
     };
     return iconMap[type] || Award;
@@ -64,35 +79,37 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 
   const getAchievementColor = (type: AchievementType, unlocked: boolean) => {
     if (!unlocked) return 'text-gray-400';
-    
-    const colorMap = {
-      story_count: 'text-blue-500',
+
+    const colorMap: Record<AchievementType, string> = {
+      story_milestone: 'text-blue-500',
+      quality_score: 'text-purple-500',
+      streak: 'text-orange-500',
       creativity: 'text-purple-500',
       grammar: 'text-green-500',
-      streak: 'text-orange-500',
-      engagement: 'text-pink-500',
-      milestone: 'text-yellow-500',
       special: 'text-indigo-500',
     };
     return colorMap[type] || 'text-gray-500';
   };
 
   const getBadgeVariant = (type: AchievementType) => {
-    const variantMap = {
-      story_count: 'info',
+    const variantMap: Record<
+      AchievementType,
+      'info' | 'purple' | 'warning' | 'success' | 'default'
+    > = {
+      story_milestone: 'info',
+      quality_score: 'purple',
+      streak: 'warning',
       creativity: 'purple',
       grammar: 'success',
-      streak: 'warning',
-      engagement: 'error',
-      milestone: 'warning',
       special: 'purple',
-    } as const;
+    };
     return variantMap[type] || 'default';
   };
 
   const Icon = getAchievementIcon(achievement.type);
   const iconColor = getAchievementColor(achievement.type, isUnlocked);
-  const progressPercentage = (progress.current / progress.target) * 100;
+  const progressPercentage =
+    progress.target > 0 ? (progress.current / progress.target) * 100 : 0;
 
   const sizeClasses = {
     sm: 'w-12 h-12',
@@ -122,23 +139,25 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={handleClick}
-        className={`relative cursor-pointer ${className}`}
+        className={`relative cursor-pointer ${className || ''}`}
       >
-        <div className={`${sizeClasses[size]} rounded-full border-2 flex items-center justify-center transition-all ${
-          isUnlocked 
-            ? `border-${achievement.type === 'special' ? 'purple' : 'yellow'}-400 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20 shadow-lg`
-            : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800'
-        }`}>
-          <Icon 
-            size={iconSizes[size]} 
-            className={isUnlocked ? iconColor : 'text-gray-400'} 
+        <div
+          className={`${sizeClasses[size]} flex items-center justify-center rounded-full border-2 transition-all ${
+            isUnlocked
+              ? `border-${achievement.type === 'special' ? 'purple' : 'yellow'}-400 bg-gradient-to-br from-yellow-100 to-orange-100 shadow-lg dark:from-yellow-900/20 dark:to-orange-900/20`
+              : 'border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800'
+          }`}
+        >
+          <Icon
+            size={iconSizes[size]}
+            className={isUnlocked ? iconColor : 'text-gray-400'}
           />
-          
+
           {/* Lock overlay for unachieved */}
           {!isUnlocked && (
-            <div className="absolute inset-0 bg-gray-500/50 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <div className="w-6 h-6 bg-gray-600 rounded-full flex items-center justify-center">
-                <div className="w-3 h-3 border border-white rounded-sm" />
+            <div className="absolute inset-0 flex items-center justify-center rounded-full bg-gray-500/50 backdrop-blur-sm">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-600">
+                <div className="h-3 w-3 rounded-sm border border-white" />
               </div>
             </div>
           )}
@@ -146,8 +165,8 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 
         {/* Progress Ring */}
         {!isUnlocked && showProgress && progress.target > 0 && (
-          <svg 
-            className={`absolute inset-0 ${sizeClasses[size]} transform -rotate-90`}
+          <svg
+            className={`absolute inset-0 ${sizeClasses[size]} -rotate-90 transform`}
             viewBox="0 0 100 100"
           >
             <circle
@@ -169,8 +188,9 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
               strokeLinecap="round"
               strokeDasharray={`${2 * Math.PI * 45}`}
               initial={{ strokeDashoffset: 2 * Math.PI * 45 }}
-              animate={{ 
-                strokeDashoffset: 2 * Math.PI * 45 * (1 - progressPercentage / 100)
+              animate={{
+                strokeDashoffset:
+                  2 * Math.PI * 45 * (1 - progressPercentage / 100),
               }}
               transition={{ duration: 1, ease: 'easeOut' }}
               className={iconColor}
@@ -184,7 +204,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="absolute -top-2 -right-2"
+            className="absolute -right-2 -top-2"
           >
             <Badge variant={getBadgeVariant(achievement.type)} size="sm">
               +{achievement.points}
@@ -198,9 +218,9 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
             initial={{ scale: 0, rotate: -180 }}
             animate={{ scale: [0, 1.2, 1], rotate: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="absolute inset-0 pointer-events-none"
+            className="pointer-events-none absolute inset-0"
           >
-            <div className="w-full h-full rounded-full border-2 border-yellow-400 animate-pulse" />
+            <div className="h-full w-full animate-pulse rounded-full border-2 border-yellow-400" />
           </motion.div>
         )}
       </motion.div>
@@ -215,19 +235,21 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
         <div className="space-y-6">
           {/* Achievement Header */}
           <div className="text-center">
-            <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full border-2 mb-4 ${
-              isUnlocked 
-                ? 'border-yellow-400 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20'
-                : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800'
-            }`}>
+            <div
+              className={`mb-4 inline-flex h-20 w-20 items-center justify-center rounded-full border-2 ${
+                isUnlocked
+                  ? 'border-yellow-400 bg-gradient-to-br from-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:to-orange-900/20'
+                  : 'border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-800'
+              }`}
+            >
               <Icon size={32} className={iconColor} />
             </div>
-            
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+
+            <h3 className="mb-2 text-xl font-bold text-gray-900 dark:text-white">
               {achievement.name}
             </h3>
-            
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
               {achievement.description}
             </p>
 
@@ -235,7 +257,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
               <Badge variant={getBadgeVariant(achievement.type)}>
                 {achievement.type.replace('_', ' ')}
               </Badge>
-              
+
               {achievement.points > 0 && (
                 <Badge variant="warning">
                   <Star size={12} className="mr-1" />
@@ -254,20 +276,21 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
                     Progress
                   </span>
                   <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {formatNumber(progress.current)} / {formatNumber(progress.target)}
+                    {formatNumber(progress.current)} /{' '}
+                    {formatNumber(progress.target)}
                   </span>
                 </div>
-                
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${progressPercentage}%` }}
                     transition={{ duration: 1, ease: 'easeOut' }}
-                    className="bg-gradient-to-r from-purple-500 to-pink-500 h-2 rounded-full"
+                    className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
                   />
                 </div>
-                
-                <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+
+                <p className="text-center text-xs text-gray-500 dark:text-gray-400">
                   {progress.target - progress.current} more to unlock!
                 </p>
               </div>
@@ -276,7 +299,7 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
 
           {/* Unlock Information */}
           {isUnlocked && achievement.unlockedAt && (
-            <Card className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+            <Card className="border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
               <div className="flex items-center space-x-2">
                 <Trophy className="text-green-600" size={16} />
                 <span className="text-sm font-medium text-green-800 dark:text-green-200">
@@ -287,50 +310,68 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
           )}
 
           {/* Related Achievements */}
-          {achievement.prerequisites && achievement.prerequisites.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                Prerequisites
-              </h4>
-              <div className="space-y-2">
-                {achievement.prerequisites.map((prereqId) => {
-                  const prereq = ACHIEVEMENTS[prereqId];
-                  const prereqUnlocked = isAchievementUnlocked(prereqId, user);
-                  
-                  return prereq ? (
-                    <div key={prereqId} className="flex items-center space-x-3 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                      <div className={`w-8 h-8 rounded-full border flex items-center justify-center ${
-                        prereqUnlocked 
-                          ? 'border-green-500 bg-green-100 dark:bg-green-900/20' 
-                          : 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700'
-                      }`}>
-                        <Icon size={16} className={prereqUnlocked ? 'text-green-600' : 'text-gray-400'} />
+          {achievement.prerequisites &&
+            achievement.prerequisites.length > 0 && (
+              <div>
+                <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                  Prerequisites
+                </h4>
+                <div className="space-y-2">
+                  {achievement.prerequisites.map((prereqId: string) => {
+                    const prereq =
+                      ACHIEVEMENTS[prereqId as keyof typeof ACHIEVEMENTS];
+                    const prereqUnlocked = isAchievementUnlocked(
+                      prereqId,
+                      user
+                    );
+
+                    return prereq ? (
+                      <div
+                        key={prereqId}
+                        className="flex items-center space-x-3 rounded-lg bg-gray-50 p-2 dark:bg-gray-800"
+                      >
+                        <div
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border ${
+                            prereqUnlocked
+                              ? 'border-green-500 bg-green-100 dark:bg-green-900/20'
+                              : 'border-gray-300 bg-gray-100 dark:border-gray-600 dark:bg-gray-700'
+                          }`}
+                        >
+                          <Icon
+                            size={16}
+                            className={
+                              prereqUnlocked
+                                ? 'text-green-600'
+                                : 'text-gray-400'
+                            }
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <span
+                            className={`text-sm font-medium ${
+                              prereqUnlocked
+                                ? 'text-gray-900 dark:text-white'
+                                : 'text-gray-500 dark:text-gray-400'
+                            }`}
+                          >
+                            {prereq.name}
+                          </span>
+                        </div>
+                        {prereqUnlocked && (
+                          <Badge variant="success" size="sm">
+                            Complete
+                          </Badge>
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <span className={`text-sm font-medium ${
-                          prereqUnlocked 
-                            ? 'text-gray-900 dark:text-white' 
-                            : 'text-gray-500 dark:text-gray-400'
-                        }`}>
-                          {prereq.name}
-                        </span>
-                      </div>
-                      {prereqUnlocked && (
-                        <Badge variant="success" size="sm">Complete</Badge>
-                      )}
-                    </div>
-                  ) : null;
-                })}
+                    ) : null;
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Action Button */}
           <div className="text-center">
-            <Button
-              variant="primary"
-              onClick={() => setShowDetails(false)}
-            >
+            <Button variant="primary" onClick={() => setShowDetails(false)}>
               {isUnlocked ? 'Awesome!' : 'Keep Going!'}
             </Button>
           </div>

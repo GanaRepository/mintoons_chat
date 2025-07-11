@@ -1,6 +1,9 @@
 // utils/helpers.ts - General helper functions (consolidated from lib/)
 import { STORY_ELEMENTS } from '@utils/constants';
 import type { StoryElements } from '../types/story';
+import type { AchievementProgress } from '../types/achievement';
+import { LEVEL_THRESHOLDS } from '@utils/constants';
+import { LEVEL_REWARDS } from '@utils/constants';
 /**
  * Generate a random ID
  */
@@ -674,4 +677,234 @@ export function calculateEngagementRate(
 
   const totalEngagements = likes + comments;
   return (totalEngagements / views) * 100;
+}
+
+// Add ONLY these 2 functions to utils/helpers.ts (don't add the others I mentioned)
+
+/**
+ * Calculate growth rate between current and previous values
+ */
+export function calculateGrowthRate(current: number, previous: number): number {
+  if (previous === 0) return current > 0 ? 100 : 0;
+  return ((current - previous) / previous) * 100;
+}
+
+/**
+ * Calculate retention rate
+ */
+export function calculateRetentionRate(
+  activeUsers: number,
+  totalUsers: number
+): number {
+  if (totalUsers === 0) return 0;
+  return (activeUsers / totalUsers) * 100;
+}
+
+// Replace the calculateAchievementProgress function:
+export function calculateAchievementProgress(
+  achievement: any,
+  user: any
+): AchievementProgress {
+  const criteria = achievement.criteria || {};
+  let current = 0;
+  let target = 1;
+
+  if (criteria.storiesCompleted) {
+    current = user.storyCount || 0;
+    target = criteria.storiesCompleted;
+  } else if (criteria.grammarScore) {
+    current = user.bestGrammarScore || 0;
+    target = criteria.grammarScore;
+  } else if (criteria.creativityScore) {
+    current = user.bestCreativityScore || 0;
+    target = criteria.creativityScore;
+  } else if (criteria.streakDays) {
+    current = user.streak || 0;
+    target = criteria.streakDays;
+  } else if (criteria.totalWords) {
+    current = user.totalWords || 0;
+    target = criteria.totalWords;
+  }
+
+  return { current, target };
+}
+
+// Add these functions to utils/helpers.ts
+
+/**
+ * Calculate user level from total points
+ */
+export function calculateUserLevel(totalPoints: number): number {
+  // Find the highest level threshold that the user has reached
+  for (let i = LEVEL_THRESHOLDS.length - 1; i >= 0; i--) {
+    if (totalPoints >= LEVEL_THRESHOLDS[i]) {
+      return i + 1;
+    }
+  }
+  return 1; // Default to level 1
+}
+
+/**
+ * Get points required for next level
+ */
+export function getPointsForNextLevel(currentLevel: number): number {
+  if (currentLevel >= LEVEL_THRESHOLDS.length) {
+    // For levels beyond our threshold array, use exponential growth
+    const lastThreshold = LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+    const growthRate = 1.2; // 20% increase per level
+    return Math.floor(
+      lastThreshold *
+        Math.pow(growthRate, currentLevel - LEVEL_THRESHOLDS.length)
+    );
+  }
+  return (
+    LEVEL_THRESHOLDS[currentLevel] ||
+    LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]
+  );
+}
+
+/**
+ * Get benefits for a specific level
+ */
+export function getLevelBenefits(level: number): string[] {
+  // Get exact level benefits
+  if (LEVEL_REWARDS[level]) {
+    return [...LEVEL_REWARDS[level]]; // Create a copy to avoid mutability issues
+  }
+
+  // Get the highest available reward for levels beyond our defined rewards
+  const availableLevels = Object.keys(LEVEL_REWARDS)
+    .map(Number)
+    .sort((a, b) => b - a);
+  for (const availableLevel of availableLevels) {
+    if (level >= availableLevel) {
+      return [...LEVEL_REWARDS[availableLevel]]; // Create a copy
+    }
+  }
+
+  // Default benefits for very low levels
+  return ['Access to story creation', 'Basic features unlocked'];
+}
+
+// Add this function to utils/helpers.ts
+
+/**
+ * Play reward sound effect
+ */
+export function playRewardSound(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    // Create audio context for better browser support
+    const audioContext = new (window.AudioContext ||
+      (window as any).webkitAudioContext)();
+
+    // Create a simple reward sound using Web Audio API
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    // Create a pleasant reward sound (C major chord)
+    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.01,
+      audioContext.currentTime + 0.5
+    );
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.5);
+  } catch (error) {
+    // Fallback: try to play a simple beep sound
+    console.log('🎉 Reward earned!'); // Visual feedback in console if audio fails
+  }
+}
+
+// Add these functions to utils/helpers.ts
+
+/**
+ * Calculate current streak from streak data
+ */
+export function calculateCurrentStreak(streakData: any): number {
+  if (!streakData || !streakData.lastStoryDate) return 0;
+
+  const lastStoryDate = new Date(streakData.lastStoryDate);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Reset time to start of day for accurate comparison
+  lastStoryDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  yesterday.setHours(0, 0, 0, 0);
+
+  // If last story was today or yesterday, streak is active
+  if (
+    lastStoryDate.getTime() === today.getTime() ||
+    lastStoryDate.getTime() === yesterday.getTime()
+  ) {
+    return streakData.current || 0;
+  }
+
+  // Otherwise streak is broken
+  return 0;
+}
+
+/**
+ * Check if streak is currently active
+ */
+export function isStreakActive(streakData: any): boolean {
+  if (!streakData || !streakData.lastStoryDate) return false;
+
+  const lastStoryDate = new Date(streakData.lastStoryDate);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Reset time to start of day for accurate comparison
+  lastStoryDate.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  yesterday.setHours(0, 0, 0, 0);
+
+  // Streak is active if last story was today or yesterday
+  return (
+    lastStoryDate.getTime() === today.getTime() ||
+    lastStoryDate.getTime() === yesterday.getTime()
+  );
+}
+
+/**
+ * Get motivational message based on streak
+ */
+export function getStreakMotivation(streak: number, isActive: boolean): string {
+  if (!isActive && streak > 0) {
+    return `Don't let your ${streak}-day streak end! Write a story today to keep the momentum going.`;
+  }
+
+  if (streak === 0) {
+    return 'Every great writer started with a single story. Begin your writing streak today!';
+  }
+
+  if (streak === 1) {
+    return 'Great start! Write another story tomorrow to build your streak.';
+  }
+
+  if (streak < 7) {
+    return `You're building momentum! ${7 - streak} more days to reach your first weekly milestone.`;
+  }
+
+  if (streak < 14) {
+    return `Amazing! You're on a roll. Keep writing to reach the two-week milestone.`;
+  }
+
+  if (streak < 30) {
+    return `Incredible dedication! You're approaching the monthly milestone. Don't stop now!`;
+  }
+
+  return `You're a writing legend! Your consistency is truly inspiring. Keep the streak alive!`;
 }

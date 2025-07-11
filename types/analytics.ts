@@ -149,3 +149,45 @@ export interface StoryAnalytics {
     value: number;
   }>;
 }
+
+// Add this interface to your types/analytics.ts file
+
+export interface UserAnalytics {
+  totalUsers: number;
+  previousPeriodUsers?: number;
+  newUsers: number;
+  previousNewUsers?: number;
+  activeUsers: number;
+  previousActiveUsers?: number;
+  previousRetentionRate?: number;
+  ageDistribution?: Array<{
+    range: string;
+    count: number;
+    percentage: number;
+  }>;
+  roleDistribution?: Array<{
+    role: string;
+    count: number;
+    percentage: number;
+  }>;
+  peakHours?: Array<{
+    hour: number;
+    percentage: number;
+  }>;
+  activeDays?: Array<{
+    day: string;
+    percentage: number;
+  }>;
+  averageSessionDuration?: number;
+  averageActionsPerSession?: number;
+  recentActivity?: Array<{
+    userName: string;
+    action: string;
+    timestamp: Date;
+    userRole: string;
+  }>;
+  growthData: Array<{
+    date: string;
+    value: number;
+  }>;
+}

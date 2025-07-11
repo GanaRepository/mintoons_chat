@@ -9,6 +9,7 @@ import mongoose from 'mongoose';
 import { calculateEngagementRate } from '@utils/helpers';
 import { StoryStatus } from '../../types';
 import { StoryAnalytics } from '../../types/analytics';
+import { UserAnalytics } from '../../types/analytics';
 
 interface ReportOptions {
   startDate: Date;
@@ -1424,4 +1425,195 @@ function processRatingDistribution(ratingData: any[]) {
     });
   }
   return distribution;
+}
+
+// Add this function to your lib/analytics/reporter.ts file
+
+/**
+ * Get user analytics with detailed breakdown
+ */
+export async function getUserAnalytics(
+  timeRange: string
+): Promise<UserAnalytics> {
+  try {
+    await connectDB();
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate = now;
+
+    // Parse timeRange
+    switch (timeRange) {
+      case '24h':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate previous period for comparison
+    const periodDuration = endDate.getTime() - startDate.getTime();
+    const previousStartDate = new Date(startDate.getTime() - periodDuration);
+    const previousEndDate = startDate;
+
+    // Get current and previous period data
+    const [
+      totalUsers,
+      previousPeriodUsers,
+      newUsers,
+      previousNewUsers,
+      activeUsers,
+      previousActiveUsers,
+      ageDistribution,
+      roleDistribution,
+      recentActivity,
+      growthData,
+    ] = await Promise.all([
+      // Current period
+      (User as any).countDocuments({ isActive: true }),
+
+      // Previous period total users
+      (User as any).countDocuments({
+        isActive: true,
+        createdAt: { $lte: previousEndDate },
+      }),
+
+      // New users current period
+      (User as any).countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate },
+      }),
+
+      // New users previous period
+      (User as any).countDocuments({
+        createdAt: { $gte: previousStartDate, $lte: previousEndDate },
+      }),
+
+      // Active users current period
+      (User as any).countDocuments({
+        isActive: true,
+        lastActiveDate: { $gte: startDate },
+      }),
+
+      // Active users previous period
+      (User as any).countDocuments({
+        isActive: true,
+        lastActiveDate: { $gte: previousStartDate, $lte: previousEndDate },
+      }),
+
+      // Age distribution
+      (User as any).aggregate([
+        { $match: { isActive: true } },
+        {
+          $group: {
+            _id: {
+              $switch: {
+                branches: [
+                  { case: { $lte: ['$age', 6] }, then: '2-6' },
+                  { case: { $lte: ['$age', 12] }, then: '7-12' },
+                  { case: { $lte: ['$age', 18] }, then: '13-18' },
+                ],
+                default: 'Unknown',
+              },
+            },
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+
+      // Role distribution
+      (User as any).aggregate([
+        { $match: { isActive: true } },
+        { $group: { _id: '$role', count: { $sum: 1 } } },
+      ]),
+
+      // Recent activity (mock data)
+      generateRecentUserActivity(10),
+
+      // Growth data over time
+      generateUserGrowthTimeSeries(startDate, endDate),
+    ]);
+
+    return {
+      totalUsers,
+      previousPeriodUsers,
+      newUsers,
+      previousNewUsers,
+      activeUsers,
+      previousActiveUsers,
+      previousRetentionRate: 0, // Would need historical calculation
+      ageDistribution: ageDistribution.map((item: any) => ({
+        range: item._id,
+        count: item.count,
+        percentage: totalUsers > 0 ? (item.count / totalUsers) * 100 : 0,
+      })),
+      roleDistribution: roleDistribution.map((item: any) => ({
+        role: item._id,
+        count: item.count,
+        percentage: totalUsers > 0 ? (item.count / totalUsers) * 100 : 0,
+      })),
+      peakHours: generatePeakHours(),
+      activeDays: generateActiveDays(),
+      averageSessionDuration: 25, // Mock data
+      averageActionsPerSession: 8, // Mock data
+      recentActivity,
+      growthData,
+    };
+  } catch (error) {
+    console.error('Error getting user analytics:', error);
+    throw error;
+  }
+}
+
+// Helper functions for user analytics
+async function generateRecentUserActivity(limit: number) {
+  // Mock recent activity data
+  return Array.from({ length: limit }, (_, i) => ({
+    userName: `User ${i + 1}`,
+    action: 'created a story',
+    timestamp: new Date(Date.now() - i * 60000),
+    userRole: i % 3 === 0 ? 'child' : 'mentor',
+  }));
+}
+
+async function generateUserGrowthTimeSeries(startDate: Date, endDate: Date) {
+  const data = [];
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      value: Math.floor(Math.random() * 50) + 10, // Mock growth data
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return data;
+}
+
+function generatePeakHours() {
+  return [
+    { hour: 15, percentage: 85 },
+    { hour: 16, percentage: 92 },
+    { hour: 17, percentage: 78 },
+  ];
+}
+
+function generateActiveDays() {
+  return [
+    { day: 'Saturday', percentage: 95 },
+    { day: 'Sunday', percentage: 88 },
+    { day: 'Friday', percentage: 82 },
+  ];
 }

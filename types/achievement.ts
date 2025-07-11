@@ -74,14 +74,8 @@ export interface UserAchievement {
 }
 
 export interface AchievementProgress {
-  achievementId: string;
-  achievement: Achievement;
-  currentProgress: number;
-  maxProgress: number;
-  progressPercentage: number;
-  isCompleted: boolean;
-  nextMilestone?: number;
-  estimatedCompletion?: string;
+  current: number;
+  target: number;
 }
 
 export interface UserLevel {
