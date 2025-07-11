@@ -209,7 +209,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               {/* Comments */}
               <div className="flex items-center space-x-1 text-sm">
                 <MessageCircle size={16} />
-                <span>{formatNumber(story.comments ?? 0)}</span>
+                <span>
+                  {formatNumber(
+                    Array.isArray(story.comments)
+                      ? story.comments.length
+                      : (story.comments ?? 0)
+                  )}
+                </span>
               </div>
             </div>
           </div>

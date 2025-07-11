@@ -1,4 +1,3 @@
-// app/components/stories/StoryFilters.tsx
 'use client';
 
 import React, { useState } from 'react';
@@ -82,7 +81,7 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
 
   const genreOptions = [
     { value: '', label: 'Any Genre' },
-    ...STORY_ELEMENTS.genre.map(genre => ({
+    ...STORY_ELEMENTS.GENRES.map(genre => ({
       value: genre.id,
       label: genre.name,
     })),
@@ -90,7 +89,8 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
 
   const characterOptions = [
     { value: '', label: 'Any Character' },
-    ...STORY_ELEMENTS.mainCharacter.map(char => ({
+    // Assuming STORY_ELEMENTS.CHARACTERS exists
+    ...STORY_ELEMENTS.CHARACTERS.map(char => ({
       value: char.id,
       label: char.name,
     })),
@@ -98,7 +98,7 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
 
   const settingOptions = [
     { value: '', label: 'Any Setting' },
-    ...STORY_ELEMENTS.setting.map(setting => ({
+    ...STORY_ELEMENTS.SETTINGS.map(setting => ({
       value: setting.id,
       label: setting.name,
     })),

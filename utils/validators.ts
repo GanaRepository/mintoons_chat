@@ -178,16 +178,27 @@ export const aiCollaborationSchema = z.object({
   turnNumber: z.number().min(1),
 });
 
+// Update commentSchema in utils/validators.ts
 export const commentSchema = z.object({
-  storyId: z.string().min(1, 'Story ID is required'),
   content: z
     .string()
     .min(1, 'Comment cannot be empty')
     .max(1000, 'Comment must be no more than 1000 characters'),
+  type: z
+    .enum([
+      'grammar',
+      'creativity',
+      'suggestion',
+      'praise',
+      'improvement',
+      'question',
+      'general',
+      'reply',
+    ])
+    .optional()
+    .default('general'),
+  parentId: z.string().optional(),
   highlightedText: z.string().optional(),
-  commentType: z
-    .enum(['grammar', 'creativity', 'suggestion', 'praise', 'improvement'])
-    .optional(),
 });
 
 export const contactFormSchema = z.object({
@@ -252,3 +263,7 @@ export function isValidTier(tier: string): boolean {
 export function isValidRole(role: string): boolean {
   return Object.values(USER_ROLES).includes(role as any);
 }
+
+// Or update your commentSchema.parse to commentSchema.safeParse
+export const validateCommentSafe = (data: unknown) =>
+  commentSchema.safeParse(data);

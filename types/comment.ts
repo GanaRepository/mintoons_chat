@@ -27,6 +27,7 @@ export interface Comment {
   };
 
   // Threading for replies
+  parentId?: string;
   parentCommentId?: string;
   replies: Comment[];
 
@@ -36,6 +37,7 @@ export interface Comment {
   resolvedAt?: Date;
 
   // Reactions and engagement
+  likes?: string[];
   isHelpful: boolean;
   helpfulCount: number;
 

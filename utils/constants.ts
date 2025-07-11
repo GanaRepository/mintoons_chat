@@ -21,136 +21,6 @@ export const STORY_CONFIG = {
 
 // Story Elements for 6-Element Selection
 export const STORY_ELEMENTS = {
-  // Add these flat properties that StoryFilters expects
-  genre: [
-    {
-      id: 'adventure',
-      name: 'Adventure',
-      icon: '🗺️',
-      description: 'Exciting journeys and discoveries',
-    },
-    {
-      id: 'fantasy',
-      name: 'Fantasy',
-      icon: '🧙‍♂️',
-      description: 'Magic, wizards, and mythical creatures',
-    },
-    {
-      id: 'mystery',
-      name: 'Mystery',
-      icon: '🔍',
-      description: 'Puzzles, clues, and detective work',
-    },
-    {
-      id: 'friendship',
-      name: 'Friendship',
-      icon: '👫',
-      description: 'Stories about friendship and teamwork',
-    },
-    {
-      id: 'family',
-      name: 'Family',
-      icon: '👨‍👩‍👧‍👦',
-      description: 'Family adventures and bonding',
-    },
-    {
-      id: 'animal',
-      name: 'Animal Tales',
-      icon: '🐾',
-      description: 'Stories featuring animal characters',
-    },
-    {
-      id: 'superhero',
-      name: 'Superhero',
-      icon: '🦸‍♂️',
-      description: 'Heroes with special powers',
-    },
-    {
-      id: 'space',
-      name: 'Space Adventure',
-      icon: '🚀',
-      description: 'Outer space exploration',
-    },
-  ],
-
-  mainCharacter: [
-    {
-      id: 'explorer',
-      name: 'Brave Explorer',
-      icon: '🧭',
-      description: 'Adventurous and curious',
-    },
-    {
-      id: 'animal',
-      name: 'Talking Animal',
-      icon: '🐾',
-      description: 'Wise animal friend',
-    },
-    {
-      id: 'wizard',
-      name: 'Young Wizard',
-      icon: '🧙‍♂️',
-      description: 'Learning magic',
-    },
-    {
-      id: 'robot',
-      name: 'Friendly Robot',
-      icon: '🤖',
-      description: 'Helpful mechanical friend',
-    },
-    {
-      id: 'princess',
-      name: 'Brave Princess',
-      icon: '👸',
-      description: 'Strong and independent',
-    },
-    {
-      id: 'ordinary',
-      name: 'Ordinary Kid',
-      icon: '👦',
-      description: 'Regular child with big dreams',
-    },
-  ],
-
-  setting: [
-    {
-      id: 'forest',
-      name: 'Enchanted Forest',
-      icon: '🌲',
-      description: 'Magical woods full of wonder',
-    },
-    {
-      id: 'castle',
-      name: 'Royal Castle',
-      icon: '🏰',
-      description: 'Majestic palace with secrets',
-    },
-    {
-      id: 'ocean',
-      name: 'Ocean Depths',
-      icon: '🌊',
-      description: 'Underwater world of mystery',
-    },
-    {
-      id: 'space',
-      name: 'Space Station',
-      icon: '🚀',
-      description: 'High-tech home among the stars',
-    },
-    {
-      id: 'village',
-      name: 'Cozy Village',
-      icon: '🏘️',
-      description: 'Peaceful countryside community',
-    },
-    {
-      id: 'mountain',
-      name: 'Tall Mountains',
-      icon: '⛰️',
-      description: 'Peaks reaching to the clouds',
-    },
-  ],
-
   // Keep the original structure for backward compatibility
   GENRES: [
     {
@@ -811,27 +681,27 @@ export const STREAK_REWARDS = {
 
 export const STORY_PROMPTS = {
   GENERAL: [
-    "What happens next in your story?",
-    "How does your character feel right now?",
-    "What does your character decide to do?",
-    "What surprise appears in the story?"
+    'What happens next in your story?',
+    'How does your character feel right now?',
+    'What does your character decide to do?',
+    'What surprise appears in the story?',
   ],
   CHARACTER: [
-    "Who does your character meet?",
-    "What makes this character special?",
-    "How do they become friends?",
-    "What do they discover together?"
+    'Who does your character meet?',
+    'What makes this character special?',
+    'How do they become friends?',
+    'What do they discover together?',
   ],
   SETTING: [
-    "Where does your character go next?",
-    "What does this new place look like?",
-    "What sounds do they hear?",
-    "How does this place make them feel?"
+    'Where does your character go next?',
+    'What does this new place look like?',
+    'What sounds do they hear?',
+    'How does this place make them feel?',
   ],
   PLOT: [
-    "What challenge appears?",
-    "How does your character solve the problem?",
-    "What unexpected thing happens?",
-    "What does your character learn?"
-  ]
+    'What challenge appears?',
+    'How does your character solve the problem?',
+    'What unexpected thing happens?',
+    'What does your character learn?',
+  ],
 } as const;

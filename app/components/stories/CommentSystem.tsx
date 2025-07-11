@@ -62,8 +62,8 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
   const handleSubmitComment = async () => {
     if (!newComment.trim() || isLoading) return;
 
-    const validation = validateComment({ content: newComment });
-    if (!validation.success) return;
+    const isValid = validateComment({ content: newComment });
+    if (!isValid) return;
 
     setIsLoading(true);
     try {
@@ -91,8 +91,8 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
   const handleSubmitReply = async (parentId: string) => {
     if (!replyText.trim() || isLoading) return;
 
-    const validation = validateComment({ content: replyText });
-    if (!validation.success) return;
+    const isValid = validateComment({ content: replyText });
+    if (!isValid) return;
 
     setIsLoading(true);
     try {
