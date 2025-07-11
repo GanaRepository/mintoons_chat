@@ -19,7 +19,7 @@ import { formatPrice, formatNumber, formatPercentage } from '@utils/formatters';
 import { calculateMRR, calculateARPU, calculateChurnRate } from '@utils/helpers';
 import { getRevenueAnalytics } from '@lib/analytics/reporter';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
-import type { RevenueAnalytics, TimeRange } from '@types/analytics';
+import type { RevenueAnalytics, TimeRange } from '../../../types/analytics';
 
 interface RevenueChartProps {
   timeRange?: TimeRange;

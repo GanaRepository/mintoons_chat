@@ -636,3 +636,16 @@ export class AnalyticsTracker {
 
 // Export singleton instance
 export const analyticsTracker = new AnalyticsTracker();
+
+// lib/analytics/tracker.ts - Add this export to your existing file
+export async function trackAnalyticsEvent(
+  eventType: string,
+  data: Record<string, any>
+) {
+  try {
+    // Use the existing analyticsTracker
+    await analyticsTracker.trackEvent(eventType, data);
+  } catch (error) {
+    console.error('Failed to track analytics event:', error);
+  }
+}

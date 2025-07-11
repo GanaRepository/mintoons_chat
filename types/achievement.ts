@@ -14,7 +14,6 @@ export type AchievementRarity =
   | 'legendary';
 
 export interface Achievement {
-  _id: string;
   id: string; // unique identifier
   name: string;
   description: string;

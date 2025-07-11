@@ -6,6 +6,9 @@ import Story from '@models/Story';
 import Subscription from '@models/Subscription';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
 import mongoose from 'mongoose';
+import { calculateEngagementRate } from '@utils/helpers';
+import { StoryStatus } from '../../types';
+import { StoryAnalytics } from '../../types/analytics';
 
 interface ReportOptions {
   startDate: Date;
@@ -905,3 +908,520 @@ export class AnalyticsReporter {
 
 // Export singleton instance
 export const analyticsReporter = new AnalyticsReporter();
+
+// Add this function to the AnalyticsReporter class
+
+/**
+ * Get revenue analytics with detailed breakdown
+ */
+
+interface RevenueAnalytics {
+  totalRevenue: number;
+  previousRevenue: number;
+  subscriptionRevenue: number;
+  activeSubscribers: number;
+  previousActiveSubscribers: number;
+  canceledSubscriptions: number;
+  totalSubscriptions: number;
+  customerLifetimeValue: number;
+  conversionRate: number;
+  revenueGrowthRate: number;
+  revenueData: Array<{ date: string; value: number }>;
+  subscriptionBreakdown: Record<
+    string,
+    { revenue: number; subscribers: number; percentage: number }
+  >;
+  forecastData: Array<{ date: string; value: number }>;
+  forecastedMRR: number;
+  forecastedSubscribers: number;
+  confidenceLevel: number;
+  previousMRR: number;
+  previousARPU: number;
+}
+
+export async function getRevenueAnalytics(
+  timeRange: string
+): Promise<RevenueAnalytics> {
+  try {
+    await connectDB();
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate = now;
+
+    // Parse timeRange
+    switch (timeRange) {
+      case '24h':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Get current period data
+    const [subscriptions, previousPeriodSubscriptions] = await Promise.all([
+      (Subscription as any)
+        .find({
+          status: 'active',
+          createdAt: { $gte: startDate, $lte: endDate },
+        })
+        .lean()
+        .exec(),
+      (Subscription as any)
+        .find({
+          status: 'active',
+          createdAt: {
+            $gte: new Date(
+              startDate.getTime() - (endDate.getTime() - startDate.getTime())
+            ),
+            $lte: startDate,
+          },
+        })
+        .lean()
+        .exec(),
+    ]);
+
+    // Calculate metrics
+    const totalRevenue = subscriptions.reduce((total: number, sub: any) => {
+      const tier =
+        SUBSCRIPTION_TIERS[sub.tier as keyof typeof SUBSCRIPTION_TIERS];
+      return total + (tier ? tier.price : 0);
+    }, 0);
+
+    const previousRevenue = previousPeriodSubscriptions.reduce(
+      (total: number, sub: any) => {
+        const tier =
+          SUBSCRIPTION_TIERS[sub.tier as keyof typeof SUBSCRIPTION_TIERS];
+        return total + (tier ? tier.price : 0);
+      },
+      0
+    );
+
+    const activeSubscribers = subscriptions.length;
+    const previousActiveSubscribers = previousPeriodSubscriptions.length;
+
+    const subscriptionRevenue = totalRevenue; // Assuming all revenue is subscription-based
+    const canceledSubscriptions = 0; // Would need proper tracking
+    const totalSubscriptions = activeSubscribers;
+
+    // Generate time series data
+    const revenueData = await generateRevenueTimeSeries(startDate, endDate);
+    const forecastData = await generateRevenueForecast(revenueData);
+
+    // Calculate subscription breakdown
+    const subscriptionBreakdown: Record<
+      string,
+      { revenue: number; subscribers: number; percentage: number }
+    > = {};
+
+    Object.keys(SUBSCRIPTION_TIERS).forEach(tier => {
+      const tierSubs = subscriptions.filter((sub: any) => sub.tier === tier);
+      const tierRevenue = tierSubs.reduce((total: number, sub: any) => {
+        const tierConfig =
+          SUBSCRIPTION_TIERS[tier as keyof typeof SUBSCRIPTION_TIERS];
+        return total + (tierConfig ? tierConfig.price : 0);
+      }, 0);
+
+      subscriptionBreakdown[tier] = {
+        revenue: tierRevenue,
+        subscribers: tierSubs.length,
+        percentage: totalRevenue > 0 ? (tierRevenue / totalRevenue) * 100 : 0,
+      };
+    });
+
+    return {
+      totalRevenue,
+      previousRevenue,
+      subscriptionRevenue,
+      activeSubscribers,
+      previousActiveSubscribers,
+      canceledSubscriptions,
+      totalSubscriptions,
+      customerLifetimeValue: calculateCLV(totalRevenue, activeSubscribers),
+      conversionRate: await calculateConversionRate(),
+      revenueGrowthRate:
+        previousRevenue > 0
+          ? ((totalRevenue - previousRevenue) / previousRevenue) * 100
+          : 0,
+      revenueData,
+      subscriptionBreakdown,
+      forecastData,
+      forecastedMRR:
+        forecastData.length > 0
+          ? forecastData[forecastData.length - 1]?.value || 0
+          : 0,
+      forecastedSubscribers: Math.round(activeSubscribers * 1.1), // Simple 10% growth forecast
+      confidenceLevel: 75, // Placeholder confidence level
+      previousMRR: previousRevenue,
+      previousARPU:
+        previousActiveSubscribers > 0
+          ? previousRevenue / previousActiveSubscribers
+          : 0,
+    };
+  } catch (error) {
+    console.error('Error getting revenue analytics:', error);
+    throw error;
+  }
+}
+
+// Helper functions for revenue analytics
+async function generateRevenueTimeSeries(
+  startDate: Date,
+  endDate: Date
+): Promise<Array<{ date: string; value: number }>> {
+  // Generate daily revenue data
+  const data: Array<{ date: string; value: number }> = [];
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    // This would query actual daily revenue data
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      value: Math.random() * 1000 + 500, // Placeholder data
+    });
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return data;
+}
+
+async function generateRevenueForecast(
+  historicalData: Array<{ date: string; value: number }>
+): Promise<Array<{ date: string; value: number }>> {
+  // Simple forecast based on trend
+  const forecast: Array<{ date: string; value: number }> = [];
+  const lastValue = historicalData[historicalData.length - 1]?.value || 0;
+  const trend = calculateSimpleTrend(historicalData);
+
+  const lastDate = new Date(
+    historicalData[historicalData.length - 1]?.date || new Date()
+  );
+
+  for (let i = 1; i <= 30; i++) {
+    const forecastDate = new Date(lastDate);
+    forecastDate.setDate(forecastDate.getDate() + i);
+
+    forecast.push({
+      date: forecastDate.toISOString().split('T')[0],
+      value: lastValue + trend * i,
+    });
+  }
+
+  return forecast;
+}
+
+function calculateCLV(totalRevenue: number, subscribers: number): number {
+  // Simple CLV calculation
+  const avgRevenuePerUser = subscribers > 0 ? totalRevenue / subscribers : 0;
+  const avgLifetimeMonths = 12; // Assumption
+  return avgRevenuePerUser * avgLifetimeMonths;
+}
+
+async function calculateConversionRate(): Promise<number> {
+  const [totalUsers, paidUsers] = await Promise.all([
+    (User as any).countDocuments({ isActive: true }),
+    (Subscription as any).countDocuments({
+      status: 'active',
+      tier: { $ne: 'FREE' },
+    }),
+  ]);
+
+  return totalUsers > 0 ? (paidUsers / totalUsers) * 100 : 0;
+}
+
+function calculateSimpleTrend(data: Array<{ value: number }>): number {
+  if (data.length < 2) return 0;
+
+  const firstValue = data[0]?.value || 0;
+  const lastValue = data[data.length - 1]?.value || 0;
+
+  return (lastValue - firstValue) / data.length;
+}
+
+// Add this function to lib/analytics/reporter.ts
+
+/**
+ * Get story analytics with detailed breakdown
+ */
+export async function getStoryAnalytics(
+  timeRange: string
+): Promise<StoryAnalytics> {
+  try {
+    await connectDB();
+
+    const now = new Date();
+    let startDate: Date;
+    let endDate = now;
+
+    // Parse timeRange
+    switch (timeRange) {
+      case '24h':
+        startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        break;
+      case '7d':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case '1y':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    // Calculate previous period for comparison
+    const periodDuration = endDate.getTime() - startDate.getTime();
+    const previousStartDate = new Date(startDate.getTime() - periodDuration);
+    const previousEndDate = startDate;
+
+    // Get current period data
+    const [
+      currentStories,
+      previousStories,
+      statusDistribution,
+      genreDistribution,
+      characterDistribution,
+      settingDistribution,
+      topStories,
+      ratingDistribution,
+      creationData,
+    ] = await Promise.all([
+      // Current period stories
+      (Story as any)
+        .find({
+          createdAt: { $gte: startDate, $lte: endDate },
+        })
+        .lean()
+        .exec(),
+
+      // Previous period stories
+      (Story as any)
+        .find({
+          createdAt: { $gte: previousStartDate, $lte: previousEndDate },
+        })
+        .lean()
+        .exec(),
+
+      // Status distribution
+      (Story as any).aggregate([
+        { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } },
+      ]),
+
+      // Genre distribution
+      (Story as any).aggregate([
+        { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$elements.genre', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Character distribution
+      (Story as any).aggregate([
+        { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$elements.character', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Setting distribution
+      (Story as any).aggregate([
+        { $match: { createdAt: { $gte: startDate, $lte: endDate } } },
+        { $group: { _id: '$elements.setting', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Top performing stories
+      (Story as any)
+        .find({
+          createdAt: { $gte: startDate, $lte: endDate },
+          status: { $in: ['published', 'completed'] },
+        })
+        .sort({ views: -1, likes: -1 })
+        .limit(10)
+        .select('title authorName views likes comments rating createdAt')
+        .lean()
+        .exec(),
+
+      // Rating distribution
+      (Story as any).aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate, $lte: endDate },
+            'assessment.overallScore': { $exists: true, $ne: null },
+          },
+        },
+        {
+          $group: {
+            _id: { $round: '$assessment.overallScore' },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: -1 } },
+      ]),
+
+      // Creation data over time
+      generateStoryCreationTimeSeries(startDate, endDate),
+    ]);
+
+    // Calculate metrics
+    const totalStories = currentStories.length;
+    const previousTotalStories = previousStories.length;
+    const storiesCreated = currentStories.length;
+    const previousStoriesCreated = previousStories.length;
+
+    const totalViews = currentStories.reduce(
+      (sum: number, story: any) => sum + (story.views || 0),
+      0
+    );
+    const previousTotalViews = previousStories.reduce(
+      (sum: number, story: any) => sum + (story.views || 0),
+      0
+    );
+
+    const totalLikes = currentStories.reduce(
+      (sum: number, story: any) => sum + (story.likes || 0),
+      0
+    );
+    const totalComments = currentStories.reduce(
+      (sum: number, story: any) => sum + (story.comments?.length || 0),
+      0
+    );
+
+    const engagementRate = calculateEngagementRate(
+      totalViews,
+      totalLikes,
+      totalComments
+    );
+    const previousEngagementRate = 0; // Would need historical calculation
+
+    // Process distributions
+    const processedStatusDistribution = processStatusDistribution(
+      statusDistribution,
+      totalStories
+    );
+    // NEW CODE (USE THIS):
+    const processedGenreDistribution = genreDistribution.map(
+      (item: { _id: string; count: number }) => ({
+        genre: item._id || 'Unknown',
+        count: item.count,
+        percentage: totalStories > 0 ? (item.count / totalStories) * 100 : 0,
+      })
+    );
+
+    const processedCharacterDistribution = characterDistribution.map(
+      (item: { _id: string; count: number }) => ({
+        character: item._id || 'Unknown',
+        count: item.count,
+        percentage: totalStories > 0 ? (item.count / totalStories) * 100 : 0,
+      })
+    );
+
+    const processedSettingDistribution = settingDistribution.map(
+      (item: { _id: string; count: number }) => ({
+        setting: item._id || 'Unknown',
+        count: item.count,
+        percentage: totalStories > 0 ? (item.count / totalStories) * 100 : 0,
+      })
+    );
+
+    const processedRatingDistribution =
+      processRatingDistribution(ratingDistribution);
+
+    return {
+      totalStories,
+      previousTotalStories,
+      storiesCreated,
+      previousStoriesCreated,
+      totalViews,
+      previousTotalViews,
+      totalLikes,
+      totalComments,
+      engagementRate,
+      previousEngagementRate,
+      statusDistribution: processedStatusDistribution,
+      genreDistribution: processedGenreDistribution,
+      characterDistribution: processedCharacterDistribution,
+      settingDistribution: processedSettingDistribution,
+      ratingDistribution: processedRatingDistribution,
+      topStories: topStories.map((story: any) => ({
+        id: story._id.toString(),
+        title: story.title,
+        authorName: story.authorName,
+        views: story.views || 0,
+        likes: story.likes || 0,
+        comments: story.comments?.length || 0,
+        rating: story.assessment?.overallScore,
+        createdAt: story.createdAt,
+      })),
+      creationData,
+    };
+  } catch (error) {
+    console.error('Error getting story analytics:', error);
+    throw error;
+  }
+}
+
+// Helper functions for story analytics
+async function generateStoryCreationTimeSeries(
+  startDate: Date,
+  endDate: Date
+): Promise<Array<{ date: string; value: number }>> {
+  const data: Array<{ date: string; value: number }> = [];
+  const currentDate = new Date(startDate);
+
+  while (currentDate <= endDate) {
+    const dayStart = new Date(currentDate);
+    const dayEnd = new Date(currentDate);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const count = await (Story as any).countDocuments({
+      createdAt: { $gte: dayStart, $lt: dayEnd },
+    });
+
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      value: count,
+    });
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return data;
+}
+
+function processStatusDistribution(statusData: any[], totalStories: number) {
+  return statusData.map(item => ({
+    status: item._id as StoryStatus,
+    count: item.count,
+    percentage: totalStories > 0 ? (item.count / totalStories) * 100 : 0,
+  }));
+}
+
+function processRatingDistribution(ratingData: any[]) {
+  // Create distribution for scores 1-5
+  const distribution = [];
+  for (let score = 1; score <= 5; score++) {
+    const found = ratingData.find(item => item._id === score);
+    distribution.push({
+      score,
+      count: found ? found.count : 0,
+    });
+  }
+  return distribution;
+}

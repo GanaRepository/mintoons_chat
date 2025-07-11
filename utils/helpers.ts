@@ -502,3 +502,176 @@ export function generateRandomElement(
       return '';
   }
 }
+
+// Add ONLY these missing functions to utils/helpers.ts (don't duplicate existing ones)
+
+/**
+ * Generate chart colors for analytics
+ */
+export function generateChartColors(chartType: string) {
+  return {
+    primary: '#3B82F6',
+    secondary: '#10B981',
+    accent: '#F59E0B',
+    palette: [
+      '#3B82F6',
+      '#10B981',
+      '#F59E0B',
+      '#EF4444',
+      '#8B5CF6',
+      '#EC4899',
+      '#06B6D4',
+      '#84CC16',
+      '#F97316',
+      '#6366F1',
+    ],
+  };
+}
+
+/**
+ * Calculate trend from analytics data
+ */
+export function calculateTrend(data: Array<{ value: number }>) {
+  if (data.length < 2) return null;
+
+  const firstValue = data[0]?.value || 0;
+  const lastValue = data[data.length - 1]?.value || 0;
+  const change = lastValue - firstValue;
+  const percentage = firstValue !== 0 ? (change / firstValue) * 100 : 0;
+
+  return {
+    direction: change > 0 ? 'up' : change < 0 ? 'down' : ('neutral' as const),
+    percentage: Math.abs(percentage),
+    change,
+    isPositive: change > 0,
+  };
+}
+
+/**
+ * Process analytics data for charts
+ */
+export function processAnalyticsData(
+  data: Array<{ date: string; value: number; label?: string }>,
+  chartType: string,
+  timeRange: string
+) {
+  if (!data || data.length === 0) return [];
+
+  const sorted = [...data].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  if (chartType === 'pie') {
+    const aggregated: { [key: string]: number } = {};
+    sorted.forEach(item => {
+      const key = item.label || item.date;
+      aggregated[key] = (aggregated[key] || 0) + item.value;
+    });
+
+    return Object.entries(aggregated).map(([name, value]) => ({
+      name,
+      value,
+      date: name,
+    }));
+  }
+
+  return sorted;
+}
+
+/**
+ * Calculate AI cost optimization
+ */
+export function calculateAICostOptimization(metrics: {
+  totalRequests: number;
+  totalCost: number;
+  totalTokensUsed: number;
+}) {
+  const avgCostPerRequest =
+    metrics.totalRequests > 0 ? metrics.totalCost / metrics.totalRequests : 0;
+  const potentialSavings = avgCostPerRequest * 0.15 * metrics.totalRequests;
+
+  return {
+    potentialSavings,
+    recommendations: [
+      'Consider using more efficient models for simple requests',
+      'Implement request caching for repeated queries',
+      'Optimize prompt length to reduce token usage',
+    ],
+  };
+}
+
+/**
+ * Calculate tokens per story
+ */
+export function calculateTokensPerStory(
+  totalTokens: number,
+  totalStories: number
+): number {
+  return totalStories > 0 ? Math.round(totalTokens / totalStories) : 0;
+}
+
+/**
+ * Calculate Monthly Recurring Revenue
+ */
+export function calculateMRR(subscriptionRevenue: number): number {
+  return subscriptionRevenue; // Assuming monthly revenue
+}
+
+/**
+ * Calculate Average Revenue Per User
+ */
+export function calculateARPU(
+  totalRevenue: number,
+  activeSubscribers: number
+): number {
+  return activeSubscribers > 0 ? totalRevenue / activeSubscribers : 0;
+}
+
+/**
+ * Calculate Churn Rate
+ */
+export function calculateChurnRate(
+  canceledSubscriptions: number,
+  totalSubscriptions: number
+): number {
+  return totalSubscriptions > 0
+    ? (canceledSubscriptions / totalSubscriptions) * 100
+    : 0;
+}
+
+// Add these missing functions to utils/helpers.ts
+
+/**
+ * Calculate average rating from rating distribution
+ */
+export function calculateAverageRating(
+  ratingDistribution: Array<{ score: number; count: number }>
+): number {
+  if (!ratingDistribution || ratingDistribution.length === 0) return 0;
+
+  const totalRatings = ratingDistribution.reduce(
+    (sum, rating) => sum + rating.count,
+    0
+  );
+  if (totalRatings === 0) return 0;
+
+  const weightedSum = ratingDistribution.reduce(
+    (sum, rating) => sum + rating.score * rating.count,
+    0
+  );
+  return weightedSum / totalRatings;
+}
+
+/**
+ * Calculate engagement rate from views, likes, and comments
+ */
+export function calculateEngagementRate(
+  views: number,
+  likes: number,
+  comments: number
+): number {
+  if (views === 0) return 0;
+
+  const totalEngagements = likes + comments;
+  return (totalEngagements / views) * 100;
+}

@@ -41,7 +41,11 @@ import {
   processAnalyticsData,
 } from '@utils/helpers';
 import { trackAnalyticsEvent } from '@lib/analytics/tracker';
-import type { AnalyticsData, ChartType, TimeRange } from '@types/analytics';
+import type {
+  AnalyticsData,
+  ChartType,
+  TimeRange,
+} from '../../../types/analytics';
 
 interface DashboardChartProps {
   title: string;
@@ -217,7 +221,7 @@ export const DashboardChart: React.FC<DashboardChartProps> = ({
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis
                 dataKey="date"
-                tickFormatter={date => formatDate(date, 'short')}
+                tickFormatter={date => formatDate(date)}
                 className="text-xs"
               />
               <YAxis tickFormatter={formatNumber} className="text-xs" />
@@ -242,7 +246,7 @@ export const DashboardChart: React.FC<DashboardChartProps> = ({
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis
                 dataKey="date"
-                tickFormatter={date => formatDate(date, 'short')}
+                tickFormatter={date => formatDate(date)}
                 className="text-xs"
               />
               <YAxis tickFormatter={formatNumber} className="text-xs" />
@@ -267,7 +271,7 @@ export const DashboardChart: React.FC<DashboardChartProps> = ({
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) =>
-                  `${name} ${formatPercentage(percent)}`
+                  `${name} ${formatPercentage(percent ?? 0)}`
                 }
                 outerRadius={80}
                 fill="#8884d8"
@@ -293,7 +297,7 @@ export const DashboardChart: React.FC<DashboardChartProps> = ({
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis
                 dataKey="date"
-                tickFormatter={date => formatDate(date, 'short')}
+                tickFormatter={date => formatDate(date)}
                 className="text-xs"
               />
               <YAxis tickFormatter={formatNumber} className="text-xs" />
