@@ -959,3 +959,125 @@ export async function shareStory(story: any): Promise<void> {
     throw error;
   }
 }
+
+// Add these functions to utils/helpers.ts:
+
+/**
+ * Calculate usage percentage
+ */
+export function calculateUsagePercentage(
+  current: number,
+  limit: number
+): number {
+  if (limit === -1) return 0; // Unlimited plans show 0%
+  return Math.min(100, Math.round((current / limit) * 100));
+}
+
+/**
+ * Get days until reset
+ */
+export function getDaysUntilReset(resetDate: Date): number {
+  const now = new Date();
+  const diff = resetDate.getTime() - now.getTime();
+  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+}
+
+// Add these to utils/helpers.ts
+
+/**
+ * Generate AI story prompt based on elements and content
+ */
+export async function generateStoryPrompt(params: {
+  elements: any;
+  currentContent: string;
+  userAge: number;
+  category: string;
+}): Promise<string> {
+  // Import the AI cost optimizer
+  const { aiCostOptimizer } = await import('@/lib/ai/cost-optimizer');
+
+  try {
+    const storyPlan = await aiCostOptimizer.generateStoryPlan(
+      params.elements,
+      params.userAge
+    );
+
+    return storyPlan.prompts[0] || 'What happens next in your story?';
+  } catch (error) {
+    console.error('Error generating story prompt:', error);
+    return 'What happens next in your story?';
+  }
+}
+
+/**
+ * Get age-appropriate prompts by category
+ */
+export function getAgeAppropriatePrompts(
+  userAge: number,
+  category: string
+): string[] {
+  const prompts = {
+    general: {
+      young: [
+        'What does your character see first?',
+        'Who becomes their friend?',
+        'What fun thing happens next?',
+        'How does everyone feel happy?',
+      ],
+      older: [
+        'What challenge does your character face?',
+        'How do they show courage?',
+        'What do they learn about themselves?',
+        'How does the story reach its conclusion?',
+      ],
+    },
+    characters: {
+      young: [
+        'Describe a new friend your character meets',
+        'What makes this character special?',
+        'How do they help each other?',
+        'What do they like to do together?',
+      ],
+      older: [
+        'Introduce a character with an interesting background',
+        'What motivates this character?',
+        'How do they challenge your main character?',
+        'What secrets might they be hiding?',
+      ],
+    },
+    settings: {
+      young: [
+        'Describe a magical place they discover',
+        'What sounds do they hear?',
+        'What pretty things do they see?',
+        'How does this place make them feel?',
+      ],
+      older: [
+        'Paint a vivid picture of a new location',
+        'What atmosphere does this place create?',
+        'How does the setting affect the mood?',
+        'What history does this place hold?',
+      ],
+    },
+    plot: {
+      young: [
+        'Something surprising happens!',
+        'A friendly helper appears',
+        'They find something wonderful',
+        'Everyone works together',
+      ],
+      older: [
+        'An unexpected twist changes everything',
+        'A difficult choice must be made',
+        'A secret is revealed',
+        'The stakes suddenly get higher',
+      ],
+    },
+  };
+
+  const ageGroup = userAge <= 8 ? 'young' : 'older';
+  return (
+    prompts[category as keyof typeof prompts]?.[ageGroup] ||
+    prompts.general[ageGroup]
+  );
+}

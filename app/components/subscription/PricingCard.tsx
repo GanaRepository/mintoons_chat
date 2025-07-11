@@ -11,14 +11,14 @@ import { Badge } from '@components/ui/badge';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
 import { formatPrice } from '@utils/formatters';
 import { createCheckoutSession } from '@lib/subscription/stripe';
-import type { SubscriptionTier } from '../../../types/subscription';
+import type { SubscriptionTierType } from '../../../types/subscription';
 
 interface PricingCardProps {
-  tier: SubscriptionTier;
-  currentTier?: SubscriptionTier;
+  tier: SubscriptionTierType; // Use SubscriptionTierType consistently
+  currentTier?: SubscriptionTierType; // Change from SubscriptionTier to SubscriptionTierType
   isPopular?: boolean;
   isCurrentPlan?: boolean;
-  onSelect?: (tier: SubscriptionTier) => void;
+  onSelect?: (tier: SubscriptionTierType) => void; // Change from SubscriptionTier to SubscriptionTierType
   className?: string;
 }
 
@@ -32,7 +32,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
 }) => {
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
-  const tierConfig = SUBSCRIPTION_TIERS[tier];
+  const tierConfig = SUBSCRIPTION_TIERS[tier]; // Now works because tier is SubscriptionTierType (string)
 
   const handleSubscribe = async () => {
     if (!session || isLoading || isCurrentPlan) return;
@@ -42,7 +42,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       const checkoutUrl = await createCheckoutSession({
         priceId: tierConfig.stripePriceId,
         userId: session.user.id,
-        tier: tier,
+        tier: tier, // tier is string now
         successUrl: `${window.location.origin}/dashboard?subscription=success`,
         cancelUrl: `${window.location.origin}/pricing`,
       });
@@ -55,22 +55,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }
   };
 
+  // Fix the tier comparison logic
+  const tierOrder: SubscriptionTierType[] = ['FREE', 'BASIC', 'PREMIUM', 'PRO'];
+
   const isUpgrade =
-    currentTier &&
-    Object.keys(SUBSCRIPTION_TIERS).indexOf(tier) >
-      Object.keys(SUBSCRIPTION_TIERS).indexOf(currentTier);
+    currentTier && tierOrder.indexOf(tier) > tierOrder.indexOf(currentTier);
 
   const isDowngrade =
-    currentTier &&
-    Object.keys(SUBSCRIPTION_TIERS).indexOf(tier) <
-      Object.keys(SUBSCRIPTION_TIERS).indexOf(currentTier);
+    currentTier && tierOrder.indexOf(tier) < tierOrder.indexOf(currentTier);
 
   const getButtonText = () => {
     if (isCurrentPlan) return 'Current Plan';
     if (tier === 'FREE') return 'Get Started Free';
-    if (isUpgrade) return `Upgrade to ${tier}`;
-    if (isDowngrade) return `Downgrade to ${tier}`;
-    return `Get ${tier}`;
+    if (isUpgrade) return `Upgrade to ${tierConfig.name}`; // Use tierConfig.name
+    if (isDowngrade) return `Downgrade to ${tierConfig.name}`; // Use tierConfig.name
+    return `Get ${tierConfig.name}`; // Use tierConfig.name
   };
 
   const getButtonVariant = () => {
@@ -136,7 +135,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             </div>
 
             <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-              {tier}
+              {tierConfig.name}{' '}
+              {/* Use tierConfig.name instead of tier directly */}
             </h3>
 
             <div className="mt-2">
@@ -162,7 +162,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
               </p>
             </div>
           </div>
-          // app/components/subscription/PricingCard.tsx (continued)
+
+          {/* Features */}
           <div className="mb-6 space-y-3">
             {tierConfig.features.map((feature, index) => (
               <motion.div
@@ -181,6 +182,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
               </motion.div>
             ))}
           </div>
+
           {/* Action Button */}
           <Button
             variant={getButtonVariant()}
@@ -195,6 +197,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             ) : null}
             {getButtonText()}
           </Button>
+
           {/* Additional Info */}
           <div className="mt-4 text-center">
             {tier !== 'FREE' && (

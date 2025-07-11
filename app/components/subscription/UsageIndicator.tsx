@@ -24,8 +24,8 @@ import {
 } from '@config/subscription';
 import { formatNumber, formatDate } from '@utils/formatters';
 import { calculateUsagePercentage, getDaysUntilReset } from '@utils/helpers';
-import type { SubscriptionTier } from '@types/subscription';
-import type { User } from '@types/user';
+import type { SubscriptionTierType } from '../../../types/subscription';
+import type { User } from '../../../types/user';
 
 interface UsageIndicatorProps {
   user: User;
@@ -48,7 +48,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
     lastResetDate: user.subscriptionCurrentPeriodEnd || new Date(),
   });
 
-  const currentTier = user.subscriptionTier as SubscriptionTier;
+  const currentTier = user.subscriptionTier;
   const tierConfig = SUBSCRIPTION_TIERS[currentTier];
   const limits = getSubscriptionLimits(currentTier);
 
@@ -63,17 +63,17 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
     limits.storyLimit
   );
 
-  const getUsageColor = () => {
+  const getUsageColor = (): 'error' | 'warning' | 'default' | 'success' => {
     if (isOverLimit) return 'error';
     if (usagePercentage >= 80) return 'warning';
     if (usagePercentage >= 60) return 'default';
     return 'success';
   };
 
-  const getUpgradeRecommendation = (): SubscriptionTier | null => {
+  const getUpgradeRecommendation = (): SubscriptionTierType | null => {
     if (currentTier === 'PRO') return null;
 
-    const tiers: SubscriptionTier[] = ['FREE', 'BASIC', 'PREMIUM', 'PRO'];
+    const tiers: SubscriptionTierType[] = ['FREE', 'BASIC', 'PREMIUM', 'PRO'];
     const currentIndex = tiers.indexOf(currentTier);
 
     for (let i = currentIndex + 1; i < tiers.length; i++) {
@@ -88,6 +88,12 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
   };
 
   const recommendedTier = getUpgradeRecommendation();
+
+  // Format price helper - convert dollars to display format
+  const formatTierPrice = (priceInDollars: number): string => {
+    if (priceInDollars === 0) return 'Free';
+    return `$${priceInDollars.toFixed(2)}`;
+  };
 
   if (compact) {
     return (
@@ -136,7 +142,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
             className="flex items-center space-x-1"
           >
             {currentTier === 'PRO' && <Crown size={12} />}
-            <span>{currentTier}</span>
+            <span>{tierConfig.name}</span>
           </Badge>
         </div>
 
@@ -244,17 +250,17 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
               />
               <div className="flex-1">
                 <h4 className="mb-1 font-medium text-gray-900 dark:text-white">
-                  Recommended: {recommendedTier} Plan
+                  Recommended: {SUBSCRIPTION_TIERS[recommendedTier].name} Plan
                 </h4>
                 <p className="mb-3 text-sm text-gray-600 dark:text-gray-400">
                   Get{' '}
                   {SUBSCRIPTION_TIERS[recommendedTier].storyLimit === -1
                     ? 'unlimited stories'
                     : `${formatNumber(SUBSCRIPTION_TIERS[recommendedTier].storyLimit)} stories per month`}{' '}
-                  for $
-                  {SUBSCRIPTION_TIERS[recommendedTier].price > 0
-                    ? `$${SUBSCRIPTION_TIERS[recommendedTier].price}/month`
-                    : 'free'}
+                  for{' '}
+                  {SUBSCRIPTION_TIERS[recommendedTier].price === 0
+                    ? 'free'
+                    : `${formatTierPrice(SUBSCRIPTION_TIERS[recommendedTier].price)}/month`}
                 </p>
                 <Button
                   variant="primary"
@@ -263,7 +269,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
                   className="w-full sm:w-auto"
                 >
                   <Crown size={14} className="mr-2" />
-                  Upgrade to {recommendedTier}
+                  Upgrade to {SUBSCRIPTION_TIERS[recommendedTier].name}
                 </Button>
               </div>
             </div>
@@ -274,7 +280,7 @@ export const UsageIndicator: React.FC<UsageIndicatorProps> = ({
         {showDetails && (
           <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
             <h4 className="mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Your {currentTier} Plan Includes:
+              Your {tierConfig.name} Plan Includes:
             </h4>
             <ul className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
               {tierConfig.features.slice(0, 3).map((feature, index) => (

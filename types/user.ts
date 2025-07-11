@@ -21,6 +21,7 @@ export interface User {
   subscriptionId?: string;
   subscriptionStatus?: string;
   subscriptionExpires?: Date;
+  subscriptionCurrentPeriodEnd?: Date; // Add this missing property
 
   // Story tracking
   storyCount: number;

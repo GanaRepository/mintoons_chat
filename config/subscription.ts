@@ -309,3 +309,27 @@ export function getPromotionalStoryLimit(tierId: string): number {
 
   return limit;
 }
+
+// Get next tier recommendation
+export function getNextTier(currentTier: string): SubscriptionTier | null {
+  return SubscriptionConfig.getNextTier(currentTier);
+}
+
+// Get tier benefits (you can implement this based on your needs)
+export function getTierBenefits(tierId: string): string[] {
+  const tier = SubscriptionConfig.getTier(tierId);
+  return tier ? tier.features : [];
+}
+
+// Get subscription limits for a tier
+export function getSubscriptionLimits(tierId: string): { storyLimit: number } {
+  return {
+    storyLimit: SubscriptionConfig.getStoryLimit(tierId),
+  };
+}
+
+// Check if user is within limits
+export function isWithinLimit(currentUsage: number, limit: number): boolean {
+  if (limit === -1) return true; // Unlimited
+  return currentUsage < limit;
+}

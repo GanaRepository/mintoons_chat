@@ -125,17 +125,3 @@ export interface PricingCalculation {
   pricePerStory: number;
   features: string[];
 }
-
-export interface SubscriptionTier {
-  id: string;
-  name: string;
-  description: string;
-  price: number; // in cents
-  storyLimit: number;
-  features: string[];
-  stripePriceId: string | null;
-  isPopular?: boolean;
-  sortOrder: number;
-  badge?: string;
-  color: string;
-}

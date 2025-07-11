@@ -2,11 +2,16 @@
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
 
 /**
- * Format price in cents to display format
+ * Format price - handles both cents and dollars
  */
-export function formatPrice(priceInCents: number): string {
-  if (priceInCents === 0) return 'Free';
-  return `$${(priceInCents / 100).toFixed(2)}`;
+export function formatPrice(price: number, isInCents: boolean = true): string {
+  if (price === 0) return 'Free';
+
+  if (isInCents) {
+    return `$${(price / 100).toFixed(2)}`;
+  } else {
+    return `$${price.toFixed(2)}`;
+  }
 }
 
 /**

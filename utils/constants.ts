@@ -806,3 +806,32 @@ export const STREAK_REWARDS = {
     message: 'LEGENDARY STATUS! A full year of daily writing!',
   },
 } as const;
+
+// Add this to utils/constants.ts
+
+export const STORY_PROMPTS = {
+  GENERAL: [
+    "What happens next in your story?",
+    "How does your character feel right now?",
+    "What does your character decide to do?",
+    "What surprise appears in the story?"
+  ],
+  CHARACTER: [
+    "Who does your character meet?",
+    "What makes this character special?",
+    "How do they become friends?",
+    "What do they discover together?"
+  ],
+  SETTING: [
+    "Where does your character go next?",
+    "What does this new place look like?",
+    "What sounds do they hear?",
+    "How does this place make them feel?"
+  ],
+  PLOT: [
+    "What challenge appears?",
+    "How does your character solve the problem?",
+    "What unexpected thing happens?",
+    "What does your character learn?"
+  ]
+} as const;
