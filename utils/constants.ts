@@ -705,3 +705,37 @@ export const STORY_PROMPTS = {
     'What does your character learn?',
   ],
 } as const;
+
+// Add this to utils/constants.ts after your existing constants
+export const TRACKING_EVENTS = {
+  // User events
+  USER_REGISTER: 'user_register',
+  USER_LOGIN: 'user_login',
+  USER_LOGOUT: 'user_logout',
+
+  // Story events
+  STORY_CREATE: 'story_create',
+  STORY_EDIT: 'story_edit',
+  STORY_COMPLETE: 'story_complete',
+  STORY_PUBLISH: 'story_publish',
+  STORY_DELETE: 'story_delete',
+  STORY_VIEW: 'story_view',
+  STORY_LIKE: 'story_like',
+  STORY_SHARE: 'story_share',
+
+  // AI events
+  AI_RESPONSE: 'ai_response',
+  AI_ASSESSMENT: 'ai_assessment',
+  AI_COST: 'ai_cost',
+
+  // Engagement events
+  PAGE_VIEW: 'page_view',
+  BUTTON_CLICK: 'button_click',
+  FORM_SUBMIT: 'form_submit',
+  DOWNLOAD: 'download',
+
+  // Error events
+  ERROR_OCCURRED: 'error_occurred',
+  API_ERROR: 'api_error',
+  PAYMENT_FAILED: 'payment_failed',
+} as const;

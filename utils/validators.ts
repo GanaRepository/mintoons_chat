@@ -267,3 +267,24 @@ export function isValidRole(role: string): boolean {
 // Or update your commentSchema.parse to commentSchema.safeParse
 export const validateCommentSafe = (data: unknown) =>
   commentSchema.safeParse(data);
+
+// Add this to utils/validators.ts
+export const fileUploadSchema = z.object({
+  file: z
+    .any()
+    .refine(
+      file => file?.size <= 10 * 1024 * 1024,
+      'File size must be less than 10MB'
+    )
+    .refine(
+      file =>
+        [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'image/webp',
+          'application/pdf',
+        ].includes(file?.type),
+      'File must be an image (JPEG, PNG, GIF, WebP) or PDF'
+    ),
+});
