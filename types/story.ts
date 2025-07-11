@@ -22,6 +22,7 @@ export interface StoryElements {
   mood: string;
   conflict: string;
   theme: string;
+  [key: string]: string;
 }
 
 export interface Story {
@@ -33,11 +34,14 @@ export interface Story {
   content: string;
   elements: StoryElements;
   status: StoryStatus;
+  targetWords?: number; // Add this optional property
 
   /* Author */
   authorId: string;
   authorName: string;
   authorAge: number;
+  authorStoryCount?: number; // Add this
+  authorPoints?: number; // Add this
 
   /* Metrics & social */
   wordCount: number;
@@ -139,10 +143,15 @@ export interface SampleStory {
   id: string;
   title: string;
   content: string;
-  elements: StoryElements;
+  elements: Record<string, string>;
   authorName: string;
   authorAge: number;
   readingTime: number;
-  illustration?: string;
-  isNew?: boolean;
+  minAge: number;
+  maxAge: number;
+  difficulty: string;
+  genre: string;
+  description: string;
+  rating: number;
+  learningGoals: string[];
 }

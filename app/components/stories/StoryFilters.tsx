@@ -3,16 +3,16 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Filter, 
-  Search, 
-  SortAsc, 
+import {
+  Filter,
+  Search,
+  SortAsc,
   Calendar,
   Star,
   Eye,
   Heart,
   X,
-  ChevronDown
+  ChevronDown,
 } from 'lucide-react';
 import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
@@ -21,7 +21,7 @@ import { Badge } from '@components/ui/badge';
 import { Card } from '@components/ui/card';
 import { Dropdown } from '@components/ui/dropdown';
 import { STORY_ELEMENTS } from '@utils/constants';
-import type { StoryStatus, StoryElements } from '@types/story';
+import type { StoryStatus, StoryElements } from '../../../types/story';
 
 interface StoryFiltersProps {
   onFiltersChange: (filters: StoryFilters) => void;
@@ -45,7 +45,7 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
   onFiltersChange,
   totalStories,
   filteredCount,
-  isLoading = false
+  isLoading = false,
 }) => {
   const [filters, setFilters] = useState<StoryFilters>({
     search: '',
@@ -82,27 +82,37 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
 
   const genreOptions = [
     { value: '', label: 'Any Genre' },
-    ...STORY_ELEMENTS.genre.map(genre => ({ value: genre, label: genre }))
+    ...STORY_ELEMENTS.genre.map(genre => ({
+      value: genre.id,
+      label: genre.name,
+    })),
   ];
 
   const characterOptions = [
     { value: '', label: 'Any Character' },
-    ...STORY_ELEMENTS.mainCharacter.map(char => ({ value: char, label: char }))
+    ...STORY_ELEMENTS.mainCharacter.map(char => ({
+      value: char.id,
+      label: char.name,
+    })),
   ];
 
   const settingOptions = [
     { value: '', label: 'Any Setting' },
-    ...STORY_ELEMENTS.setting.map(setting => ({ value: setting, label: setting }))
+    ...STORY_ELEMENTS.setting.map(setting => ({
+      value: setting.id,
+      label: setting.name,
+    })),
   ];
 
   const updateFilters = (newFilters: Partial<StoryFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
     onFiltersChange(updatedFilters);
-    
+
     // Count active filters
     const count = Object.entries(updatedFilters).filter(([key, value]) => {
-      if (key === 'search') return value.trim() !== '';
+      if (key === 'search')
+        return typeof value === 'string' && value.trim() !== '';
       if (key === 'status') return value !== 'all';
       if (key === 'sortBy') return value !== 'newest';
       if (key === 'dateRange') return value !== 'all';
@@ -125,9 +135,14 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
   };
 
   const clearSpecificFilter = (filterKey: keyof StoryFilters) => {
-    const clearedValue = filterKey === 'status' ? 'all' :
-                        filterKey === 'sortBy' ? 'newest' :
-                        filterKey === 'dateRange' ? 'all' : '';
+    const clearedValue =
+      filterKey === 'status'
+        ? 'all'
+        : filterKey === 'sortBy'
+          ? 'newest'
+          : filterKey === 'dateRange'
+            ? 'all'
+            : '';
     updateFilters({ [filterKey]: clearedValue });
   };
 
@@ -135,14 +150,14 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
     <div className="space-y-4">
       {/* Main Filter Bar */}
       <Card className="p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row">
           {/* Search */}
           <div className="flex-1">
             <Input
               type="text"
               placeholder="Search stories by title, content, or author..."
               value={filters.search}
-              onChange={(e) => updateFilters({ search: e.target.value })}
+              onChange={e => updateFilters({ search: e.target.value })}
               leftIcon={<Search size={20} />}
               className="w-full"
             />
@@ -153,19 +168,21 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
             <Select
               options={statusOptions}
               value={filters.status}
-              onChange={(value) => updateFilters({ status: value as StoryStatus | 'all' })}
+              onChange={value =>
+                updateFilters({ status: value as StoryStatus | 'all' })
+              }
               className="min-w-[140px]"
             />
 
             <Select
               options={sortOptions}
               value={filters.sortBy}
-              onChange={(value) => updateFilters({ sortBy: value as any })}
+              onChange={value => updateFilters({ sortBy: value as any })}
               className="min-w-[140px]"
             />
 
             <Button
-              variant={showAdvanced ? "primary" : "outline"}
+              variant={showAdvanced ? 'primary' : 'outline'}
               size="sm"
               onClick={() => setShowAdvanced(!showAdvanced)}
               className="whitespace-nowrap"
@@ -182,14 +199,14 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
         </div>
 
         {/* Results Summary */}
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-4 dark:border-gray-700">
           <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
             <span>
               Showing {filteredCount} of {totalStories} stories
             </span>
             {isLoading && (
               <div className="flex items-center space-x-1">
-                <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-purple-600 border-t-transparent" />
                 <span>Loading...</span>
               </div>
             )}
@@ -219,59 +236,75 @@ export const StoryFilters: React.FC<StoryFiltersProps> = ({
             transition={{ duration: 0.3 }}
           >
             <Card className="p-4">
-              <h4 className="font-semibold text-gray-900 dark:text-white mb-4">
+              <h4 className="mb-4 font-semibold text-gray-900 dark:text-white">
                 Advanced Filters
               </h4>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Select
                   label="Genre"
                   options={genreOptions}
                   value={filters.genre || ''}
-                  onChange={(value) => updateFilters({ genre: value || undefined })}
+                  onChange={value =>
+                    updateFilters({ genre: value || undefined })
+                  }
                 />
 
                 <Select
                   label="Character Type"
                   options={characterOptions}
                   value={filters.character || ''}
-                  onChange={(value) => updateFilters({ character: value || undefined })}
+                  onChange={value =>
+                    updateFilters({ character: value || undefined })
+                  }
                 />
 
                 <Select
                   label="Setting"
                   options={settingOptions}
                   value={filters.setting || ''}
-                  onChange={(value) => updateFilters({ setting: value || undefined })}
+                  onChange={value =>
+                    updateFilters({ setting: value || undefined })
+                  }
                 />
 
                 <Select
                   label="Date Range"
                   options={dateRangeOptions}
                   value={filters.dateRange || 'all'}
-                  onChange={(value) => updateFilters({ dateRange: value as any })}
+                  onChange={value => updateFilters({ dateRange: value as any })}
                 />
               </div>
 
               {/* Rating Filter */}
               <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Minimum Rating
                 </label>
                 <div className="flex items-center space-x-2">
-                  {[1, 2, 3, 4, 5].map((rating) => (
+                  {[1, 2, 3, 4, 5].map(rating => (
                     <button
                       key={rating}
-                      onClick={() => updateFilters({ 
-                        minRating: filters.minRating === rating ? undefined : rating 
-                      })}
-                      className={`p-1 rounded transition-colors ${
+                      onClick={() =>
+                        updateFilters({
+                          minRating:
+                            filters.minRating === rating ? undefined : rating,
+                        })
+                      }
+                      className={`rounded p-1 transition-colors ${
                         (filters.minRating || 0) >= rating
                           ? 'text-yellow-500'
                           : 'text-gray-300 hover:text-yellow-400'
                       }`}
                     >
-                      <Star size={20} fill={(filters.minRating || 0) >= rating ? 'currentColor' : 'none'} />
+                      <Star
+                        size={20}
+                        fill={
+                          (filters.minRating || 0) >= rating
+                            ? 'currentColor'
+                            : 'none'
+                        }
+                      />
                     </button>
                   ))}
                   {filters.minRating && (

@@ -908,3 +908,54 @@ export function getStreakMotivation(streak: number, isActive: boolean): string {
 
   return `You're a writing legend! Your consistency is truly inspiring. Keep the streak alive!`;
 }
+
+/**
+ * Calculate reading time from character length and user age
+ */
+export function calculateReadingTime(
+  characterLength: number,
+  userAge: number
+): number {
+  // Convert character length to approximate word count (5 chars per word average)
+  const wordCount = Math.ceil(characterLength / 5);
+
+  // Age-appropriate words per minute
+  const getWordsPerMinute = (age: number) => {
+    if (age <= 8) return 100;
+    if (age <= 12) return 150;
+    if (age <= 16) return 200;
+    return 225;
+  };
+
+  const wordsPerMinute = getWordsPerMinute(userAge);
+  return Math.ceil(wordCount / wordsPerMinute);
+}
+
+/**
+ * Share story using Web Share API or fallback to clipboard
+ */
+export async function shareStory(story: any): Promise<void> {
+  const shareData = {
+    title: story.title,
+    text: `Check out this story: "${story.title}" by ${story.authorName}`,
+    url: `${window.location.origin}/stories/${story.id}`,
+  };
+
+  try {
+    // Use Web Share API if available
+    if (navigator.share && typeof navigator.share === 'function') {
+      await navigator.share(shareData);
+      return;
+    }
+
+    // Fallback to copying URL to clipboard
+    const shareUrl = shareData.url;
+    await copyToClipboard(shareUrl);
+
+    // You might want to show a toast notification here
+    console.log('Story URL copied to clipboard!');
+  } catch (error) {
+    console.error('Error sharing story:', error);
+    throw error;
+  }
+}

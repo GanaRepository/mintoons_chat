@@ -256,33 +256,14 @@ export function isFeatureAllowed(feature: string, age: number): boolean {
 /**
  * Get story length recommendations by age
  */
-export function getStoryLengthByAge(age: number): {
-  min: number;
-  max: number;
-  recommended: number;
-} {
-  if (age <= 4) {
-    return { min: 50, max: 150, recommended: 100 };
-  }
 
-  if (age <= 6) {
-    return { min: 100, max: 250, recommended: 175 };
-  }
-
-  if (age <= 9) {
-    return { min: 200, max: 400, recommended: 300 };
-  }
-
-  if (age <= 12) {
-    return { min: 300, max: 600, recommended: 450 };
-  }
-
-  if (age <= 15) {
-    return { min: 400, max: 800, recommended: 600 };
-  }
-
-  // 16-18
-  return { min: 500, max: 1000, recommended: 750 };
+export function getAgeAppropriateTarget(age: number): number {
+  if (age <= 4) return 100;
+  if (age <= 6) return 200;
+  if (age <= 9) return 300;
+  if (age <= 12) return 500;
+  if (age <= 15) return 700;
+  return 900; // 16-18
 }
 
 /**

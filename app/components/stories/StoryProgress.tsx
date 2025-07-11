@@ -7,7 +7,7 @@ import { Target, TrendingUp, Clock, Award } from 'lucide-react';
 import { Card } from '@components/ui/card';
 import { ProgressBar } from '@components/ui/progress-bar';
 import { Badge } from '@components/ui/badge';
-import { calculateReadingTime, getAgeAppropriateTarget } from '@utils/helpers';
+import { getAgeAppropriateTarget } from '@utils/age-restrictions';
 import { formatNumber } from '@utils/formatters';
 
 interface StoryProgressProps {
@@ -25,11 +25,14 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
   userAge,
   timeSpent = 0,
   sessionsCount = 1,
-  className
+  className,
 }) => {
   const finalTargetWords = targetWords || getAgeAppropriateTarget(userAge);
-  const progressPercentage = Math.min((currentWords / finalTargetWords) * 100, 100);
-  const readingTime = calculateReadingTime(currentWords, userAge);
+  const progressPercentage = Math.min(
+    (currentWords / finalTargetWords) * 100,
+    100
+  );
+  const readingTime = Math.ceil(currentWords / 225);
   const isCompleted = currentWords >= finalTargetWords;
 
   const getProgressColor = () => {
@@ -43,26 +46,39 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
       return "🎉 Amazing! You've reached your target!";
     }
     if (progressPercentage >= 75) {
-      return "🚀 Almost there! Keep going!";
+      return '🚀 Almost there! Keep going!';
     }
     if (progressPercentage >= 50) {
       return "📚 Great progress! You're halfway there!";
     }
     if (progressPercentage >= 25) {
-      return "✨ Nice start! Keep writing!";
+      return '✨ Nice start! Keep writing!';
     }
-    return "📝 Every word counts! Start your adventure!";
+    return '📝 Every word counts! Start your adventure!';
   };
 
   const milestones = [
-    { words: Math.floor(finalTargetWords * 0.25), label: 'Getting Started', icon: '🌱' },
-    { words: Math.floor(finalTargetWords * 0.5), label: 'Halfway Hero', icon: '⭐' },
-    { words: Math.floor(finalTargetWords * 0.75), label: 'Almost There', icon: '🚀' },
+    {
+      words: Math.floor(finalTargetWords * 0.25),
+      label: 'Getting Started',
+      icon: '🌱',
+    },
+    {
+      words: Math.floor(finalTargetWords * 0.5),
+      label: 'Halfway Hero',
+      icon: '⭐',
+    },
+    {
+      words: Math.floor(finalTargetWords * 0.75),
+      label: 'Almost There',
+      icon: '🚀',
+    },
     { words: finalTargetWords, label: 'Story Complete', icon: '🎉' },
   ];
 
   const currentMilestone = milestones.findIndex(m => currentWords < m.words);
-  const nextMilestone = currentMilestone !== -1 ? milestones[currentMilestone] : null;
+  const nextMilestone =
+    currentMilestone !== -1 ? milestones[currentMilestone] : null;
 
   return (
     <Card className={`p-6 ${className}`}>
@@ -86,12 +102,14 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
         {/* Main Progress */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600 dark:text-gray-400">Words written</span>
+            <span className="text-gray-600 dark:text-gray-400">
+              Words written
+            </span>
             <span className="font-medium text-gray-900 dark:text-white">
               {formatNumber(currentWords)} / {formatNumber(finalTargetWords)}
             </span>
           </div>
-          
+
           <ProgressBar
             value={currentWords}
             max={finalTargetWords}
@@ -99,12 +117,12 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
             size="lg"
             showPercentage
           />
-          
+
           <motion.p
             key={getEncouragementMessage()}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-center text-purple-600 dark:text-purple-400 font-medium"
+            className="text-center text-sm font-medium text-purple-600 dark:text-purple-400"
           >
             {getEncouragementMessage()}
           </motion.p>
@@ -116,22 +134,28 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatNumber(currentWords)}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Words</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Words
+            </div>
           </div>
-          
+
           <div className="text-center">
-            <div className="text-2xl font-bold text-gray-900 dark:text-white flex items-center justify-center">
+            <div className="flex items-center justify-center text-2xl font-bold text-gray-900 dark:text-white">
               <Clock size={16} className="mr-1" />
               {readingTime}m
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Reading Time</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Reading Time
+            </div>
           </div>
-          
+
           <div className="text-center">
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {sessionsCount}
             </div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Sessions</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              Sessions
+            </div>
           </div>
         </div>
 
@@ -140,7 +164,7 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4"
+            className="rounded-lg bg-gradient-to-r from-purple-50 to-pink-50 p-4 dark:from-purple-900/20 dark:to-pink-900/20"
           >
             <div className="flex items-center space-x-3">
               <div className="text-2xl">{nextMilestone.icon}</div>
@@ -154,7 +178,11 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-purple-600 dark:text-purple-400">
-                  {Math.round(((nextMilestone.words - currentWords) / finalTargetWords) * 100)}%
+                  {Math.round(
+                    ((nextMilestone.words - currentWords) / finalTargetWords) *
+                      100
+                  )}
+                  %
                 </div>
                 <div className="text-xs text-gray-500">remaining</div>
               </div>
@@ -164,12 +192,14 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
 
         {/* Milestones Timeline */}
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Milestones</p>
-          <div className="flex justify-between items-center">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            Milestones
+          </p>
+          <div className="flex items-center justify-between">
             {milestones.map((milestone, index) => {
               const isReached = currentWords >= milestone.words;
               const isCurrent = nextMilestone?.words === milestone.words;
-              
+
               return (
                 <motion.div
                   key={index}
@@ -179,20 +209,24 @@ export const StoryProgress: React.FC<StoryProgressProps> = ({
                   className="flex flex-col items-center space-y-1"
                 >
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-sm transition-all ${
                       isReached
                         ? 'bg-purple-600 text-white'
                         : isCurrent
-                        ? 'bg-purple-100 text-purple-600 border-2 border-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'bg-gray-200 text-gray-400 dark:bg-gray-700'
+                          ? 'border-2 border-purple-600 bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
+                          : 'bg-gray-200 text-gray-400 dark:bg-gray-700'
                     }`}
                   >
                     {milestone.icon}
                   </div>
-                  <div className="text-xs text-center max-w-16">
-                    <div className={`font-medium ${
-                      isReached ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500'
-                    }`}>
+                  <div className="max-w-16 text-center text-xs">
+                    <div
+                      className={`font-medium ${
+                        isReached
+                          ? 'text-purple-600 dark:text-purple-400'
+                          : 'text-gray-500'
+                      }`}
+                    >
                       {formatNumber(milestone.words)}
                     </div>
                   </div>

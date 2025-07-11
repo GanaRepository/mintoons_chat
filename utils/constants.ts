@@ -1,4 +1,6 @@
 // utils/constants.ts - Application constants
+
+// utils/constants.ts - Application constants
 export const APP_CONFIG = {
   NAME: 'MINTOONS',
   DESCRIPTION: 'AI-Powered Story Writing Platform for Children',
@@ -19,6 +21,137 @@ export const STORY_CONFIG = {
 
 // Story Elements for 6-Element Selection
 export const STORY_ELEMENTS = {
+  // Add these flat properties that StoryFilters expects
+  genre: [
+    {
+      id: 'adventure',
+      name: 'Adventure',
+      icon: '🗺️',
+      description: 'Exciting journeys and discoveries',
+    },
+    {
+      id: 'fantasy',
+      name: 'Fantasy',
+      icon: '🧙‍♂️',
+      description: 'Magic, wizards, and mythical creatures',
+    },
+    {
+      id: 'mystery',
+      name: 'Mystery',
+      icon: '🔍',
+      description: 'Puzzles, clues, and detective work',
+    },
+    {
+      id: 'friendship',
+      name: 'Friendship',
+      icon: '👫',
+      description: 'Stories about friendship and teamwork',
+    },
+    {
+      id: 'family',
+      name: 'Family',
+      icon: '👨‍👩‍👧‍👦',
+      description: 'Family adventures and bonding',
+    },
+    {
+      id: 'animal',
+      name: 'Animal Tales',
+      icon: '🐾',
+      description: 'Stories featuring animal characters',
+    },
+    {
+      id: 'superhero',
+      name: 'Superhero',
+      icon: '🦸‍♂️',
+      description: 'Heroes with special powers',
+    },
+    {
+      id: 'space',
+      name: 'Space Adventure',
+      icon: '🚀',
+      description: 'Outer space exploration',
+    },
+  ],
+
+  mainCharacter: [
+    {
+      id: 'explorer',
+      name: 'Brave Explorer',
+      icon: '🧭',
+      description: 'Adventurous and curious',
+    },
+    {
+      id: 'animal',
+      name: 'Talking Animal',
+      icon: '🐾',
+      description: 'Wise animal friend',
+    },
+    {
+      id: 'wizard',
+      name: 'Young Wizard',
+      icon: '🧙‍♂️',
+      description: 'Learning magic',
+    },
+    {
+      id: 'robot',
+      name: 'Friendly Robot',
+      icon: '🤖',
+      description: 'Helpful mechanical friend',
+    },
+    {
+      id: 'princess',
+      name: 'Brave Princess',
+      icon: '👸',
+      description: 'Strong and independent',
+    },
+    {
+      id: 'ordinary',
+      name: 'Ordinary Kid',
+      icon: '👦',
+      description: 'Regular child with big dreams',
+    },
+  ],
+
+  setting: [
+    {
+      id: 'forest',
+      name: 'Enchanted Forest',
+      icon: '🌲',
+      description: 'Magical woods full of wonder',
+    },
+    {
+      id: 'castle',
+      name: 'Royal Castle',
+      icon: '🏰',
+      description: 'Majestic palace with secrets',
+    },
+    {
+      id: 'ocean',
+      name: 'Ocean Depths',
+      icon: '🌊',
+      description: 'Underwater world of mystery',
+    },
+    {
+      id: 'space',
+      name: 'Space Station',
+      icon: '🚀',
+      description: 'High-tech home among the stars',
+    },
+    {
+      id: 'village',
+      name: 'Cozy Village',
+      icon: '🏘️',
+      description: 'Peaceful countryside community',
+    },
+    {
+      id: 'mountain',
+      name: 'Tall Mountains',
+      icon: '⛰️',
+      description: 'Peaks reaching to the clouds',
+    },
+  ],
+
+  // Keep the original structure for backward compatibility
   GENRES: [
     {
       id: 'adventure',
@@ -85,90 +218,66 @@ export const STORY_ELEMENTS = {
     },
     {
       id: 'ocean',
-      name: 'Deep Ocean',
+      name: 'Ocean Depths',
       icon: '🌊',
-      description: 'Underwater world of mysteries',
+      description: 'Underwater world of mystery',
     },
     {
-      id: 'mountain',
-      name: 'Snowy Mountains',
-      icon: '🏔️',
-      description: 'Tall peaks and hidden caves',
-    },
-    {
-      id: 'city',
-      name: 'Modern City',
-      icon: '🏙️',
-      description: 'Bustling urban environment',
+      id: 'space',
+      name: 'Space Station',
+      icon: '🚀',
+      description: 'High-tech home among the stars',
     },
     {
       id: 'village',
       name: 'Cozy Village',
       icon: '🏘️',
-      description: 'Small town with friendly neighbors',
+      description: 'Peaceful countryside community',
     },
     {
-      id: 'island',
-      name: 'Tropical Island',
-      icon: '🏝️',
-      description: 'Paradise surrounded by water',
-    },
-    {
-      id: 'space_station',
-      name: 'Space Station',
-      icon: '🛰️',
-      description: 'High-tech orbital facility',
+      id: 'mountain',
+      name: 'Tall Mountains',
+      icon: '⛰️',
+      description: 'Peaks reaching to the clouds',
     },
   ],
 
   CHARACTERS: [
     {
-      id: 'brave_child',
-      name: 'Brave Child',
-      icon: '🧒',
-      description: 'Courageous young hero',
+      id: 'explorer',
+      name: 'Brave Explorer',
+      icon: '🧭',
+      description: 'Adventurous and curious',
     },
     {
-      id: 'wise_animal',
-      name: 'Wise Animal',
-      icon: '🦉',
-      description: 'Smart animal companion',
+      id: 'animal',
+      name: 'Talking Animal',
+      icon: '🐾',
+      description: 'Wise animal friend',
     },
     {
-      id: 'friendly_wizard',
-      name: 'Friendly Wizard',
+      id: 'wizard',
+      name: 'Young Wizard',
       icon: '🧙‍♂️',
-      description: 'Magical helper with kind heart',
+      description: 'Learning magic',
     },
     {
-      id: 'robot_friend',
-      name: 'Robot Friend',
+      id: 'robot',
+      name: 'Friendly Robot',
       icon: '🤖',
-      description: 'Helpful mechanical companion',
+      description: 'Helpful mechanical friend',
     },
     {
-      id: 'fairy',
-      name: 'Magical Fairy',
-      icon: '🧚‍♀️',
-      description: 'Tiny magical being',
+      id: 'princess',
+      name: 'Brave Princess',
+      icon: '👸',
+      description: 'Strong and independent',
     },
     {
-      id: 'pirate',
-      name: 'Friendly Pirate',
-      icon: '🏴‍☠️',
-      description: 'Adventure-seeking sailor',
-    },
-    {
-      id: 'astronaut',
-      name: 'Space Explorer',
-      icon: '👨‍🚀',
-      description: 'Brave space traveler',
-    },
-    {
-      id: 'inventor',
-      name: 'Young Inventor',
-      icon: '🔬',
-      description: 'Creative problem-solver',
+      id: 'ordinary',
+      name: 'Ordinary Kid',
+      icon: '👦',
+      description: 'Regular child with big dreams',
     },
   ],
 
@@ -177,43 +286,7 @@ export const STORY_ELEMENTS = {
       id: 'exciting',
       name: 'Exciting',
       icon: '⚡',
-      description: 'Full of thrills and action',
-    },
-    {
-      id: 'funny',
-      name: 'Funny',
-      icon: '😄',
-      description: 'Humorous and lighthearted',
-    },
-    {
-      id: 'mysterious',
-      name: 'Mysterious',
-      icon: '🌙',
-      description: 'Full of secrets and intrigue',
-    },
-    {
-      id: 'heartwarming',
-      name: 'Heartwarming',
-      icon: '❤️',
-      description: 'Sweet and touching',
-    },
-    {
-      id: 'magical',
-      name: 'Magical',
-      icon: '✨',
-      description: 'Filled with wonder and magic',
-    },
-    {
-      id: 'brave',
-      name: 'Brave',
-      icon: '🛡️',
-      description: 'Courageous and heroic',
-    },
-    {
-      id: 'curious',
-      name: 'Curious',
-      icon: '🔎',
-      description: 'Full of discovery and learning',
+      description: 'Full of energy and thrills',
     },
     {
       id: 'peaceful',
@@ -221,56 +294,68 @@ export const STORY_ELEMENTS = {
       icon: '🕊️',
       description: 'Calm and serene',
     },
+    {
+      id: 'mysterious',
+      name: 'Mysterious',
+      icon: '🔮',
+      description: 'Full of secrets and wonder',
+    },
+    {
+      id: 'funny',
+      name: 'Funny',
+      icon: '😄',
+      description: 'Lighthearted and amusing',
+    },
+    {
+      id: 'brave',
+      name: 'Brave',
+      icon: '🦁',
+      description: 'Courageous and bold',
+    },
+    {
+      id: 'magical',
+      name: 'Magical',
+      icon: '✨',
+      description: 'Enchanted and wondrous',
+    },
   ],
 
   CONFLICTS: [
     {
-      id: 'lost_treasure',
+      id: 'treasure',
       name: 'Lost Treasure',
       icon: '💎',
-      description: 'Finding something valuable that was lost',
+      description: 'Find the hidden treasure',
     },
     {
-      id: 'rescue_mission',
+      id: 'rescue',
       name: 'Rescue Mission',
-      icon: '🚁',
-      description: 'Saving someone in trouble',
+      icon: '🆘',
+      description: 'Save someone in danger',
     },
     {
-      id: 'solve_mystery',
+      id: 'mystery',
       name: 'Solve Mystery',
-      icon: '🕵️‍♂️',
-      description: 'Uncovering hidden secrets',
+      icon: '🔍',
+      description: 'Uncover the truth',
     },
     {
-      id: 'make_friends',
-      name: 'Make New Friends',
+      id: 'competition',
+      name: 'Big Competition',
+      icon: '🏆',
+      description: 'Win the challenge',
+    },
+    {
+      id: 'journey',
+      name: 'Long Journey',
+      icon: '🗺️',
+      description: 'Reach the destination',
+    },
+    {
+      id: 'friendship',
+      name: 'Help Friend',
       icon: '🤝',
-      description: 'Building new friendships',
-    },
-    {
-      id: 'overcome_fear',
-      name: 'Overcome Fear',
-      icon: '💪',
-      description: 'Facing and conquering fears',
-    },
-    {
-      id: 'save_environment',
-      name: 'Save Environment',
-      icon: '🌱',
-      description: 'Protecting nature and animals',
-    },
-    {
-      id: 'learn_skill',
-      name: 'Learn New Skill',
-      icon: '📚',
-      description: 'Mastering something new',
-    },
-    {
-      id: 'help_community',
-      name: 'Help Community',
-      icon: '🏠',
-      description: 'Making a difference for others',
+      description: 'Support a friend in need',
     },
   ],
 
@@ -279,49 +364,37 @@ export const STORY_ELEMENTS = {
       id: 'friendship',
       name: 'Friendship',
       icon: '👫',
-      description: 'The power of true friendship',
+      description: 'The power of true friends',
     },
     {
       id: 'courage',
       name: 'Courage',
-      icon: '🦁',
+      icon: '🦸‍♂️',
       description: 'Being brave when it matters',
     },
     {
       id: 'kindness',
       name: 'Kindness',
-      icon: '💖',
-      description: 'The importance of being kind',
-    },
-    {
-      id: 'perseverance',
-      name: 'Never Give Up',
-      icon: '🎯',
-      description: 'Keep trying even when things are hard',
+      icon: '💝',
+      description: 'The magic of being kind',
     },
     {
       id: 'teamwork',
       name: 'Teamwork',
-      icon: '👥',
-      description: 'Working together to achieve goals',
+      icon: '🤝',
+      description: 'Working together to succeed',
     },
     {
-      id: 'creativity',
-      name: 'Creativity',
-      icon: '🎨',
-      description: 'Using imagination to solve problems',
-    },
-    {
-      id: 'honesty',
-      name: 'Honesty',
-      icon: '💯',
-      description: 'The value of telling the truth',
+      id: 'discovery',
+      name: 'Discovery',
+      icon: '🔭',
+      description: 'Learning something new',
     },
     {
       id: 'family',
-      name: 'Family Love',
+      name: 'Family',
       icon: '👨‍👩‍👧‍👦',
-      description: 'The special bond of family',
+      description: 'The importance of family bonds',
     },
   ],
 } as const;
@@ -598,8 +671,6 @@ export function isAchievementUnlocked(
   return progress.current >= progress.target;
 }
 
-// Add these to utils/constants.ts
-
 // Level System Constants
 export const LEVEL_THRESHOLDS = [
   0, // Level 1: 0 points
@@ -639,8 +710,6 @@ export const LEVEL_REWARDS: Record<number, string[]> = {
   30: ['Legendary achievements', 'Beta feature access'],
   50: ['Hall of Fame entry', 'Lifetime benefits'],
 };
-
-// Add these to utils/constants.ts
 
 // Streak Milestones
 export const STREAK_MILESTONES = [

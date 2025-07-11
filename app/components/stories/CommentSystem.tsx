@@ -19,10 +19,9 @@ import { Button } from '@components/ui/button';
 import { Textarea } from '@components/ui/textarea';
 import { Dropdown } from '@components/ui/dropdown';
 import { Badge } from '@components/ui/badge';
-import { Avatar } from '@components/ui/avatar';
 import { formatDate, formatTimeAgo } from '@utils/formatters';
 import { validateComment } from '@utils/validators';
-import type { Comment, CommentType } from '@types/comment';
+import type { Comment, CommentType } from '../../../types/comment';
 
 interface CommentSystemProps {
   storyId: string;

@@ -23,7 +23,7 @@ import { CommentSystem } from './CommentSystem';
 import { formatDate, formatTimeAgo, formatNumber } from '@utils/formatters';
 import { calculateReadingTime } from '@utils/helpers';
 import { shareStory } from '@utils/helpers';
-import type { Story } from '@types/story';
+import type { Story } from '../../../types/story';
 
 interface StoryViewerProps {
   story: Story;
@@ -55,7 +55,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
   const trackView = async () => {
     try {
-      await fetch(`/api/stories/${story._id}/view`, { method: 'POST' });
+      await fetch(`/api/stories/${story.id}/view`, { method: 'POST' });
       setViewsCount(prev => prev + 1);
     } catch (error) {
       console.error('Failed to track view:', error);
@@ -66,7 +66,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!session) return;
 
     try {
-      const response = await fetch(`/api/stories/${story._id}/like`, {
+      const response = await fetch(`/api/stories/${story.id}/like`, {
         method: 'POST',
       });
 
@@ -74,7 +74,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         const newIsLiked = !isLiked;
         setIsLiked(newIsLiked);
         setLikesCount(prev => (newIsLiked ? prev + 1 : prev - 1));
-        onLike?.(story._id);
+        onLike?.(story.id);
       }
     } catch (error) {
       console.error('Failed to like story:', error);
@@ -84,7 +84,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const handleShare = async () => {
     try {
       await shareStory(story);
-      onShare?.(story._id);
+      onShare?.(story.id);
     } catch (error) {
       console.error('Failed to share story:', error);
     }
@@ -92,7 +92,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
   const handleExport = async (format: 'pdf' | 'word') => {
     try {
-      const response = await fetch(`/api/export/${format}/${story._id}`);
+      const response = await fetch(`/api/export/${format}/${story.id}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -346,7 +346,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               <div className="space-y-3">
                 {story.relatedStories.slice(0, 3).map(relatedStory => (
                   <div
-                    key={relatedStory._id}
+                    key={relatedStory.id}
                     className="flex items-start space-x-3"
                   >
                     <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-400 to-purple-400" />
@@ -369,7 +369,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       {/* Comments Sidebar */}
       {showComments && (
         <CommentSystem
-          storyId={story._id}
+          storyId={story.id}
           onClose={() => setShowComments(false)}
           isReadOnly={isReadOnly}
         />
