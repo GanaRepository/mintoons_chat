@@ -39,10 +39,16 @@ import { SlideIn } from '@components/animations/SlideIn';
 import { formatDate, formatNumber } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
-import type { User } from '@/types/user';
+import type { User as BaseUser } from '@/types/user';
+
+export type UserWithStats = BaseUser & {
+  name: string;
+  points: number;
+  storyCount: number;
+};
 
 interface UserManagementProps {
-  users: User[];
+  users: UserWithStats[];
   pagination: {
     page: number;
     limit: number;
@@ -160,63 +166,61 @@ export default function UserManagementClient({
     }
   };
 
-  const getUserStatusColor = (
-    user: User
-  ): 'success' | 'warning' | 'error' | 'default' => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const isActive = new Date(user.lastActiveDate || 0) >= weekAgo;
+ const getUserStatusColor = (
+  user: UserWithStats
+): 'success' | 'warning' | 'error' | 'default' => {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const isActive = new Date(user.lastActiveDate || 0) >= weekAgo;
 
-    if (!user.isActive) return 'error';
-    if (isActive) return 'success';
-    return 'warning';
-  };
+  if (!user.isActive) return 'error';
+  if (isActive) return 'success';
+  return 'warning';
+};
 
-  const getUserStatusLabel = (user: User) => {
-    if (!user.isActive) return 'Suspended';
+const getUserStatusLabel = (user: UserWithStats) => {
+  if (!user.isActive) return 'Suspended';
 
-    const daysSinceActive = Math.floor(
-      (Date.now() - new Date(user.lastActiveDate || 0).getTime()) /
-        (1000 * 60 * 60 * 24)
-    );
+  const daysSinceActive = Math.floor(
+    (Date.now() - new Date(user.lastActiveDate || 0).getTime()) /
+      (1000 * 60 * 60 * 24)
+  );
 
-    if (daysSinceActive <= 1) return 'Active';
-    if (daysSinceActive <= 7) return 'Recent';
-    return 'Inactive';
-  };
+  if (daysSinceActive <= 1) return 'Active';
+  if (daysSinceActive <= 7) return 'Recent';
+  return 'Inactive';
+};
 
-  const userActions = (user: User) => [
-    {
-      label: 'View Profile',
-      value: 'view', // Added missing value
-      icon: <Eye className="h-4 w-4" />,
-      onClick: () => router.push(`/admin/users/${user._id}`),
-    },
-    {
-      label: 'Send Message',
-      value: 'message', // Added missing value
-      icon: <MessageSquare className="h-4 w-4" />,
-      onClick: () => router.push(`/admin/users/${user._id}/message`),
-    },
-    {
-      label: user.isActive ? 'Suspend User' : 'Activate User',
-      value: user.isActive ? 'suspend' : 'activate', // Added missing value
-      icon: user.isActive ? (
-        <Ban className="h-4 w-4" />
-      ) : (
-        <UserCheck className="h-4 w-4" />
-      ),
-      onClick: () =>
-        handleUserAction(user._id, user.isActive ? 'suspend' : 'activate'),
-      // Removed destructive property
-    },
-    {
-      label: 'Delete User',
-      value: 'delete', // Added missing value
-      icon: <Trash2 className="h-4 w-4" />,
-      onClick: () => handleUserAction(user._id, 'delete'),
-      // Removed destructive property
-    },
-  ];
+const userActions = (user: UserWithStats) => [
+  {
+    label: 'View Profile',
+    value: 'view',
+    icon: <Eye className="h-4 w-4" />,
+    onClick: () => router.push(`/admin/users/${user._id}`),
+  },
+  {
+    label: 'Send Message',
+    value: 'message',
+    icon: <MessageSquare className="h-4 w-4" />,
+    onClick: () => router.push(`/admin/users/${user._id}/message`),
+  },
+  {
+    label: user.isActive ? 'Suspend User' : 'Activate User',
+    value: user.isActive ? 'suspend' : 'activate',
+    icon: user.isActive ? (
+      <Ban className="h-4 w-4" />
+    ) : (
+      <UserCheck className="h-4 w-4" />
+    ),
+    onClick: () =>
+      handleUserAction(user._id, user.isActive ? 'suspend' : 'activate'),
+  },
+  {
+    label: 'Delete User',
+    value: 'delete',
+    icon: <Trash2 className="h-4 w-4" />,
+    onClick: () => handleUserAction(user._id, 'delete'),
+  },
+];
 
   const overviewStats = [
     {

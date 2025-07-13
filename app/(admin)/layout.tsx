@@ -26,7 +26,7 @@ async function getAdminData(userId: string) {
     .select('-password')
     .lean();
     
-  if (!admin || admin.role !== 'admin') {
+  if (!admin || (admin as any).role !== 'admin') {
     return null;
   }
   
@@ -44,7 +44,7 @@ export default async function AdminLayout({
     redirect('/login?callbackUrl=/admin/dashboard');
   }
 
-  const admin = await getAdminData(session.user.id);
+  const admin = await getAdminData(session.user._id);
   
   if (!admin) {
     redirect('/unauthorized?role=admin');
@@ -55,7 +55,7 @@ export default async function AdminLayout({
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-          <AdminSidebar admin={admin} />
+          <AdminSidebar isOpen={true} />
         </aside>
 
         {/* Main content */}

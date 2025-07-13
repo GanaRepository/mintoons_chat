@@ -14,7 +14,7 @@ import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Alert } from '@components/ui/alert';
-import { validateEmail } from '@utils/validators';
+
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),

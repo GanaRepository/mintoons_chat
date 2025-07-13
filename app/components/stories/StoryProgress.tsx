@@ -11,6 +11,8 @@ import { getAgeAppropriateTarget } from '@utils/age-restrictions';
 import { formatNumber } from '@utils/formatters';
 
 interface StoryProgressProps {
+  storyId: string;
+  targetWordCount: number;
   currentWords: number;
   targetWords?: number;
   userAge: number;

@@ -26,24 +26,35 @@ import { CommentSystem } from './CommentSystem';
 import { aiProviderManager } from '@lib/ai/providers';
 import { countWords } from '@utils/helpers';
 import { formatNumber } from '@utils/formatters';
-import type { Story } from '../../../types/story';
+import type { Story, StoryElements } from '../../../types/story';
 
 interface CollaborativeWriterProps {
-  story: Story;
-  onStoryUpdate: (content: string) => void;
-  onSave: () => void;
-  onComplete: () => void;
+  storyId: string;
+  userId: string;
+  userAge: number;
+  selectedElements: StoryElements;
+  onComplete: (storyId: string) => void; // Fixed: expecting storyId parameter
+  subscriptionTier: string;
+  story?: Story;
+  onStoryUpdate?: (content: string) => void;
+  onSave?: () => void;
   isReadOnly?: boolean;
 }
 
 export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
+  storyId,
+  userId,
+  userAge,
+  selectedElements,
+  onComplete,
+  subscriptionTier,
   story,
   onStoryUpdate,
   onSave,
-  onComplete,
   isReadOnly = false,
 }) => {
   const { data: session } = useSession();
+  const [currentStory, setCurrentStory] = useState<Story | null>(story || null);
   const [userInput, setUserInput] = useState('');
   const [isAIGenerating, setIsAIGenerating] = useState(false);
   const [aiResponse, setAiResponse] = useState<string>('');
@@ -56,12 +67,29 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const storyContentRef = useRef<HTMLDivElement>(null);
 
-  const wordCount = countWords(story.content);
+  // Load story if not provided
+  useEffect(() => {
+    if (!story && storyId) {
+      fetchStory();
+    }
+  }, [storyId, story]);
+
+  const fetchStory = async () => {
+    try {
+      const response = await fetch(`/api/stories/${storyId}`);
+      if (response.ok) {
+        const storyData = await response.json();
+        setCurrentStory(storyData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch story:', error);
+    }
+  };
+
+  const wordCount = countWords(currentStory?.content || '');
   const userInputWordCount = countWords(userInput);
-  const minWordsPerTurn = Math.max(
-    20,
-    Math.floor(50 - (session?.user.age || 8) * 2)
-  );
+  const minWordsPerTurn = Math.max(20, Math.floor(50 - userAge * 2));
+  const targetWords = subscriptionTier === 'FREE' ? 600 : 1200;
 
   useEffect(() => {
     // Auto-resize textarea
@@ -72,16 +100,24 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
     }
   }, [userInput]);
 
+  const handleStoryUpdate = (content: string) => {
+    if (currentStory) {
+      setCurrentStory({ ...currentStory, content });
+    }
+    onStoryUpdate?.(content);
+  };
+
   const handleUserSubmit = async () => {
     if (
       !userInput.trim() ||
       userInputWordCount < minWordsPerTurn ||
-      isAIGenerating
+      isAIGenerating ||
+      !currentStory
     )
       return;
 
-    const newContent = story.content + '\n\n' + userInput.trim();
-    onStoryUpdate(newContent);
+    const newContent = currentStory.content + '\n\n' + userInput.trim();
+    handleStoryUpdate(newContent);
 
     // Generate AI response
     setIsAIGenerating(true);
@@ -90,10 +126,10 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
     try {
       const aiResponse = await aiProviderManager.generateStoryResponse({
         prompt: userInput,
-        context: story.content,
-        userAge: session?.user.age || 8,
-        storyElements: story.elements,
-        maxTokens: 100 + (session?.user.age || 8) * 5,
+        context: currentStory.content,
+        userAge: userAge,
+        storyElements: selectedElements,
+        maxTokens: 100 + userAge * 5,
         temperature: 0.8,
       });
 
@@ -112,10 +148,16 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
   };
 
   const handleAcceptAI = () => {
-    const newContent = story.content + '\n\n' + aiResponse;
-    onStoryUpdate(newContent);
+    if (!currentStory) return;
+    const newContent = currentStory.content + '\n\n' + aiResponse;
+    handleStoryUpdate(newContent);
     setShowAIResponse(false);
     setAiResponse('');
+
+    // Check if story is complete
+    if (countWords(newContent) >= targetWords) {
+      handleStoryComplete();
+    }
   };
 
   const handleRejectAI = () => {
@@ -123,13 +165,17 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
     setAiResponse('');
   };
 
+  const handleStoryComplete = () => {
+    onComplete(storyId);
+  };
+
   const handleGetAssessment = async () => {
-    if (!story.content.trim()) return;
+    if (!currentStory?.content.trim()) return;
 
     try {
       const assessment = await aiProviderManager.assessStory(
-        story.content,
-        session?.user.age || 8
+        currentStory.content,
+        userAge
       );
 
       setCurrentAssessment(assessment);
@@ -139,10 +185,43 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
     }
   };
 
+  const handleSave = async () => {
+    if (!currentStory) return;
+
+    try {
+      const response = await fetch(`/api/stories/${storyId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: currentStory.content,
+        }),
+      });
+
+      if (response.ok) {
+        onSave?.();
+      }
+    } catch (error) {
+      console.error('Failed to save story:', error);
+    }
+  };
+
   const canSubmit =
     userInput.trim() &&
     userInputWordCount >= minWordsPerTurn &&
     !isAIGenerating;
+
+  if (!currentStory) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-purple-600"></div>
+          <p>Loading story...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -150,7 +229,7 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {story.title}
+            {currentStory.title}
           </h1>
           <div className="mt-2 flex items-center space-x-4">
             <Badge variant="purple" size="sm">
@@ -176,13 +255,13 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
             variant="outline"
             size="sm"
             onClick={handleGetAssessment}
-            disabled={!story.content.trim()}
+            disabled={!currentStory.content.trim()}
           >
             <Zap size={16} className="mr-2" />
             Get AI Assessment
           </Button>
 
-          <Button variant="outline" size="sm" onClick={onSave}>
+          <Button variant="outline" size="sm" onClick={handleSave}>
             <Save size={16} className="mr-2" />
             Save
           </Button>
@@ -191,9 +270,10 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
 
       {/* Progress */}
       <StoryProgress
+        storyId={storyId}
+        targetWordCount={targetWords}
         currentWords={wordCount}
-        targetWords={story.targetWords || 500}
-        userAge={session?.user.age || 8}
+        userAge={userAge}
       />
 
       {/* Story Content */}
@@ -202,9 +282,9 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
           ref={storyContentRef}
           className="prose prose-lg max-w-none dark:prose-invert"
         >
-          {story.content ? (
+          {currentStory.content ? (
             <div className="whitespace-pre-wrap leading-relaxed">
-              {story.content}
+              {currentStory.content}
             </div>
           ) : (
             <div className="py-8 text-center italic text-gray-400">
@@ -281,9 +361,9 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
 
             <div className="flex items-center justify-between">
               <AIAssistant
-                storyElements={story.elements}
-                currentContent={story.content}
-                userAge={session?.user.age || 8}
+                storyElements={selectedElements}
+                currentContent={currentStory.content}
+                userAge={userAge}
                 onSuggestion={suggestion =>
                   setUserInput(prev => prev + ' ' + suggestion)
                 }
@@ -314,7 +394,7 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
       <AnimatePresence>
         {showComments && (
           <CommentSystem
-            storyId={story.id}
+            storyId={storyId}
             onClose={() => setShowComments(false)}
           />
         )}
@@ -325,7 +405,7 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
         isOpen={showAssessment}
         onClose={() => setShowAssessment(false)}
         assessment={currentAssessment}
-        storyTitle={story.title}
+        storyTitle={currentStory.title}
       />
     </div>
   );

@@ -16,11 +16,11 @@ import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Alert } from '@components/ui/alert';
-import { loginSchema } from '@utils/validators';
+import { userLoginSchema } from '@utils/validators';
 import { TRACKING_EVENTS } from '@utils/constants';
 import { trackEvent } from '@lib/analytics/tracker';
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type LoginFormData = z.infer<typeof userLoginSchema>;
 
 export default function LoginClient() {
   const router = useRouter();
@@ -38,7 +38,7 @@ export default function LoginClient() {
     formState: { errors, isSubmitting },
     setError,
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: zodResolver(userLoginSchema),
     defaultValues: {
       email: '',
       password: '',
@@ -111,7 +111,7 @@ export default function LoginClient() {
         const session = await getSession();
 
         trackEvent(TRACKING_EVENTS.USER_LOGIN, {
-          userId: session?.user?.id,
+          userId: session?.user?._id,
           email: data.email,
           method: 'credentials',
           callbackUrl,
@@ -208,7 +208,7 @@ export default function LoginClient() {
                   type="email"
                   placeholder="Enter your email"
                   className="pl-10"
-                  error={!!errors.email}
+                error={errors.email?.message}
                   {...register('email')}
                 />
               </div>
@@ -234,7 +234,7 @@ export default function LoginClient() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   className="pl-10 pr-10"
-                  error={!!errors.password}
+                  error={errors.password?.message}
                   {...register('password')}
                 />
                 <button

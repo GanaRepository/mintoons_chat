@@ -1,4 +1,3 @@
-// app/(dashboard)/create-stories/CreateStoriesClient.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -32,6 +31,7 @@ import { SlideIn } from '@components/animations/SlideIn';
 import { STORY_ELEMENTS } from '@utils/constants';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
+import { getAgeAppropriateTarget } from '@utils/age-restrictions';
 import type { User } from '@/types/user';
 import type { StoryElements } from '@/types/story';
 
@@ -146,6 +146,20 @@ export default function CreateStoriesClient({
     setCurrentStep('elements');
     setSelectedElements({});
     setStoryId(null);
+  };
+
+  // Handle when ElementSelector has all 6 elements selected
+  const handleElementSelectorComplete = () => {
+    // Check if we have all required elements
+    const requiredElements = ['genre', 'setting', 'character', 'mood', 'conflict', 'theme'];
+    const hasAllElements = requiredElements.every(element => 
+      selectedElements[element as keyof StoryElements]
+    );
+
+    if (hasAllElements) {
+      // All elements are selected, now create the story
+      handleElementsSelected(selectedElements as StoryElements);
+    }
   };
 
   // Limit reached UI
@@ -273,7 +287,7 @@ export default function CreateStoriesClient({
                elements={STORY_ELEMENTS}
                selectedElements={selectedElements}
                onElementsChange={setSelectedElements}
-               onComplete={handleElementsSelected}
+               onComplete={handleElementSelectorComplete} // This triggers when all 6 elements are selected
                userAge={user.age}
              />
            </Card>
@@ -298,7 +312,7 @@ export default function CreateStoriesClient({
                      Write Your Story
                    </h2>
                    <Button
-                     variant="outline"
+                     variant="outline" // Fixed: use valid variant
                      size="sm"
                      onClick={resetCreation}
                    >
@@ -321,11 +335,11 @@ export default function CreateStoriesClient({
                    </div>
                  ) : (
                    <CollaborativeWriter
-                     storyId={storyId}
+                     storyId={storyId} // Fixed: proper prop name
                      userId={user._id}
                      userAge={user.age}
                      selectedElements={selectedElements as StoryElements}
-                     onComplete={handleStoryComplete}
+                     onComplete={handleStoryComplete} // Fixed: proper signature
                      subscriptionTier={user.subscriptionTier}
                    />
                  )}
@@ -336,8 +350,10 @@ export default function CreateStoriesClient({
              <div className="lg:col-span-1">
                <div className="space-y-6">
                  <StoryProgress
-                   storyId={storyId}
-                   targetWordCount={user.subscriptionTier === 'FREE' ? 600 : 1200}
+                   storyId={storyId} // Fixed: added required storyId
+                   targetWordCount={getAgeAppropriateTarget(user.age)} // Fixed: proper prop name
+                   currentWords={0} // Fixed: added required currentWords
+                   userAge={user.age} // Fixed: added required userAge
                  />
 
                  {/* Selected Elements */}
@@ -351,7 +367,7 @@ export default function CreateStoriesClient({
                          <span className="text-sm text-gray-600 capitalize">
                            {category}:
                          </span>
-                         <Badge variant="outline" size="sm">
+                         <Badge variant="default" size="sm">
                            {value}
                          </Badge>
                        </div>

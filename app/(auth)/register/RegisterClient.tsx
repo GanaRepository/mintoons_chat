@@ -1,4 +1,3 @@
-// app/(auth)/register/RegisterClient.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -17,7 +16,7 @@ import {
   Loader2,
   CheckCircle,
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -27,12 +26,12 @@ import { Card } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Select } from '@components/ui/select';
 import { Alert } from '@components/ui/alert';
-import { registerSchema } from '@utils/validators';
+import { userRegistrationSchema } from '@utils/validators';
 import { TRACKING_EVENTS, AGE_GROUPS } from '@utils/constants';
 import { trackEvent } from '@lib/analytics/tracker';
 import { needsParentalConsent, getAgeGroup } from '@utils/age-restrictions';
 
-type RegisterFormData = z.infer<typeof registerSchema>;
+type RegisterFormData = z.infer<typeof userRegistrationSchema>;
 
 const ageOptions = Array.from({ length: 17 }, (_, i) => ({
   value: (i + 2).toString(),
@@ -54,27 +53,27 @@ export default function RegisterClient() {
     watch,
     clearErrors,
     trigger,
+    setValue,
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(userRegistrationSchema),
     mode: 'onChange',
     defaultValues: {
-      name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       password: '',
       confirmPassword: '',
-      age: '',
-      parentalConsent: false,
+      age: 2, // Changed to number
+      parentEmail: '',
+      termsAccepted: false,
     },
   });
 
   const watchedAge = watch('age');
   const watchedEmail = watch('email');
   const watchedPassword = watch('password');
-
-  const needsConsent = watchedAge
-    ? needsParentalConsent(parseInt(watchedAge))
-    : false;
-  const ageGroupInfo = watchedAge ? getAgeGroup(parseInt(watchedAge)) : null;
+  const needsConsent = needsParentalConsent(Number(watchedAge));
+  const ageGroupInfo = getAgeGroup(Number(watchedAge));
 
   useEffect(() => {
     trackEvent(TRACKING_EVENTS.PAGE_VIEW, {
@@ -82,7 +81,7 @@ export default function RegisterClient() {
     });
   }, []);
 
-  const onSubmit = async (data: RegisterFormData) => {
+  const onSubmit: SubmitHandler<RegisterFormData> = async (data) => {
     setIsLoading(true);
 
     try {
@@ -93,11 +92,13 @@ export default function RegisterClient() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: data.name,
+          firstName: data.firstName,
+          lastName: data.lastName,
           email: data.email,
           password: data.password,
-          age: parseInt(data.age),
-          parentalConsent: data.parentalConsent,
+          age: data.age, // already a number due to Zod preprocess
+          parentEmail: data.parentEmail,
+          termsAccepted: data.termsAccepted,
         }),
       });
 
@@ -110,8 +111,8 @@ export default function RegisterClient() {
               'An account with this email already exists. Please sign in instead.',
           });
         } else if (result.error === 'PARENTAL_CONSENT_REQUIRED') {
-          setError('parentalConsent', {
-            message: 'Parental consent is required for users under 13.',
+          setError('parentEmail', {
+            message: 'Parental email is required for users under 13.',
           });
         } else {
           setError('root', {
@@ -134,7 +135,7 @@ export default function RegisterClient() {
         userId: result.user.id,
         email: data.email,
         age: data.age,
-        ageGroup: ageGroupInfo?.id,
+        ageGroup: ageGroupInfo?.label,
         needsParentalConsent: needsConsent,
         method: 'credentials',
       });
@@ -172,7 +173,7 @@ export default function RegisterClient() {
   };
 
   const validateStep1 = async () => {
-    const isValid = await trigger(['name', 'email']);
+    const isValid = await trigger(['firstName', 'lastName', 'email']);
     if (isValid) {
       setStep(2);
       trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
@@ -189,7 +190,7 @@ export default function RegisterClient() {
       trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
         form: 'register_step2',
         age: watchedAge,
-        ageGroup: ageGroupInfo?.id,
+        ageGroup: ageGroupInfo?.label,
         needsConsent,
       });
     }
@@ -209,6 +210,11 @@ export default function RegisterClient() {
       console.error(`${provider} sign up error:`, error);
       toast.error(`Failed to sign up with ${provider}. Please try again.`);
     }
+  };
+
+  const handleAgeChange = (value: string) => {
+    const ageNumber = parseInt(value, 10);
+    setValue('age', ageNumber);
   };
 
   return (
@@ -290,32 +296,56 @@ export default function RegisterClient() {
                 animate={{ opacity: 1, x: 0 }}
                 className="space-y-6"
               >
-                {/* Name Field */}
+                {/* First Name Field */}
                 <div className="space-y-2">
                   <label
-                    htmlFor="name"
+                    htmlFor="firstName"
                     className="text-sm font-medium text-gray-700"
                   >
-                    Full Name
+                    First Name
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
                     <Input
-                      id="name"
+                      id="firstName"
                       type="text"
-                      placeholder="Enter your full name"
+                      placeholder="Enter your first name"
                       className="pl-10"
-                      error={!!errors.name}
-                      {...register('name')}
+                      error={errors.firstName?.message}
+                      {...register('firstName')}
                     />
                   </div>
-                  {errors.name && (
+                  {errors.firstName && (
                     <p className="animate-fade-in text-sm text-red-600">
-                      {errors.name.message}
+                      {errors.firstName.message}
                     </p>
                   )}
                 </div>
-
+                {/* Last Name Field */}
+                <div className="space-y-2">
+                  <label
+                    htmlFor="lastName"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Last Name
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                    <Input
+                      id="lastName"
+                      type="text"
+                      placeholder="Enter your last name"
+                      className="pl-10"
+                      error={errors.lastName?.message}
+                      {...register('lastName')}
+                    />
+                  </div>
+                  {errors.lastName && (
+                    <p className="animate-fade-in text-sm text-red-600">
+                      {errors.lastName.message}
+                    </p>
+                  )}
+                </div>
                 {/* Email Field */}
                 <div className="space-y-2">
                   <label
@@ -331,7 +361,7 @@ export default function RegisterClient() {
                       type="email"
                       placeholder="Enter your email"
                       className="pl-10"
-                      error={!!errors.email}
+                      error={errors.email?.message}
                       {...register('email')}
                     />
                   </div>
@@ -341,7 +371,6 @@ export default function RegisterClient() {
                     </p>
                   )}
                 </div>
-
                 <Button
                   type="button"
                   onClick={validateStep1}
@@ -368,7 +397,6 @@ export default function RegisterClient() {
                     This helps us provide age-appropriate content and features
                   </p>
                 </div>
-
                 {/* Age Field */}
                 <div className="space-y-2">
                   <label
@@ -378,21 +406,14 @@ export default function RegisterClient() {
                     Your Age
                   </label>
                   <div className="relative">
-                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
-                    <Select
-                      id="age"
-                      placeholder="Select your age"
+                    <Calendar className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400 z-10" />
+                   <Select
+                      options={ageOptions}
+                      value={watchedAge.toString()}
+                      onChange={handleAgeChange}
+                      error={errors.age?.message}
                       className="pl-10"
-                      error={!!errors.age}
-                      {...register('age')}
-                    >
-                      <option value="">Select your age</option>
-                      {ageOptions.map(option => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </Select>
+                    />
                   </div>
                   {errors.age && (
                     <p className="animate-fade-in text-sm text-red-600">
@@ -400,22 +421,17 @@ export default function RegisterClient() {
                     </p>
                   )}
                 </div>
-
                 {/* Age Group Info */}
-                {ageGroupInfo && (
+             {ageGroupInfo && (
                   <Alert variant="info" className="animate-fade-in">
                     <CheckCircle className="h-4 w-4" />
                     <div>
                       <div className="font-medium">
-                        Perfect! You're in our {ageGroupInfo.label} group
-                      </div>
-                      <div className="mt-1 text-sm">
-                        {ageGroupInfo.description}
+                        Perfect! You're in our {ageGroupInfo?.label} group
                       </div>
                     </div>
                   </Alert>
                 )}
-
                 {/* COPPA Notice */}
                 {needsConsent && (
                   <Alert variant="warning" className="animate-fade-in">
@@ -432,7 +448,33 @@ export default function RegisterClient() {
                     </div>
                   </Alert>
                 )}
-
+                {/* Parent Email Field (if needed) */}
+                {needsConsent && (
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="parentEmail"
+                      className="text-sm font-medium text-gray-700"
+                    >
+                      Parent's Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
+                      <Input
+                        id="parentEmail"
+                        type="email"
+                        placeholder="Enter your parent's email"
+                        className="pl-10"
+                        error={errors.parentEmail?.message}
+                        {...register('parentEmail')}
+                      />
+                    </div>
+                    {errors.parentEmail && (
+                      <p className="animate-fade-in text-sm text-red-600">
+                        {errors.parentEmail.message}
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -468,7 +510,6 @@ export default function RegisterClient() {
                     Choose a strong password to keep your account secure
                   </p>
                 </div>
-
                 {/* Password Field */}
                 <div className="space-y-2">
                   <label
@@ -484,7 +525,7 @@ export default function RegisterClient() {
                       type={showPassword ? 'text' : 'password'}
                       placeholder="Create a strong password"
                       className="pl-10 pr-10"
-                      error={!!errors.password}
+                      error={errors.password?.message}
                       {...register('password')}
                     />
                     <button
@@ -505,7 +546,6 @@ export default function RegisterClient() {
                     </p>
                   )}
                 </div>
-
                 {/* Confirm Password Field */}
                 <div className="space-y-2">
                   <label
@@ -521,7 +561,7 @@ export default function RegisterClient() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       placeholder="Confirm your password"
                       className="pl-10 pr-10"
-                      error={!!errors.confirmPassword}
+                      error={errors.confirmPassword?.message}
                       {...register('confirmPassword')}
                     />
                     <button
@@ -544,72 +584,42 @@ export default function RegisterClient() {
                     </p>
                   )}
                 </div>
-
-                {/* Parental Consent Checkbox */}
-                {needsConsent && (
-                  <div className="space-y-2">
-                    <div className="flex items-start space-x-3">
-                      <input
-                        id="parentalConsent"
-                        type="checkbox"
-                        className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                        {...register('parentalConsent')}
-                      />
-                      <label
-                        htmlFor="parentalConsent"
-                        className="text-sm text-gray-700"
-                      >
-                        I confirm that I have parental consent to create this
-                        account and use MINTOONS. By checking this box, I
-                        acknowledge that my parent or guardian has reviewed and
-                        agreed to the{' '}
-                        <Link
-                          href="/terms"
-                          className="text-purple-600 hover:underline"
-                          target="_blank"
-                        >
-                          Terms of Service
-                        </Link>{' '}
-                        and{' '}
-                        <Link
-                          href="/privacy"
-                          className="text-purple-600 hover:underline"
-                          target="_blank"
-                        >
-                          Privacy Policy
-                        </Link>
-                        .
-                      </label>
-                    </div>
-                    {errors.parentalConsent && (
-                      <p className="animate-fade-in text-sm text-red-600">
-                        {errors.parentalConsent.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 {/* Terms Agreement */}
-                <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-600">
-                  By creating an account, you agree to our{' '}
-                  <Link
-                    href="/terms"
-                    className="text-purple-600 hover:underline"
-                    target="_blank"
+                <div className="flex items-start space-x-3">
+                  <input
+                    id="termsAccepted"
+                    type="checkbox"
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    {...register('termsAccepted')}
+                  />
+                  <label
+                    htmlFor="termsAccepted"
+                    className="text-sm text-gray-700"
                   >
-                    Terms of Service
-                  </Link>{' '}
-                  and{' '}
-                  <Link
-                    href="/privacy"
-                    className="text-purple-600 hover:underline"
-                    target="_blank"
-                  >
-                    Privacy Policy
-                  </Link>
-                  .
+                    I agree to the{' '}
+                    <Link
+                      href="/terms"
+                      className="text-purple-600 hover:underline"
+                      target="_blank"
+                    >
+                      Terms of Service
+                    </Link>{' '}
+                    and{' '}
+                    <Link
+                      href="/privacy"
+                      className="text-purple-600 hover:underline"
+                      target="_blank"
+                    >
+                      Privacy Policy
+                    </Link>
+                    .
+                  </label>
                 </div>
-
+                {errors.termsAccepted && (
+                  <p className="animate-fade-in text-sm text-red-600">
+                    {errors.termsAccepted.message}
+                  </p>
+                )}
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -652,7 +662,6 @@ export default function RegisterClient() {
                   </span>
                 </div>
               </div>
-
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <Button
                   type="button"
@@ -680,7 +689,6 @@ export default function RegisterClient() {
                   </svg>
                   Google
                 </Button>
-
                 <Button
                   type="button"
                   variant="outline"

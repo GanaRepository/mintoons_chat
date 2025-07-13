@@ -1,13 +1,13 @@
-// app/(admin)/users/page.tsx
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { redirect } from 'next/navigation';
-import UserManagementClient from './UserManagementClient';
+import UserManagementClient, { UserWithStats } from './UserManagementClient';
 import { LoadingAnimation } from '@components/animations/LoadingAnimation';
 import { connectDB } from '@lib/database/connection';
-import  { User } from '../../../types/user'; 
+import UserModel from '@models/User';
+import type { User } from '../../../types/user';
 import Story from '@models/Story';
 
 export const metadata: Metadata = {
@@ -54,42 +54,43 @@ async function getUserManagementData(searchParams: any) {
   else if (searchParams.sort === 'active') sort = { lastActiveDate: -1 };
 
   const [users, totalUsers, totalStories] = await Promise.all([
-    User.find(query)
+    UserModel.find(query)
       .sort(sort)
       .skip(skip)
       .limit(limit)
       .select('-password')
       .lean(),
 
-    User.countDocuments(query),
+    UserModel.countDocuments(query),
 
     Story.aggregate([{ $group: { _id: '$authorId', count: { $sum: 1 } } }]),
   ]);
 
   // Add story counts and computed fields to users
   const storyCountMap = totalStories.reduce(
-    (acc, item) => {
+    (acc: Record<string, number>, item: { _id: string; count: number }) => {
       acc[item._id.toString()] = item.count;
       return acc;
     },
     {} as Record<string, number>
   );
 
-  const usersWithStats = users.map(user => ({
+  const usersWithStats: UserWithStats[] = users.map((user: any) => ({
     ...user,
-    storyCount: storyCountMap[user._id as string] || 0,
+    storyCount: storyCountMap[user._id?.toString() ?? ''] || 0,
     name: `${user.firstName} ${user.lastName}`,
     points: user.totalPoints,
   }));
 
   // Calculate summary statistics
-  const activeUsers = usersWithStats.filter(u => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date((u as User).lastActiveDate || 0) >= weekAgo;
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const activeUsers = usersWithStats.filter((u) => {
+    return new Date(u.lastActiveDate || 0) >= weekAgo;
   }).length;
 
-  const newUsersThisMonth = usersWithStats.filter(u => {
-    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const newUsersThisMonth = usersWithStats.filter((u) => {
     return new Date(u.createdAt) >= monthAgo;
   }).length;
 
@@ -147,7 +148,7 @@ export default async function UserManagementPage({ searchParams }: PageProps) {
       }
     >
       <UserManagementClient
-        users={userData.users as User[]}
+        users={userData.users}
         pagination={userData.pagination}
         statistics={userData.statistics}
         filters={userData.filters}

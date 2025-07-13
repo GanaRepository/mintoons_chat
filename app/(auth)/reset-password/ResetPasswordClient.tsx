@@ -13,7 +13,7 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { useForm, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
@@ -22,9 +22,30 @@ import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 import { Input } from '@components/ui/input';
 import { Alert } from '@components/ui/alert';
-import { passwordResetSchema } from '@utils/validators';
+import { passwordResetConfirmSchema } from '@utils/validators';
 
-type ResetPasswordFormData = z.infer<typeof passwordResetSchema>;
+// Create the correct type for the reset password form
+type ResetPasswordFormData = {
+  password: string;
+  confirmPassword: string;
+};
+
+// Create a schema for this specific form since we're not using the token field in the form
+const resetFormSchema = z
+  .object({
+    password: z
+      .string()
+      .min(8, 'Password must be at least 8 characters')
+      .regex(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+        'Password must contain at least one lowercase letter, one uppercase letter, and one number'
+      ),
+    confirmPassword: z.string(),
+  })
+  .refine(data => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 export default function ResetPasswordClient() {
   const router = useRouter();
@@ -45,7 +66,7 @@ export default function ResetPasswordClient() {
     setError,
     watch,
   } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(passwordResetSchema),
+    resolver: zodResolver(resetFormSchema),
     defaultValues: {
       password: '',
       confirmPassword: '',
@@ -83,9 +104,10 @@ export default function ResetPasswordClient() {
     validateToken();
   }, [token, email]);
 
-  const onSubmit = async (data: ResetPasswordFormData) => {
+  const onSubmit: SubmitHandler<ResetPasswordFormData> = async (data) => {
     if (!token || !email) {
       setError('root', {
+        type: 'manual',
         message: 'Invalid reset link. Please request a new password reset.',
       });
       return;
@@ -111,16 +133,19 @@ export default function ResetPasswordClient() {
       if (!response.ok) {
         if (result.error === 'INVALID_TOKEN') {
           setError('root', {
+            type: 'manual',
             message:
               'Reset link has expired or is invalid. Please request a new password reset.',
           });
         } else if (result.error === 'TOKEN_EXPIRED') {
           setError('root', {
+            type: 'manual',
             message:
               'Reset link has expired. Please request a new password reset.',
           });
         } else {
           setError('root', {
+            type: 'manual',
             message:
               result.message || 'Failed to reset password. Please try again.',
           });
@@ -138,6 +163,7 @@ export default function ResetPasswordClient() {
     } catch (error) {
       console.error('Reset password error:', error);
       setError('root', {
+        type: 'manual',
         message: 'An unexpected error occurred. Please try again.',
       });
     } finally {
@@ -340,7 +366,7 @@ export default function ResetPasswordClient() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your new password"
                   className="pl-10 pr-10"
-                  error={!!errors.password}
+                  error={errors.password?.message}
                   {...register('password')}
                 />
                 <button
@@ -402,7 +428,7 @@ export default function ResetPasswordClient() {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="Confirm your new password"
                   className="pl-10 pr-10"
-                  error={!!errors.confirmPassword}
+                  error={errors.confirmPassword?.message}
                   {...register('confirmPassword')}
                 />
                 <button

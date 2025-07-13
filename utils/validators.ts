@@ -34,10 +34,12 @@ export const nameSchema = z
   )
   .regex(/^[a-zA-Z\s]+$/, 'Name can only contain letters and spaces');
 
-export const ageSchema = z
-  .number()
-  .min(2, 'Age must be at least 2')
-  .max(18, 'Age must be no more than 18');
+
+  // utils/validators.ts
+  export const ageSchema = z.preprocess(
+    val => (typeof val === 'string' ? Number(val) : val),
+    z.number().min(2).max(18)
+  );
 
 /* ────────────────────────────────────────────────────
    User Registration schema
@@ -81,6 +83,8 @@ export const userLoginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, 'Password is required'),
 });
+
+export { userLoginSchema as loginSchema };
 
 export const passwordResetSchema = z.object({
   email: emailSchema,
