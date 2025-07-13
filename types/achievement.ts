@@ -14,7 +14,7 @@ export type AchievementRarity =
   | 'legendary';
 
 export interface Achievement {
-  id: string; // unique identifier
+  _id: string; // unique identifier
   name: string;
   description: string;
   icon: string;
@@ -126,7 +126,7 @@ export interface Leaderboard {
 }
 
 export interface Badge {
-  id: string;
+ _id: string;
   name: string;
   description: string;
   icon: string;

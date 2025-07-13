@@ -12,6 +12,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  showCloseButton?: boolean;
   className?: string;
 }
 
@@ -21,11 +22,15 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'md',
+  showCloseButton = true,
   className,
 }) => {
+  // Handle escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+      }
     };
 
     if (isOpen) {
@@ -39,60 +44,64 @@ export const Modal: React.FC<ModalProps> = ({
     };
   }, [isOpen, onClose]);
 
+  const sizeClasses = {
+    sm: 'max-w-md',
+    md: 'max-w-lg',
+    lg: 'max-w-2xl',
+    xl: 'max-w-4xl',
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={onClose}
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
           />
 
           {/* Modal */}
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ type: 'spring', duration: 0.3 }}
             className={cn(
-              'relative rounded-xl bg-white shadow-xl dark:bg-gray-800',
-              'max-h-[90vh] overflow-y-auto',
-              {
-                'w-full max-w-sm': size === 'sm',
-                'w-full max-w-md': size === 'md',
-                'w-full max-w-lg': size === 'lg',
-                'w-full max-w-4xl': size === 'xl',
-              },
+              'relative mx-4 w-full rounded-2xl bg-white shadow-2xl dark:bg-gray-800',
+              'flex max-h-[90vh] flex-col overflow-hidden',
+              sizeClasses[size],
               className
             )}
+            onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
-              {title && (
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  {title}
-                </h3>
-              )}
-              <button
-                onClick={onClose}
-                className="p-2 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
-              >
-                <X size={20} />
-              </button>
-            </div>
+            {(title || showCloseButton) && (
+              <div className="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
+                {title && (
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                    {title}
+                  </h2>
+                )}
+
+                {showCloseButton && (
+                  <button
+                    onClick={onClose}
+                    className="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Content */}
-            <div className="p-6">{children}</div>
+            <div className="flex-1 overflow-y-auto p-6">{children}</div>
           </motion.div>
-        </motion.div>
+        </div>
       )}
     </AnimatePresence>
   );

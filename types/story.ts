@@ -9,7 +9,7 @@ export type StoryStatus =
   | 'archived';
 
 export interface StoryElement {
-  id: string;
+  _id: string;
   name: string;
   icon: string;
   description: string;
@@ -27,7 +27,7 @@ export interface StoryElements {
 
 export interface Story {
   /* IDs */
-  id: string;
+  _id: string;
 
   /* Core */
   title: string;
@@ -148,7 +148,7 @@ export interface PublicStory {
 }
 
 export interface SampleStory {
-  id: string;
+  _id: string;
   title: string;
   content: string;
   elements: Record<string, string>;

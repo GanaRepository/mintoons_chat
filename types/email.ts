@@ -10,7 +10,7 @@ export type EmailType =
   | 'subscription_expired';
 
 export interface EmailTemplate {
-  id: string;
+  _id: string;
   name: string;
   type: EmailType;
   subject: string;

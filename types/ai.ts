@@ -57,7 +57,7 @@ export interface AIAssessmentRequest {
 }
 
 export interface AIPromptTemplate {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   template: string;

@@ -9,7 +9,7 @@ export type RewardType =
   | 'special';
 
 export interface Reward {
-  id: string;
+  _id: string;
   type: RewardType;
   title: string;
   description: string;
@@ -35,7 +35,7 @@ export interface Reward {
 }
 
 export interface RewardNotification {
-  id: string;
+  _id: string;
   userId: string;
   reward: Reward;
   isRead: boolean;

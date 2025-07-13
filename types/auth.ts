@@ -19,7 +19,7 @@ export interface RegisterData {
 }
 
 export interface AuthUser {
-  id: string;
+  _id: string;
   email: string;
   firstName: string;
   lastName: string;
@@ -64,7 +64,7 @@ export interface AuthResponse<T = any> {
 
 // NextAuth specific types
 export interface NextAuthUser {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   image?: string;
@@ -79,7 +79,7 @@ export interface NextAuthSession {
 }
 
 export interface NextAuthToken {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;

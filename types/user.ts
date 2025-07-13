@@ -1,9 +1,8 @@
-// types/user.ts - User-related types
+// types/user.ts - Updated User interface to match the model
 export type UserRole = 'child' | 'mentor' | 'admin';
 
-// Update the User interface in types/user.ts
 export interface User {
-  id: string;
+  _id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -21,7 +20,7 @@ export interface User {
   subscriptionId?: string;
   subscriptionStatus?: string;
   subscriptionExpires?: Date;
-  subscriptionCurrentPeriodEnd?: Date; // Add this missing property
+  subscriptionCurrentPeriodEnd?: Date;
 
   // Story tracking
   storyCount: number;
@@ -31,12 +30,12 @@ export interface User {
   totalPoints: number;
   level: number;
   streak: number;
-  lastActiveDate?: Date;
+  lastActiveDate?: Date; // This matches the model field name
   achievements?: string[];
-  streakData?: StreakData; // Add this line
+  streakData?: StreakData;
 
   // Mentor-specific fields
-  assignedStudents?: string[];
+  assignedStudents?: string[] | User[]; // Can be populated or just IDs
   mentoringSince?: Date;
 
   // Timestamps

@@ -649,3 +649,15 @@ export async function trackAnalyticsEvent(
     console.error('Failed to track analytics event:', error);
   }
 }
+
+// Simple trackEvent wrapper function for compatibility
+export async function trackEvent(
+  eventType: string, 
+  data: Record<string, any> = {}
+): Promise<void> {
+  try {
+    await analyticsTracker.trackEvent(eventType, data);
+  } catch (error) {
+    console.error('Failed to track event:', error);
+  }
+}

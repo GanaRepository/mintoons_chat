@@ -17,7 +17,7 @@ export type PaymentStatus =
   | 'requires_action';
 
 export interface SubscriptionTier {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   price: number; // in cents
@@ -31,7 +31,7 @@ export interface SubscriptionTier {
 }
 
 export interface UserSubscription {
-  id: string;
+  _id: string;
   userId: string;
   tier: SubscriptionTierType;
   status: SubscriptionStatus;
@@ -67,7 +67,7 @@ export interface SubscriptionUsage {
 }
 
 export interface BillingHistory {
-  id: string;
+  _id: string;
   userId: string;
   subscriptionId: string;
   amount: number;
@@ -99,7 +99,7 @@ export interface CheckoutSession {
 }
 
 export interface WebhookEvent {
-  id: string;
+  _id: string;
   type: string;
   data: Record<string, any>;
   processed: boolean;

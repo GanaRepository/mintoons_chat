@@ -1,9 +1,10 @@
-// app/components/ui/input.tsx
+// app/components/ui/input.tsx - Fixed version with icon prop
 'use client';
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@utils/cn';
+import { LucideIcon } from 'lucide-react';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -11,6 +12,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   helper?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  icon?: LucideIcon; // Add this for backward compatibility
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
@@ -22,12 +24,16 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
       helper,
       leftIcon,
       rightIcon,
+      icon: Icon, // Support both icon and leftIcon
       type = 'text',
       ...props
     },
     ref
   ) => {
     const [focused, setFocused] = useState(false);
+
+    // Use Icon as leftIcon if leftIcon is not provided
+    const effectiveLeftIcon = leftIcon || (Icon && <Icon className="w-4 h-4" />);
 
     return (
       <div className="space-y-2">
@@ -38,9 +44,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
         )}
 
         <div className="relative">
-          {leftIcon && (
+          {effectiveLeftIcon && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400">
-              {leftIcon}
+              {effectiveLeftIcon}
             </div>
           )}
 
@@ -55,7 +61,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               'transition-colors placeholder:text-gray-400',
               'dark:border-gray-600 dark:bg-gray-800 dark:text-white',
               {
-                'pl-10': leftIcon,
+                'pl-10': effectiveLeftIcon,
                 'pr-10': rightIcon,
                 'border-red-500 ring-red-500': error,
               },

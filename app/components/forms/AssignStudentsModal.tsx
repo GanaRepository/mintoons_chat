@@ -1,72 +1,52 @@
+// app/components/forms/AssignStudentsModal.tsx
 'use client';
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Search, UserPlus, UserMinus } from 'lucide-react';
-import toast from 'react-hot-toast';
-
-import { Modal } from '@components/ui/modal';
+import { X, UserPlus, Check, Users } from 'lucide-react';
+import { Card } from '@components/ui/card';
 import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
+import { Modal } from '@components/ui/modal';
 import { Badge } from '@components/ui/badge';
-import { formatDate } from '@utils/formatters';
-import type { User } from '@/types/user';
+import { toast } from 'react-hot-toast';
+
+interface User {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  age: number;
+  storyCount: number;
+  subscriptionTier: string;
+}
 
 interface AssignStudentsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  mentor: User | null;
+  mentor: User;
   unassignedStudents: User[];
+  onClose: () => void;
   onSuccess: () => void;
 }
 
 export const AssignStudentsModal: React.FC<AssignStudentsModalProps> = ({
-  isOpen,
-  onClose,
   mentor,
   unassignedStudents,
+  onClose,
   onSuccess,
 }) => {
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredStudents = unassignedStudents.filter(student =>
-    student.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.lastName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.email.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = unassignedStudents.filter(
+    student =>
+      `${student.firstName} ${student.lastName}`
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      student.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAssignStudents = async () => {
-    if (!mentor || selectedStudents.length === 0) return;
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`/api/admin/mentors/${mentor._id}/assign-students`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          studentIds: selectedStudents,
-          notifyStudents: true,
-        }),
-      });
-
-      if (response.ok) {
-        onSuccess();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to assign students');
-      }
-    } catch (error) {
-      console.error('Error assigning students:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to assign students');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleStudent = (studentId: string) => {
+  const handleToggleStudent = (studentId: string) => {
     setSelectedStudents(prev =>
       prev.includes(studentId)
         ? prev.filter(id => id !== studentId)
@@ -74,110 +54,142 @@ export const AssignStudentsModal: React.FC<AssignStudentsModalProps> = ({
     );
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (selectedStudents.length === 0) {
+      toast.error('Please select at least one student');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(`/api/admin/mentors/${mentor._id}/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          studentIds: selectedStudents,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to assign students');
+      }
+
+      toast.success(
+        `Assigned ${selectedStudents.length} students to ${mentor.firstName}`
+      );
+      onSuccess();
+    } catch (error) {
+      toast.error('Failed to assign students');
+      console.error('Error assigning students:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen
       onClose={onClose}
-      title={mentor ? `Assign Students to ${mentor.firstName} ${mentor.lastName}` : 'Assign Students'}
+      title={`Assign Students to ${mentor.firstName} ${mentor.lastName}`}
       size="lg"
     >
-      <div className="space-y-6">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Search students by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-
-        {/* Selected Count */}
-        {selectedStudents.length > 0 && (
-          <div className="p-3 bg-blue-50 rounded-lg flex items-center justify-between">
-            <span className="font-medium text-blue-900">
-              {selectedStudents.length} students selected
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setSelectedStudents([])}
-            >
-              Clear Selection
-            </Button>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-4">
+          <div>
+            <Input
+              placeholder="Search students by name or email..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              disabled={isLoading}
+            />
           </div>
-        )}
 
-        {/* Students List */}
-        <div className="max-h-96 overflow-y-auto space-y-3">
-          {filteredStudents.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">
-                {searchQuery ? 'No students found matching your search' : 'No unassigned students available'}
-              </p>
+          <div className="text-sm text-gray-600">
+            Select students to assign to this mentor:
+          </div>
+
+          <div className="max-h-96 space-y-2 overflow-y-auto">
+            {filteredStudents.length === 0 ? (
+              <div className="py-8 text-center text-gray-500">
+                {searchTerm
+                  ? 'No students found matching your search'
+                  : 'No unassigned students available'}
+              </div>
+            ) : (
+              filteredStudents.map(student => {
+                const isSelected = selectedStudents.includes(student._id);
+
+                return (
+                  <motion.div
+                    key={student._id}
+                    whileHover={{ scale: 1.01 }}
+                    className={`cursor-pointer rounded-lg border p-4 transition-all ${
+                      isSelected
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => handleToggleStudent(student._id)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500">
+                          <span className="text-sm font-bold text-white">
+                            {student.firstName.charAt(0)}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {student.firstName} {student.lastName}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {student.email} • Age {student.age}
+                          </div>
+                          <div className="mt-1 flex items-center gap-2">
+                            <Badge variant="default" size="sm">
+                              {student.subscriptionTier}
+                            </Badge>
+                            <span className="text-xs text-gray-500">
+                              {student.storyCount} stories
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${
+                          isSelected
+                            ? 'border-purple-500 bg-purple-500'
+                            : 'border-gray-300'
+                        }`}
+                      >
+                        {isSelected && <Check className="h-4 w-4 text-white" />}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })
+            )}
+          </div>
+
+          {selectedStudents.length > 0 && (
+            <div className="rounded-lg bg-purple-50 p-3">
+              <div className="text-sm font-medium text-purple-800">
+                Selected: {selectedStudents.length} student
+                {selectedStudents.length !== 1 ? 's' : ''}
+              </div>
             </div>
-          ) : (
-            filteredStudents.map((student) => (
-              <motion.div
-                key={student._id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                  selectedStudents.includes(student._id)
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => toggleStudent(student._id)}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-500 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {student.firstName?.charAt(0)}{student.lastName?.charAt(0)}
-                    </span>
-                  </div>
-
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-1">
-                      <h4 className="font-medium text-gray-900">
-                        {student.firstName} {student.lastName}
-                      </h4>
-                      <Badge variant="outline" size="sm">
-                        Age {student.age}
-                      </Badge>
-                      <Badge variant="info" size="sm">
-                        {student.subscriptionTier}
-                      </Badge>
-                    </div>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>{student.email}</span>
-                      <span>{student.storyCount || 0} stories</span>
-                      <span>Joined {formatDate(student.createdAt, 'relative')}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center">
-                    {selectedStudents.includes(student._id) ? (
-                      <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                        <UserMinus className="w-4 h-4 text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center">
-                        <UserPlus className="w-4 h-4 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+        <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
           <Button
+            type="button"
             variant="outline"
             onClick={onClose}
             disabled={isLoading}
@@ -185,14 +197,23 @@ export const AssignStudentsModal: React.FC<AssignStudentsModalProps> = ({
             Cancel
           </Button>
           <Button
-            onClick={handleAssignStudents}
+            type="submit"
             disabled={isLoading || selectedStudents.length === 0}
-            className="bg-gradient-to-r from-blue-600 to-purple-600"
           >
-            {isLoading ? 'Assigning...' : `Assign ${selectedStudents.length} Students`}
+            {isLoading ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                Assigning...
+              </>
+            ) : (
+              <>
+                <Users className="mr-2 h-4 w-4" />
+                Assign Students ({selectedStudents.length})
+              </>
+            )}
           </Button>
         </div>
-      </div>
+      </form>
     </Modal>
   );
 };
