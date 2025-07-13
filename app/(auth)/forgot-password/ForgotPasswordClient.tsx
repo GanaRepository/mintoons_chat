@@ -245,7 +245,7 @@ export default function ForgotPasswordClient() {
                   type="email"
                   placeholder="Enter your email address"
                   className="pl-10"
-                  error={!!errors.email}
+                  error={errors.email?.message}
                   {...register('email')}
                 />
               </div>

@@ -1,6 +1,7 @@
 // models/User.ts - User model with role-based features
 import mongoose, { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { UserRole, UserPreferences, StreakData } from '../types/user';
 
 export interface UserDocument extends Document {
   _id: mongoose.Types.ObjectId;
@@ -9,7 +10,7 @@ export interface UserDocument extends Document {
   email: string;
   password: string;
   age: number;
-  role: 'child' | 'mentor' | 'admin';
+  role: UserRole;
   subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
   isActive: boolean;
   emailVerified: boolean;
@@ -20,13 +21,9 @@ export interface UserDocument extends Document {
   // Subscription details
   stripeCustomerId?: string;
   subscriptionId?: string;
-  subscriptionStatus:
-    | 'active'
-    | 'canceled'
-    | 'past_due'
-    | 'trialing'
-    | 'incomplete';
+  subscriptionStatus?: string;
   subscriptionExpires?: Date;
+  subscriptionCurrentPeriodEnd?: Date;
 
   // Story tracking
   storyCount: number;
@@ -36,20 +33,17 @@ export interface UserDocument extends Document {
   totalPoints: number;
   level: number;
   streak: number;
-  lastActiveDate: Date;
+  lastActiveDate?: Date;
+  points?: number;
+  achievements?: string[];
+  streakData?: StreakData;
 
   // Mentor-specific fields
-  assignedStudents: mongoose.Types.ObjectId[];
+  assignedStudents?: mongoose.Types.ObjectId[] | UserDocument[];
   mentoringSince?: Date;
 
   // Email preferences
-  emailPreferences: {
-    notifications: boolean;
-    mentorFeedback: boolean;
-    achievements: boolean;
-    weeklyReports: boolean;
-    marketing: boolean;
-  };
+  emailPreferences: UserPreferences;
 
   // Security
   lastLoginAt?: Date;

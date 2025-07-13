@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
+import {
   Users,
   UserPlus,
   Search,
@@ -20,7 +20,7 @@ import {
   Trash2,
   Edit,
   Eye,
-  UserCheck
+  UserCheck,
 } from 'lucide-react';
 
 import { Button } from '@components/ui/button';
@@ -33,47 +33,11 @@ import { CreateMentorForm } from '@components/forms/CreateMentorForm';
 import { AssignStudentsModal } from '@components/forms/AssignStudentsModal';
 import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-
 import { formatDate, formatNumber } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
-
-// Fixed User interface with correct property names
-interface UserType {
-  id?: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  age: number;
-  role: 'child' | 'mentor' | 'admin';
-  subscriptionTier: string;
-  isActive: boolean;
-  storyCount: number;
-  level?: number;
-  points?: number;
-  lastActiveDate?: Date; // Changed from lastActiveAt to match model
-  createdAt: Date;
-  assignedStudents?: UserType[];
-}
-
-// Fixed Comment interface
-interface CommentType {
-  id: string;
-  storyId: {
-    id: string;
-    title: string;
-  };
-  authorId: {
-    id: string;
-    firstName: string;
-    lastName: string;
-  };
-  authorName?: string;
-  authorRole: 'mentor' | 'admin';
-  content: string;
-  type: string;
-  createdAt: Date;
-}
+import { User } from '@/types/user'; // Import your actual User type
+import { Comment } from '@/types/comment'; // Import your actual Comment type
 
 interface PaginationType {
   page: number;
@@ -97,9 +61,9 @@ interface FiltersType {
 }
 
 interface MentorManagementClientProps {
-  mentors: UserType[];
-  unassignedStudents: UserType[];
-  recentComments: CommentType[];
+  mentors: User[]; // Use your actual User type
+  unassignedStudents: User[]; // Use your actual User type
+  recentComments: Comment[]; // Use your actual Comment type
   pagination: PaginationType;
   statistics: StatisticsType;
   filters: FiltersType;
@@ -111,14 +75,14 @@ export default function MentorManagementClient({
   recentComments,
   pagination,
   statistics,
-  filters
+  filters,
 }: MentorManagementClientProps) {
   const [searchTerm, setSearchTerm] = useState(filters.search);
   const [statusFilter, setStatusFilter] = useState(filters.status);
   const [sortBy, setSortBy] = useState(filters.sort);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
-  const [selectedMentor, setSelectedMentor] = useState<UserType | null>(null);
+  const [selectedMentor, setSelectedMentor] = useState<User | null>(null);
 
   useEffect(() => {
     trackEvent(TRACKING_EVENTS.PAGE_VIEW, {
@@ -129,7 +93,8 @@ export default function MentorManagementClient({
   }, [statistics.total, statistics.active]);
 
   // Helper function to determine if mentor is active
-  const isMentorActive = (mentor: UserType): boolean => {
+  const isMentorActive = (mentor: User): boolean => {
+    // Use User type
     if (!mentor.lastActiveDate) return false;
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     return new Date(mentor.lastActiveDate) >= weekAgo;
@@ -141,10 +106,12 @@ export default function MentorManagementClient({
   };
 
   // Helper function to format mentor status
-  const getMentorStatus = (mentor: UserType): { text: string; variant: 'success' | 'warning' | 'default' } => {
+  const getMentorStatus = (
+    mentor: User
+  ): { text: string; variant: 'success' | 'warning' | 'default' } => {
     const isActive = isMentorActive(mentor);
     const hasStudents = (mentor.assignedStudents?.length || 0) > 0;
-    
+
     if (isActive && hasStudents) {
       return { text: 'Active', variant: 'success' };
     } else if (isActive && !hasStudents) {
@@ -154,7 +121,7 @@ export default function MentorManagementClient({
     }
   };
 
-  const handleAssignStudents = (mentor: UserType) => {
+  const handleAssignStudents = (mentor: User) => {
     setSelectedMentor(mentor);
     setShowAssignModal(true);
   };
@@ -176,10 +143,13 @@ export default function MentorManagementClient({
   // URL update function
   const updateFilters = (newFilters: Partial<FiltersType>) => {
     const params = new URLSearchParams();
-    if (newFilters.search || searchTerm) params.set('search', newFilters.search || searchTerm);
-    if (newFilters.status || statusFilter) params.set('status', newFilters.status || statusFilter);
-    if (newFilters.sort || sortBy) params.set('sort', newFilters.sort || sortBy);
-    
+    if (newFilters.search || searchTerm)
+      params.set('search', newFilters.search || searchTerm);
+    if (newFilters.status || statusFilter)
+      params.set('status', newFilters.status || statusFilter);
+    if (newFilters.sort || sortBy)
+      params.set('sort', newFilters.sort || sortBy);
+
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.pushState({}, '', newUrl);
     window.location.reload();
@@ -189,49 +159,51 @@ export default function MentorManagementClient({
     <div className="space-y-8">
       {/* Header */}
       <FadeIn>
-        <div className="bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 rounded-3xl p-8 text-white relative overflow-hidden">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900 p-8 text-white">
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-4 right-4 w-32 h-32 bg-white/10 rounded-full blur-xl" />
-            <div className="absolute bottom-4 left-4 w-24 h-24 bg-white/10 rounded-full blur-xl" />
+            <div className="absolute right-4 top-4 h-32 w-32 rounded-full bg-white/10 blur-xl" />
+            <div className="absolute bottom-4 left-4 h-24 w-24 rounded-full bg-white/10 blur-xl" />
           </div>
 
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">👨‍🏫</span>
-                  <h1 className="text-3xl lg:text-4xl font-bold">
+                  <h1 className="text-3xl font-bold lg:text-4xl">
                     Mentor Management
                   </h1>
                 </div>
-                
+
                 <p className="text-xl text-gray-300">
                   Manage mentors and assign them to students
                 </p>
 
                 <div className="flex flex-wrap items-center gap-6 text-sm">
                   <div className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
+                    <Users className="h-4 w-4" />
                     <span>{statistics.total} mentors total</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4" />
+                    <Activity className="h-4 w-4" />
                     <span>{statistics.active} active this week</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    <span>{statistics.unassignedStudents} unassigned students</span>
+                    <AlertCircle className="h-4 w-4" />
+                    <span>
+                      {statistics.unassignedStudents} unassigned students
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-gray-900 hover:bg-gray-100 font-semibold"
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  size="lg"
+                  className="bg-white font-semibold text-gray-900 hover:bg-gray-100"
                   onClick={() => setShowCreateForm(true)}
                 >
-                  <UserPlus className="w-5 h-5 mr-2" />
+                  <UserPlus className="mr-2 h-5 w-5" />
                   Add Mentor
                 </Button>
               </div>
@@ -241,16 +213,18 @@ export default function MentorManagementClient({
       </FadeIn>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <FadeIn delay={0.1}>
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-600" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                <Users className="h-5 w-5 text-blue-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Total Mentors</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Total Mentors
+              </h3>
             </div>
-            <div className="text-3xl font-bold text-blue-600 mb-2">
+            <div className="mb-2 text-3xl font-bold text-blue-600">
               {statistics.total}
             </div>
             <div className="text-sm text-gray-600">Registered on platform</div>
@@ -259,13 +233,15 @@ export default function MentorManagementClient({
 
         <FadeIn delay={0.2}>
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Activity className="w-5 h-5 text-green-600" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                <Activity className="h-5 w-5 text-green-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Active Mentors</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Active Mentors
+              </h3>
             </div>
-            <div className="text-3xl font-bold text-green-600 mb-2">
+            <div className="mb-2 text-3xl font-bold text-green-600">
               {statistics.active}
             </div>
             <div className="text-sm text-gray-600">Active this week</div>
@@ -274,13 +250,15 @@ export default function MentorManagementClient({
 
         <FadeIn delay={0.3}>
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                <AlertCircle className="w-5 h-5 text-orange-600" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
+                <AlertCircle className="h-5 w-5 text-orange-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Unassigned Students</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Unassigned Students
+              </h3>
             </div>
-            <div className="text-3xl font-bold text-orange-600 mb-2">
+            <div className="mb-2 text-3xl font-bold text-orange-600">
               {statistics.unassignedStudents}
             </div>
             <div className="text-sm text-gray-600">Need mentors</div>
@@ -289,13 +267,15 @@ export default function MentorManagementClient({
 
         <FadeIn delay={0.4}>
           <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <UserCheck className="w-5 h-5 text-purple-600" />
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                <UserCheck className="h-5 w-5 text-purple-600" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Avg. Students/Mentor</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Avg. Students/Mentor
+              </h3>
             </div>
-            <div className="text-3xl font-bold text-purple-600 mb-2">
+            <div className="mb-2 text-3xl font-bold text-purple-600">
               {statistics.avgStudentsPerMentor}
             </div>
             <div className="text-sm text-gray-600">Current ratio</div>
@@ -306,13 +286,13 @@ export default function MentorManagementClient({
       {/* Filters and Search */}
       <FadeIn delay={0.5}>
         <Card className="p-6">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4 lg:flex-row">
             <div className="flex-1">
               <Input
                 placeholder="Search mentors by name or email..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => {
+                onChange={e => setSearchTerm(e.target.value)}
+                onKeyPress={e => {
                   if (e.key === 'Enter') {
                     updateFilters({ search: searchTerm });
                   }
@@ -320,33 +300,33 @@ export default function MentorManagementClient({
                 icon={Search}
               />
             </div>
-            
+
             <div className="flex gap-3">
               <Select
                 options={statusOptions}
                 value={statusFilter}
-                onChange={(value) => {
+                onChange={value => {
                   setStatusFilter(value);
                   updateFilters({ status: value });
                 }}
                 placeholder="Filter by status"
               />
-              
+
               <Select
                 options={sortOptions}
                 value={sortBy}
-                onChange={(value) => {
+                onChange={value => {
                   setSortBy(value);
                   updateFilters({ sort: value });
                 }}
                 placeholder="Sort by"
               />
-              
-              <Button 
+
+              <Button
                 variant="outline"
                 onClick={() => updateFilters({ search: searchTerm })}
               >
-                <Filter className="w-4 h-4 mr-2" />
+                <Filter className="mr-2 h-4 w-4" />
                 Apply
               </Button>
             </div>
@@ -354,12 +334,12 @@ export default function MentorManagementClient({
         </Card>
       </FadeIn>
 
-      <div className="grid lg:grid-cols-3 gap-8">
+      <div className="grid gap-8 lg:grid-cols-3">
         {/* Mentors List */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6 lg:col-span-2">
           <SlideIn direction="left" delay={0.6}>
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-6">
+              <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-gray-900">
                   Mentors ({mentors.length})
                 </h3>
@@ -368,29 +348,32 @@ export default function MentorManagementClient({
               <div className="space-y-4">
                 {mentors.map((mentor, index) => {
                   const status = getMentorStatus(mentor);
-                  
+
                   return (
                     <motion.div
-                      key={mentor.id}
+                      key={mentor._id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
+                      className="rounded-lg border border-gray-200 p-4 transition-shadow hover:shadow-md"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-                            <span className="text-white font-bold">
-                              {mentor.firstName.charAt(0)}{mentor.lastName.charAt(0)}
+                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
+                            <span className="font-bold text-white">
+                              {mentor.firstName.charAt(0)}
+                              {mentor.lastName.charAt(0)}
                             </span>
                           </div>
-                          
+
                           <div>
                             <h4 className="font-medium text-gray-900">
                               {mentor.firstName} {mentor.lastName}
                             </h4>
-                            <p className="text-sm text-gray-600">{mentor.email}</p>
-                            <div className="flex items-center gap-3 mt-1">
+                            <p className="text-sm text-gray-600">
+                              {mentor.email}
+                            </p>
+                            <div className="mt-1 flex items-center gap-3">
                               <Badge variant={status.variant} size="sm">
                                 {status.text}
                               </Badge>
@@ -410,41 +393,47 @@ export default function MentorManagementClient({
                             size="sm"
                             onClick={() => handleAssignStudents(mentor)}
                           >
-                            <UserPlus className="w-4 h-4 mr-2" />
+                            <UserPlus className="mr-2 h-4 w-4" />
                             Assign
                           </Button>
-                          
+
                           <Dropdown
                             trigger={
                               <Button variant="outline" size="sm">
-                                <MoreVertical className="w-4 h-4" />
+                                <MoreVertical className="h-4 w-4" />
                               </Button>
                             }
                             items={[
                               {
                                 label: 'View Profile',
                                 value: 'view',
-                                icon: <Eye className="w-4 h-4" />,
+                                icon: <Eye className="h-4 w-4" />,
                                 onClick: () => {
-                                  window.open(`/admin/users/${mentor.id}`, '_blank');
-                                }
+                                  window.open(
+                                    `/admin/users/${mentor._id}`,
+                                    '_blank'
+                                  );
+                                },
                               },
                               {
                                 label: 'Send Email',
                                 value: 'email',
-                                icon: <Mail className="w-4 h-4" />,
+                                icon: <Mail className="h-4 w-4" />,
                                 onClick: () => {
-                                  window.open(`mailto:${mentor.email}`, '_blank');
-                                }
+                                  window.open(
+                                    `mailto:${mentor.email}`,
+                                    '_blank'
+                                  );
+                                },
                               },
                               {
                                 label: 'Edit Details',
                                 value: 'edit',
-                                icon: <Edit className="w-4 h-4" />,
+                                icon: <Edit className="h-4 w-4" />,
                                 onClick: () => {
                                   // Handle edit
-                                }
-                              }
+                                },
+                              },
                             ]}
                           />
                         </div>
@@ -456,13 +445,16 @@ export default function MentorManagementClient({
 
               {/* Pagination */}
               {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-6 pt-6 border-t border-gray-200">
+                <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-6">
                   <div className="text-sm text-gray-600">
-                    Showing {((pagination.page - 1) * pagination.limit) + 1} to{' '}
-                    {Math.min(pagination.page * pagination.limit, pagination.total)} of{' '}
-                    {pagination.total} mentors
+                    Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                    {Math.min(
+                      pagination.page * pagination.limit,
+                      pagination.total
+                    )}{' '}
+                    of {pagination.total} mentors
                   </div>
-                  
+
                   <div className="flex gap-2">
                     {pagination.page > 1 && (
                       <Button
@@ -473,7 +465,7 @@ export default function MentorManagementClient({
                         Previous
                       </Button>
                     )}
-                    
+
                     {pagination.page < pagination.totalPages && (
                       <Button
                         variant="outline"
@@ -495,7 +487,7 @@ export default function MentorManagementClient({
           {/* Unassigned Students */}
           <SlideIn direction="right" delay={0.7}>
             <Card className="p-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-gray-900">
                   Unassigned Students
                 </h3>
@@ -505,15 +497,18 @@ export default function MentorManagementClient({
               </div>
 
               <div className="space-y-3">
-                {unassignedStudents.slice(0, 5).map((student) => (
-                  <div key={student.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                {unassignedStudents.slice(0, 5).map(student => (
+                  <div
+                    key={student._id}
+                    className="flex items-center gap-3 rounded-lg bg-gray-50 p-3"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-500">
                       <span className="text-xs font-bold text-white">
                         {student.firstName.charAt(0)}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-gray-900 text-sm">
+                      <div className="text-sm font-medium text-gray-900">
                         {student.firstName} {student.lastName}
                       </div>
                       <div className="text-xs text-gray-600">
@@ -524,7 +519,7 @@ export default function MentorManagementClient({
                 ))}
 
                 {unassignedStudents.length > 5 && (
-                  <div className="text-center pt-2">
+                  <div className="pt-2 text-center">
                     <Button variant="outline" size="sm">
                       View All ({unassignedStudents.length})
                     </Button>
@@ -537,32 +532,32 @@ export default function MentorManagementClient({
           {/* Recent Mentor Activity */}
           <SlideIn direction="right" delay={0.8}>
             <Card className="p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <MessageCircle className="w-5 h-5 text-blue-600" />
+              <div className="mb-4 flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-blue-600" />
                 <h3 className="text-lg font-bold text-gray-900">
                   Recent Activity
                 </h3>
               </div>
 
               <div className="space-y-4">
-                {recentComments.slice(0, 5).map((comment) => (
-                  <div key={comment.id} className="text-sm">
+                {recentComments.slice(0, 5).map(comment => (
+                  <div key={comment._id} className="text-sm">
                     <div className="flex items-start gap-2">
-                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center mt-0.5">
-                        <MessageCircle className="w-3 h-3 text-green-600" />
+                      <div className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
+                        <MessageCircle className="h-3 w-3 text-green-600" />
                       </div>
                       <div className="flex-1">
                         <p className="text-gray-900">
                           <span className="font-medium">
-                            {comment.authorId.firstName} {comment.authorId.lastName}
-                          </span>{' '}
+                            {comment.authorName}
+                          </span>
                           commented on{' '}
-                          <span className="font-medium">"{comment.storyId.title}"</span>
+                          <span className="font-medium">{comment.storyId}</span>
                         </p>
-                        <p className="text-gray-600 mt-1 line-clamp-2">
+                        <p className="mt-1 line-clamp-2 text-gray-600">
                           {comment.content}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="mt-1 text-xs text-gray-500">
                           {formatDate(comment.createdAt)}
                         </p>
                       </div>

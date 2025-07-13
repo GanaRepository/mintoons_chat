@@ -1,21 +1,17 @@
 // models/AIProvider.ts - AI provider configuration model
 import mongoose, { Schema, Document } from 'mongoose';
-import type { AIConfiguration } from '../types/ai';
+import type { AIProvider as AIProviderType, AIModel } from '../types/ai';
 
 export interface AIProviderDocument extends Document {
-  provider: 'openai' | 'anthropic' | 'google';
-  aiModel:
-    | 'gpt-4'
-    | 'gpt-4-turbo'
-    | 'claude-3-opus'
-    | 'claude-3-sonnet'
-    | 'gemini-pro';
-  apiKey?: string; // Make optional for delete operation
+  provider: AIProviderType;
+  modelName: AIModel;
+  apiKey?: string;
   maxTokens: number;
   temperature: number;
   isActive: boolean;
   costPerToken: number;
   priority: number;
+
   usage: {
     requestsToday: number;
     tokensUsed: number;
@@ -51,18 +47,18 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       index: true,
     },
 
-    aiModel: {
+    modelName: {
       type: String,
       enum: [
-        'gpt-4',
-        'gpt-4-turbo',
-        'claude-3-opus',
-        'claude-3-sonnet',
-        'gemini-pro',
+        'gpt-4o-mini', // OpenAI budget flagship
+        'gpt-4o-nano',
+        'claude-3-haiku', // Anthropic budget option
+        'gemini-1.5-flash', // Google budget option
+        'o1-mini', // OpenAI reasoning budget
+        'o3-mini', // OpenAI alternative budget
       ],
       required: true,
     },
-
     apiKey: {
       type: String,
       required: true,
@@ -171,7 +167,9 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
     toJSON: {
       virtuals: true,
       transform: function (doc, ret) {
-        delete ret.apiKey; // Never expose API key
+        if (ret.apiKey !== undefined) {
+          delete ret.apiKey; // Never expose API key
+        }
         return ret;
       },
     },
@@ -180,7 +178,7 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
 );
 
 // Indexes
-aiProviderSchema.index({ provider: 1, aiModel: 1 }, { unique: true });
+aiProviderSchema.index({ provider: 1, model: 1 }, { unique: true });
 aiProviderSchema.index({ isActive: 1, priority: -1 });
 
 // Virtual for availability status

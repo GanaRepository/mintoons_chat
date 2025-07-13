@@ -8,7 +8,6 @@ export type SubscriptionStatus =
   | 'trialing'
   | 'incomplete';
 
-// Add the missing PaymentStatus type
 export type PaymentStatus =
   | 'succeeded'
   | 'pending'
@@ -30,6 +29,7 @@ export interface SubscriptionTier {
   color: string;
 }
 
+// Main subscription interface that matches the model exactly
 export interface UserSubscription {
   _id: string;
   userId: string;
@@ -51,11 +51,28 @@ export interface UserSubscription {
   storiesUsed: number;
   storiesRemaining: number;
 
+  // Trial information (missing from original types)
+  trialStart?: Date;
+  trialEnd?: Date;
+
+  // Billing history reference (missing from original types)
+  lastPaymentDate?: Date;
+  nextPaymentDate?: Date;
+
+  // Proration and credits (missing from original types)
+  prorationCredit: number;
+
+  // Virtual fields from model
+  daysUntilRenewal: number;
+  usagePercentage: number;
+  canCreateStory: boolean;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
 
+// Simplified usage interface (derived from UserSubscription)
 export interface SubscriptionUsage {
   userId: string;
   tier: SubscriptionTierType;
@@ -63,7 +80,7 @@ export interface SubscriptionUsage {
   storyLimit: number;
   usagePercentage: number;
   canCreateStory: boolean;
-  daysUntilReset: number;
+  daysUntilReset: number; // maps to daysUntilRenewal
 }
 
 export interface BillingHistory {
@@ -74,7 +91,7 @@ export interface BillingHistory {
   currency: string;
   status: PaymentStatus;
   invoiceId: string;
-  tier: string;
+  tier: SubscriptionTierType; // Changed from string to proper type
   invoiceUrl?: string;
   description: string;
   paidAt?: Date;
@@ -124,4 +141,31 @@ export interface PricingCalculation {
   savings?: number;
   pricePerStory: number;
   features: string[];
+}
+
+// Additional interfaces that might be useful
+export interface SubscriptionCreateData {
+  userId: string;
+  tier: SubscriptionTierType;
+  stripeSubscriptionId?: string;
+  stripeCustomerId?: string;
+  stripePriceId?: string;
+  trialStart?: Date;
+  trialEnd?: Date;
+}
+
+export interface SubscriptionUpdateData {
+  tier?: SubscriptionTierType;
+  status?: SubscriptionStatus;
+  cancelAtPeriodEnd?: boolean;
+  storiesUsed?: number;
+}
+
+// Stats interface that matches the model's getStats aggregation
+export interface SubscriptionStats {
+  _id: SubscriptionTierType;
+  count: number;
+  active: number;
+  canceled: number;
+  averageUsage: number;
 }

@@ -28,7 +28,6 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
 import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 import { Badge } from '@components/ui/badge';
@@ -37,7 +36,6 @@ import { Select } from '@components/ui/select';
 import { Dropdown } from '@components/ui/dropdown';
 import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-
 import { formatDate, formatNumber } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -79,7 +77,9 @@ export default function UserManagementClient({
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState(filters.search);
 
-  const updateFilters = (newFilters: Partial<typeof filters>) => {
+  const updateFilters = (
+    newFilters: Partial<typeof filters> & { page?: string }
+  ) => {
     const params = new URLSearchParams(searchParams?.toString());
 
     Object.entries(newFilters).forEach(([key, value]) => {
@@ -112,7 +112,8 @@ export default function UserManagementClient({
         toast.success(`User ${action} successful`);
         router.refresh();
 
-        trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
+        trackEvent(TRACKING_EVENTS.PAGE_VIEW, {
+          // Changed from ADMIN_ACTION
           action: `user_${action}`,
           targetUserId: userId,
         });
@@ -159,9 +160,11 @@ export default function UserManagementClient({
     }
   };
 
-  const getUserStatusColor = (user: User) => {
+  const getUserStatusColor = (
+    user: User
+  ): 'success' | 'warning' | 'error' | 'default' => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const isActive = new Date(user.lastActiveAt || 0) >= weekAgo;
+    const isActive = new Date(user.lastActiveDate || 0) >= weekAgo;
 
     if (!user.isActive) return 'error';
     if (isActive) return 'success';
@@ -172,7 +175,7 @@ export default function UserManagementClient({
     if (!user.isActive) return 'Suspended';
 
     const daysSinceActive = Math.floor(
-      (Date.now() - new Date(user.lastActiveAt || 0).getTime()) /
+      (Date.now() - new Date(user.lastActiveDate || 0).getTime()) /
         (1000 * 60 * 60 * 24)
     );
 
@@ -184,26 +187,34 @@ export default function UserManagementClient({
   const userActions = (user: User) => [
     {
       label: 'View Profile',
-      icon: Eye,
+      value: 'view', // Added missing value
+      icon: <Eye className="h-4 w-4" />,
       onClick: () => router.push(`/admin/users/${user._id}`),
     },
     {
       label: 'Send Message',
-      icon: MessageSquare,
+      value: 'message', // Added missing value
+      icon: <MessageSquare className="h-4 w-4" />,
       onClick: () => router.push(`/admin/users/${user._id}/message`),
     },
     {
       label: user.isActive ? 'Suspend User' : 'Activate User',
-      icon: user.isActive ? Ban : UserCheck,
+      value: user.isActive ? 'suspend' : 'activate', // Added missing value
+      icon: user.isActive ? (
+        <Ban className="h-4 w-4" />
+      ) : (
+        <UserCheck className="h-4 w-4" />
+      ),
       onClick: () =>
         handleUserAction(user._id, user.isActive ? 'suspend' : 'activate'),
-      destructive: user.isActive,
+      // Removed destructive property
     },
     {
       label: 'Delete User',
-      icon: Trash2,
+      value: 'delete', // Added missing value
+      icon: <Trash2 className="h-4 w-4" />,
       onClick: () => handleUserAction(user._id, 'delete'),
-      destructive: true,
+      // Removed destructive property
     },
   ];
 
@@ -312,53 +323,56 @@ export default function UserManagementClient({
 
             {/* Status Filter */}
             <Select
+              options={[
+                { value: 'all', label: 'All Status' },
+                { value: 'active', label: 'Active' },
+                { value: 'inactive', label: 'Inactive' },
+                { value: 'suspended', label: 'Suspended' },
+              ]}
               value={filters.status}
-              onChange={e => updateFilters({ status: e.target.value })}
+              onChange={value => updateFilters({ status: value })}
               className="w-full lg:w-48"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-            </Select>
+            />
 
             {/* Tier Filter */}
             <Select
+              options={[
+                { value: 'all', label: 'All Tiers' },
+                { value: 'FREE', label: 'Free' },
+                { value: 'BASIC', label: 'Basic' },
+                { value: 'PREMIUM', label: 'Premium' },
+                { value: 'PRO', label: 'Pro' },
+              ]}
               value={filters.tier}
-              onChange={e => updateFilters({ tier: e.target.value })}
+              onChange={value => updateFilters({ tier: value })}
               className="w-full lg:w-48"
-            >
-              <option value="all">All Tiers</option>
-              <option value="FREE">Free</option>
-              <option value="BASIC">Basic</option>
-              <option value="PREMIUM">Premium</option>
-              <option value="PRO">Pro</option>
-            </Select>
+            />
 
             {/* Sort */}
             <Select
+              options={[
+                { value: 'created', label: 'Recently Created' },
+                { value: 'name', label: 'Name A-Z' },
+                { value: 'stories', label: 'Most Stories' },
+                { value: 'points', label: 'Highest Points' },
+                { value: 'active', label: 'Recently Active' },
+              ]}
               value={filters.sort}
-              onChange={e => updateFilters({ sort: e.target.value })}
+              onChange={value => updateFilters({ sort: value })}
               className="w-full lg:w-48"
-            >
-              <option value="created">Recently Created</option>
-              <option value="name">Name A-Z</option>
-              <option value="stories">Most Stories</option>
-              <option value="points">Highest Points</option>
-              <option value="active">Recently Active</option>
-            </Select>
+            />
 
             {/* View Mode */}
             <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                variant={viewMode === 'grid' ? 'primary' : 'outline'} // Changed from primary
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
+                variant={viewMode === 'list' ? 'primary' : 'outline'} // Changed from primary
                 size="sm"
                 onClick={() => setViewMode('list')}
               >
@@ -471,7 +485,9 @@ export default function UserManagementClient({
                       </h3>
                       <p className="text-sm text-gray-600">{user.email}</p>
                       <div className="mt-2 flex items-center justify-center gap-2">
-                        <Badge variant="outline" size="sm">
+                        <Badge variant="default" size="sm">
+                          {' '}
+                          {/* Changed from outline */}
                           Age {user.age}
                         </Badge>
                         <Badge variant="info" size="sm">
@@ -501,17 +517,16 @@ export default function UserManagementClient({
                       <div className="mb-1 flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
                         <span>
-                          Joined {formatDate(user.createdAt, 'relative')}
+                          Joined {formatDate(user.createdAt)}{' '}
+                          {/* Removed second parameter */}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Activity className="h-3 w-3" />
                         <span>
                           Active{' '}
-                          {formatDate(
-                            user.lastActiveAt || user.createdAt,
-                            'relative'
-                          )}
+                          {formatDate(user.lastActiveDate || user.createdAt)}{' '}
+                          {/* Removed second parameter */}
                         </span>
                       </div>
                     </div>
@@ -579,7 +594,9 @@ export default function UserManagementClient({
                           <Badge variant={getUserStatusColor(user)} size="sm">
                             {getUserStatusLabel(user)}
                           </Badge>
-                          <Badge variant="outline" size="sm">
+                          <Badge variant="default" size="sm">
+                            {' '}
+                            {/* Changed from outline */}
                             {user.subscriptionTier}
                           </Badge>
                         </div>
@@ -588,7 +605,8 @@ export default function UserManagementClient({
                           <span>Age {user.age}</span>
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {formatDate(user.createdAt, 'short')}
+                            {formatDate(user.createdAt)}{' '}
+                            {/* Removed second parameter */}
                           </span>
                         </div>
                       </div>
@@ -681,7 +699,7 @@ export default function UserManagementClient({
                         <Button
                           key={pageNum}
                           variant={
-                            pageNum === pagination.page ? 'default' : 'outline'
+                            pageNum === pagination.page ? 'primary' : 'outline' // Changed from primary
                           }
                           size="sm"
                           onClick={() =>

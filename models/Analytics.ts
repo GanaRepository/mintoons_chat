@@ -1,25 +1,14 @@
 // models/Analytics.ts - Analytics and metrics model
 import mongoose, { Schema, Document } from 'mongoose';
+import type { SubscriptionTierType } from '../types/subscription';
 
 export interface AnalyticsDocument extends Document {
   _id: mongoose.Types.ObjectId;
   date: Date;
   metrics: Record<string, number>;
   type: 'daily' | 'weekly' | 'monthly';
-  tierBreakdown: {
-    FREE: number;
-    BASIC: number;
-    PREMIUM: number;
-    PRO: number;
-  };
-  ageBreakdown: {
-    toddler: number;
-    preschool: number;
-    early_elementary: number;
-    late_elementary: number;
-    middle_school: number;
-    high_school: number;
-  };
+  tierBreakdown: Record<SubscriptionTierType, number>;
+  ageBreakdown: Record<string, number>;
 }
 
 // Static methods interface
@@ -156,8 +145,8 @@ analyticsSchema.statics.recordDailyMetrics =
 
       // Calculate tier breakdown with type safety
       const tierBreakdown = (subscriptions as any[]).reduce(
-        (acc: any, sub: any) => {
-          const tier = sub.tier || 'FREE';
+        (acc: Record<SubscriptionTierType, number>, sub: any) => {
+          const tier = (sub.tier || 'FREE') as SubscriptionTierType;
           acc[tier] = (acc[tier] || 0) + 1;
           return acc;
         },
@@ -167,7 +156,7 @@ analyticsSchema.statics.recordDailyMetrics =
       // Calculate age breakdown
       const users = await (User as any).find({ isActive: true }).lean().exec();
       const ageBreakdown = (users as any[]).reduce(
-        (acc: any, user: any) => {
+        (acc: Record<string, number>, user: any) => {
           let ageGroup = 'toddler';
 
           if (user.age >= 2 && user.age <= 4) ageGroup = 'toddler';
@@ -211,13 +200,13 @@ analyticsSchema.statics.recordDailyMetrics =
         (total: number, sub: any) => {
           // This would need to be imported properly in a real implementation
           // For now, using a simple calculation
-          const tierPrices: Record<string, number> = {
+          const tierPrices: Record<SubscriptionTierType, number> = {
             FREE: 0,
             BASIC: 9.99,
             PREMIUM: 19.99,
             PRO: 39.99,
           };
-          return total + (tierPrices[sub.tier] || 0);
+          return total + (tierPrices[sub.tier as SubscriptionTierType] || 0);
         },
         0
       );

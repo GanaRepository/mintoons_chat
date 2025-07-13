@@ -91,7 +91,7 @@ interface StoryModel extends mongoose.Model<StoryDocument> {
   searchStories(query: string, filters?: any): Promise<StoryDocument[]>;
 }
 
-const aiTurnSchema = new Schema(
+const aiTurnSchema = new Schema<AITurn>(
   {
     turnNumber: {
       type: Number,

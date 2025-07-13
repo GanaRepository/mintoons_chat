@@ -1,11 +1,16 @@
 // models/Subscription.ts - Subscription and billing model
 import mongoose, { Schema, Document } from 'mongoose';
+import {
+  SubscriptionTierType,
+  SubscriptionStatus,
+  PaymentStatus,
+} from '../types/subscription';
 
 export interface SubscriptionDocument extends Document {
   _id: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
-  tier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
-  status: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
+  tier: SubscriptionTierType;
+  status: SubscriptionStatus;
 
   // Stripe details
   stripeSubscriptionId?: string;

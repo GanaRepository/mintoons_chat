@@ -9,14 +9,23 @@ import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
 import Story from '@models/Story';
 import Comment from '@models/Comment';
+import { User as UserType } from '@/types/user';
+import { Comment as CommentType } from '@/types/comment';
 
 export const metadata: Metadata = {
   title: 'Mentor Management | Admin Dashboard - MINTOONS',
-  description: 'Create, manage, and assign mentors to students. Monitor mentor activity and performance on the MINTOONS platform.',
-  keywords: ['mentor management', 'teacher assignment', 'student mentoring', 'education admin'],
+  description:
+    'Create, manage, and assign mentors to students. Monitor mentor activity and performance on the MINTOONS platform.',
+  keywords: [
+    'mentor management',
+    'teacher assignment',
+    'student mentoring',
+    'education admin',
+  ],
   openGraph: {
     title: 'Mentor Management - MINTOONS Admin',
-    description: 'Comprehensive mentor management system for educational storytelling platform',
+    description:
+      'Comprehensive mentor management system for educational storytelling platform',
     type: 'website',
     siteName: 'MINTOONS',
   },
@@ -35,7 +44,7 @@ async function getMentorManagementData(searchParams: any) {
 
   // Build query based on filters
   let query: any = { role: 'mentor' };
-  
+
   if (searchParams.status === 'active') {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     query.lastActiveAt = { $gte: weekAgo };
@@ -51,59 +60,67 @@ async function getMentorManagementData(searchParams: any) {
     query.$or = [
       { firstName: { $regex: searchParams.search, $options: 'i' } },
       { lastName: { $regex: searchParams.search, $options: 'i' } },
-      { email: { $regex: searchParams.search, $options: 'i' } }
+      { email: { $regex: searchParams.search, $options: 'i' } },
     ];
   }
 
   // Sort options
   let sort: any = { createdAt: -1 };
   if (searchParams.sort === 'name') sort = { firstName: 1, lastName: 1 };
-  else if (searchParams.sort === 'students') sort = { 'assignedStudents.length': -1 };
+  else if (searchParams.sort === 'students')
+    sort = { 'assignedStudents.length': -1 };
   else if (searchParams.sort === 'active') sort = { lastActiveAt: -1 };
 
-  const [mentors, totalMentors, unassignedStudents, recentComments] = await Promise.all([
-    User.find(query)
-      .populate('assignedStudents', 'firstName lastName email age storyCount level')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-      .select('-password')
-      .lean(),
-    
-    User.countDocuments(query),
-    
-    // Get students who don't have mentors assigned
-    User.find({ 
-      role: 'child', 
-      isActive: true,
-      _id: { $nin: await User.distinct('assignedStudents', { role: 'mentor' }) }
-    })
-      .select('firstName lastName email age subscriptionTier storyCount')
-      .sort({ createdAt: -1 })
-      .limit(50)
-      .lean(),
-    
-    // Get recent mentoring activity
-    Comment.find({ authorRole: 'mentor' })
-      .populate('authorId', 'firstName lastName')
-      .populate('storyId', 'title')
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean()
-  ]);
+  const [mentors, totalMentors, unassignedStudents, recentComments] =
+    await Promise.all([
+      User.find(query)
+        .populate(
+          'assignedStudents',
+          'firstName lastName email age storyCount level'
+        )
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .select('-password')
+        .lean<UserType[]>(),
+
+      User.countDocuments(query),
+
+      // Get students who don't have mentors assigned
+      User.find({
+        role: 'child',
+        isActive: true,
+        _id: {
+          $nin: await User.distinct('assignedStudents', { role: 'mentor' }),
+        },
+      })
+        .select('firstName lastName email age subscriptionTier storyCount')
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean<UserType[]>(),
+
+      // Get recent mentoring activity
+      Comment.find({ authorRole: 'mentor' })
+        .populate('authorId', 'firstName lastName')
+        .populate('storyId', 'title')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean<CommentType[]>(),
+    ]);
 
   // Calculate mentor statistics
   const activeMentors = mentors.filter(m => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date(m.lastActiveAt || 0) >= weekAgo;
+    return new Date(m.lastActiveDate || 0) >= weekAgo;
   }).length;
 
-  const totalStudentsAssigned = mentors.reduce((sum, mentor) => 
-    sum + (mentor.assignedStudents?.length || 0), 0);
+  const totalStudentsAssigned = mentors.reduce(
+    (sum, mentor) => sum + (mentor.assignedStudents?.length || 0),
+    0
+  );
 
-  const avgStudentsPerMentor = mentors.length > 0 
-    ? Math.round(totalStudentsAssigned / mentors.length) 
-    : 0;
+  const avgStudentsPerMentor =
+    mentors.length > 0 ? Math.round(totalStudentsAssigned / mentors.length) : 0;
 
   return {
     mentors,
@@ -139,7 +156,9 @@ interface PageProps {
   };
 }
 
-export default async function MentorManagementPage({ searchParams }: PageProps) {
+export default async function MentorManagementPage({
+  searchParams,
+}: PageProps) {
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
@@ -153,14 +172,14 @@ export default async function MentorManagementPage({ searchParams }: PageProps) 
   const mentorData = await getMentorManagementData(searchParams);
 
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <div className="flex justify-center items-center min-h-[400px]">
+        <div className="flex min-h-[400px] items-center justify-center">
           <LoadingAnimation size="lg" />
         </div>
       }
     >
-      <MentorManagementClient 
+      <MentorManagementClient
         mentors={mentorData.mentors}
         unassignedStudents={mentorData.unassignedStudents}
         recentComments={mentorData.recentComments}

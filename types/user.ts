@@ -1,12 +1,14 @@
-// types/user.ts - Updated User interface to match the model
+// types/user.ts - Updated User interface to match the model exactly
 export type UserRole = 'child' | 'mentor' | 'admin';
 
 export interface User {
   _id: string;
   firstName: string;
   lastName: string;
+  fullName: string; // Virtual field from model (firstName + lastName)
   email: string;
   age: number;
+  ageGroup: string; // Virtual field from model
   role: UserRole;
   subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
   isActive: boolean;
@@ -18,25 +20,43 @@ export interface User {
   // Subscription details
   stripeCustomerId?: string;
   subscriptionId?: string;
-  subscriptionStatus?: string;
+  subscriptionStatus?:
+    | 'active'
+    | 'canceled'
+    | 'past_due'
+    | 'trialing'
+    | 'incomplete';
   subscriptionExpires?: Date;
-  subscriptionCurrentPeriodEnd?: Date;
+  subscriptionCurrentPeriodEnd?: Date; // Added missing field from model
 
   // Story tracking
   storyCount: number;
   lastStoryCreated?: Date;
 
+  // Virtual subscription fields
+  canCreateStory: boolean; // Virtual from model
+  remainingStories: number; // Virtual from model
+
   // Gamification
   totalPoints: number;
   level: number;
   streak: number;
-  lastActiveDate?: Date; // This matches the model field name
-  achievements?: string[];
-  streakData?: StreakData;
+  lastActiveDate?: Date;
+  // Removed: points (duplicate of totalPoints)
+  // Removed: achievements (not in model schema)
+  // Removed: streakData (not in model schema)
 
   // Mentor-specific fields
   assignedStudents?: string[] | User[]; // Can be populated or just IDs
   mentoringSince?: Date;
+
+  // Email preferences (matches model structure)
+  emailPreferences: UserPreferences;
+
+  // Security fields from model
+  lastLoginAt?: Date;
+  loginAttempts: number;
+  lockUntil?: Date;
 
   // Timestamps
   createdAt: Date;
@@ -61,16 +81,16 @@ export interface UserStats {
   streak: number;
   level: number;
   totalPoints: number;
-  achievements: string[];
+  achievements: string[]; // Keep here for stats display
 }
 
+// Fixed UserPreferences to match model emailPreferences structure
 export interface UserPreferences {
-  emailNotifications: boolean;
-  mentorFeedback: boolean;
-  achievementNotifications: boolean;
-  weeklyReports: boolean;
-  theme: 'light' | 'dark' | 'auto';
-  language: string;
+  notifications: boolean; // matches model: emailPreferences.notifications
+  mentorFeedback: boolean; // matches model: emailPreferences.mentorFeedback
+  achievements: boolean; // matches model: emailPreferences.achievements
+  weeklyReports: boolean; // matches model: emailPreferences.weeklyReports
+  marketing: boolean; // matches model: emailPreferences.marketing
 }
 
 export interface UserActivity {
@@ -86,16 +106,16 @@ export interface MentorProfile extends User {
   role: 'mentor';
   assignedStudents: string[];
   mentoringSince: Date;
-  specializations: string[];
-  qualifications: string;
-  isApproved: boolean;
+  specializations: string[]; // Not in model - consider adding or removing
+  qualifications: string; // Not in model - consider adding or removing
+  isApproved: boolean; // Not in model - consider adding or removing
 }
 
 export interface AdminProfile extends User {
   role: 'admin';
-  permissions: string[];
+  permissions: string[]; // Not in model - consider adding or removing
   lastLoginAt?: Date;
-  adminSince: Date;
+  adminSince: Date; // Not in model - consider adding or removing
 }
 
 export interface UserSearchFilters {
@@ -105,7 +125,12 @@ export interface UserSearchFilters {
   ageMin?: number;
   ageMax?: number;
   search?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'firstName' | 'storyCount';
+  sortBy?:
+    | 'createdAt'
+    | 'updatedAt'
+    | 'firstName'
+    | 'storyCount'
+    | 'totalPoints';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
@@ -119,7 +144,7 @@ export interface UserCreationData {
   age: number;
   role: UserRole;
   parentEmail?: string;
-  subscriptionTier?: string;
+  subscriptionTier?: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO'; // Added enum constraint
 }
 
 export interface UserUpdateData {
@@ -129,9 +154,10 @@ export interface UserUpdateData {
   age?: number;
   bio?: string;
   avatar?: string;
-  preferences?: Partial<UserPreferences>;
+  emailPreferences?: Partial<UserPreferences>; // Changed from 'preferences' to match model
 }
 
+// StreakData - consider if this should be in the User model or separate
 export interface StreakData {
   current: number;
   longest: number;

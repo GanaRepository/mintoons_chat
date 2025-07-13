@@ -50,6 +50,7 @@ export const TRACKING_EVENTS = {
   USER_REGISTER: 'user_register',
   USER_LOGIN: 'user_login',
   USER_LOGOUT: 'user_logout',
+  ADMIN_ACTION: 'admin_action',
 
   // Story events
   STORY_CREATE: 'story_create',
@@ -652,7 +653,7 @@ export async function trackAnalyticsEvent(
 
 // Simple trackEvent wrapper function for compatibility
 export async function trackEvent(
-  eventType: string, 
+  eventType: string,
   data: Record<string, any> = {}
 ): Promise<void> {
   try {

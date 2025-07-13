@@ -1,8 +1,9 @@
 // models/Achievement.ts - Achievement and gamification model
 import mongoose, { Schema, Document } from 'mongoose';
 
+// Document interfaces that extend your base types
 export interface AchievementDocument extends Document {
-  id: string;
+  _id: string; // Changed from id to _id
   name: string;
   description: string;
   icon: string;
@@ -14,7 +15,7 @@ export interface AchievementDocument extends Document {
     | 'grammar'
     | 'special';
   rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
-  criteria: any;
+  criteria: AchievementCriteria; // Use proper type instead of any
   points: number;
   color: string;
   badgeImage?: string;
@@ -22,24 +23,41 @@ export interface AchievementDocument extends Document {
   isActive: boolean;
   sortOrder: number;
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date; // Made optional to match convention
 }
 
 export interface UserAchievementDocument extends Document {
-  userId: mongoose.Types.ObjectId;
+  _id: string;
+  userId: string; // Changed from ObjectId to string to match types
   achievementId: string;
-  achievement: mongoose.Types.ObjectId;
+  achievement: mongoose.Types.ObjectId; // Reference to Achievement document
   progress: number;
   isCompleted: boolean;
   completedAt?: Date;
-  storyId?: mongoose.Types.ObjectId;
+  storyId?: string; // Changed from ObjectId to string
   triggerEvent: string;
   isNotified: boolean;
   notifiedAt?: Date;
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date;
   updateProgress(currentValue: number): Promise<void>;
   complete(triggerEvent: string, storyId?: string): Promise<void>;
+}
+
+// Import the criteria interface from your types
+interface AchievementCriteria {
+  storiesCompleted?: number;
+  grammarScore?: number;
+  creativityScore?: number;
+  overallScore?: number;
+  streakDays?: number;
+  totalWords?: number;
+  specificGenre?: string;
+  timeBasedChallenge?: {
+    days: number;
+    requirement: string;
+  };
+  customCriteria?: Record<string, any>;
 }
 
 const achievementCriteriaSchema = new Schema(
@@ -62,13 +80,7 @@ const achievementCriteriaSchema = new Schema(
 
 const achievementSchema = new Schema<AchievementDocument>(
   {
-    id: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
-
+    // Removed 'id' field since MongoDB uses '_id' by default
     name: {
       type: String,
       required: true,
@@ -159,16 +171,27 @@ const achievementSchema = new Schema<AchievementDocument>(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        ret._id = ret._id.toString(); // Ensure _id is string
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        ret._id = ret._id.toString(); // Ensure _id is string
+        return ret;
+      },
+    },
   }
 );
 
 const userAchievementSchema = new Schema<UserAchievementDocument>(
   {
     userId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String, // Changed from ObjectId to String to match types
       required: true,
       index: true,
     },
@@ -203,8 +226,7 @@ const userAchievementSchema = new Schema<UserAchievementDocument>(
     },
 
     storyId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Story',
+      type: String, // Changed from ObjectId to String
     },
 
     triggerEvent: {
@@ -224,8 +246,24 @@ const userAchievementSchema = new Schema<UserAchievementDocument>(
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
+    toJSON: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        ret._id = ret._id.toString(); // Ensure _id is string
+        ret.userId = ret.userId.toString(); // Ensure userId is string
+        if (ret.storyId) ret.storyId = ret.storyId.toString(); // Ensure storyId is string
+        return ret;
+      },
+    },
+    toObject: {
+      virtuals: true,
+      transform: function (doc, ret) {
+        ret._id = ret._id.toString(); // Ensure _id is string
+        ret.userId = ret.userId.toString(); // Ensure userId is string
+        if (ret.storyId) ret.storyId = ret.storyId.toString(); // Ensure storyId is string
+        return ret;
+      },
+    },
   }
 );
 
@@ -258,7 +296,7 @@ userAchievementSchema.methods.updateProgress = async function (
   currentValue: number
 ): Promise<void> {
   const Achievement = mongoose.model('Achievement');
-  const achievement = await Achievement.findOne({ id: this.achievementId });
+  const achievement = await Achievement.findById(this.achievement); // Use achievement ObjectId reference
 
   if (!achievement) return;
 
@@ -307,7 +345,7 @@ userAchievementSchema.methods.complete = async function (
   this.progress = 100;
 
   if (storyId) {
-    this.storyId = new mongoose.Types.ObjectId(storyId);
+    this.storyId = storyId; // Now it's a string, not ObjectId
   }
 
   await this.save();
@@ -318,7 +356,7 @@ userAchievementSchema.methods.complete = async function (
 
   const [user, achievement] = await Promise.all([
     User.findById(this.userId),
-    Achievement.findOne({ id: this.achievementId }),
+    Achievement.findById(this.achievement), // Use ObjectId reference
   ]);
 
   if (user && achievement) {
@@ -332,7 +370,7 @@ userAchievementSchema.methods.complete = async function (
       title: 'Achievement Unlocked!',
       message: achievement.unlockedMessage,
       data: {
-        achievementId: this.achievementId,
+        achievementId: achievement._id.toString(), // Convert to string
         achievementName: achievement.name,
         points: achievement.points,
         icon: achievement.icon,
@@ -360,7 +398,7 @@ userAchievementSchema.statics.checkAndAward = async function (
     // Check if user already has this achievement
     const existingUserAchievement = await this.findOne({
       userId,
-      achievementId: achievement.id,
+      achievementId: achievement._id.toString(), // Use _id as string
     });
 
     if (existingUserAchievement?.isCompleted) continue;
@@ -409,7 +447,7 @@ userAchievementSchema.statics.checkAndAward = async function (
         existingUserAchievement ||
         new this({
           userId,
-          achievementId: achievement.id,
+          achievementId: achievement._id.toString(), // Use _id as string
           achievement: achievement._id,
         });
 
@@ -421,7 +459,7 @@ userAchievementSchema.statics.checkAndAward = async function (
       // Create new progress entry
       const userAchievement = new this({
         userId,
-        achievementId: achievement.id,
+        achievementId: achievement._id.toString(), // Use _id as string
         achievement: achievement._id,
       });
 
@@ -430,16 +468,15 @@ userAchievementSchema.statics.checkAndAward = async function (
   }
 };
 
-// Create the models without complex typing
-const AchievementModel =
+// Create the models
+export const Achievement =
   mongoose.models.Achievement ||
-  mongoose.model('Achievement', achievementSchema);
-
-const UserAchievementModel =
+  mongoose.model<AchievementDocument>('Achievement', achievementSchema);
+export const UserAchievement =
   mongoose.models.UserAchievement ||
-  mongoose.model('UserAchievement', userAchievementSchema);
+  mongoose.model<UserAchievementDocument>(
+    'UserAchievement',
+    userAchievementSchema
+  );
 
-// Export with type assertions to bypass union issues
-export const Achievement = AchievementModel as any;
-export const UserAchievement = UserAchievementModel as any;
 export default Achievement;

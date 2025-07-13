@@ -20,6 +20,7 @@ export interface ContactMessageDocument extends Document {
   internalNotes: string[];
   createdAt: Date;
   updatedAt: Date;
+  autoAssignPriority(): void;
 }
 
 const contactMessageSchema = new Schema<ContactMessageDocument>(
@@ -144,16 +145,23 @@ contactMessageSchema.index({ email: 1 });
 contactMessageSchema.index({ assignedTo: 1, status: 1 });
 
 // Virtual for ticket ID (short format)
-contactMessageSchema.virtual('ticketId').get(function() {
+contactMessageSchema.virtual('ticketId').get(function () {
   return this._id.toString().slice(-8).toUpperCase();
 });
 
 // Method to auto-assign priority based on keywords
-contactMessageSchema.methods.autoAssignPriority = function() {
-  const urgentKeywords = ['urgent', 'emergency', 'critical', 'broken', 'error', 'bug'];
+contactMessageSchema.methods.autoAssignPriority = function () {
+  const urgentKeywords = [
+    'urgent',
+    'emergency',
+    'critical',
+    'broken',
+    'error',
+    'bug',
+  ];
   const messageText = `${this.subject} ${this.message}`.toLowerCase();
-  
-  const hasUrgentKeywords = urgentKeywords.some(keyword => 
+
+  const hasUrgentKeywords = urgentKeywords.some(keyword =>
     messageText.includes(keyword)
   );
 
@@ -163,14 +171,18 @@ contactMessageSchema.methods.autoAssignPriority = function() {
 };
 
 // Pre-save middleware
-contactMessageSchema.pre('save', function(next) {
+contactMessageSchema.pre('save', function (this: ContactMessageDocument, next) {
   if (this.isNew) {
     this.autoAssignPriority();
   }
   next();
 });
 
-const ContactMessage = mongoose.models.ContactMessage || 
-  mongoose.model<ContactMessageDocument>('ContactMessage', contactMessageSchema);
+const ContactMessage =
+  mongoose.models.ContactMessage ||
+  mongoose.model<ContactMessageDocument>(
+    'ContactMessage',
+    contactMessageSchema
+  );
 
 export default ContactMessage;

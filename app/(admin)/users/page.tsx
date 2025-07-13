@@ -7,12 +7,13 @@ import { redirect } from 'next/navigation';
 import UserManagementClient from './UserManagementClient';
 import { LoadingAnimation } from '@components/animations/LoadingAnimation';
 import { connectDB } from '@lib/database/connection';
-import User from '@models/User';
+import  { User } from '../../../types/user'; 
 import Story from '@models/Story';
 
 export const metadata: Metadata = {
   title: 'User Management',
-  description: 'Manage platform users, view analytics, and perform administrative actions.',
+  description:
+    'Manage platform users, view analytics, and perform administrative actions.',
 };
 
 async function getUserManagementData(searchParams: any) {
@@ -24,13 +25,13 @@ async function getUserManagementData(searchParams: any) {
 
   // Build query based on filters
   let query: any = { role: 'child' };
-  
+
   if (searchParams.status === 'active') {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    query.lastActiveAt = { $gte: weekAgo };
+    query.lastActiveDate = { $gte: weekAgo };
   } else if (searchParams.status === 'inactive') {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    query.lastActiveAt = { $lt: weekAgo };
+    query.lastActiveDate = { $lt: weekAgo };
   }
 
   if (searchParams.tier && searchParams.tier !== 'all') {
@@ -39,17 +40,18 @@ async function getUserManagementData(searchParams: any) {
 
   if (searchParams.search) {
     query.$or = [
-      { name: { $regex: searchParams.search, $options: 'i' } },
-      { email: { $regex: searchParams.search, $options: 'i' } }
+      { firstName: { $regex: searchParams.search, $options: 'i' } },
+      { lastName: { $regex: searchParams.search, $options: 'i' } },
+      { email: { $regex: searchParams.search, $options: 'i' } },
     ];
   }
 
   // Sort options
   let sort: any = { createdAt: -1 };
-  if (searchParams.sort === 'name') sort = { name: 1 };
+  if (searchParams.sort === 'name') sort = { firstName: 1, lastName: 1 };
   else if (searchParams.sort === 'stories') sort = { storyCount: -1 };
-  else if (searchParams.sort === 'points') sort = { points: -1 };
-  else if (searchParams.sort === 'active') sort = { lastActiveAt: -1 };
+  else if (searchParams.sort === 'points') sort = { totalPoints: -1 };
+  else if (searchParams.sort === 'active') sort = { lastActiveDate: -1 };
 
   const [users, totalUsers, totalStories] = await Promise.all([
     User.find(query)
@@ -58,32 +60,35 @@ async function getUserManagementData(searchParams: any) {
       .limit(limit)
       .select('-password')
       .lean(),
-    
+
     User.countDocuments(query),
-    
-    Story.aggregate([
-      { $group: { _id: '$authorId', count: { $sum: 1 } } }
-    ])
+
+    Story.aggregate([{ $group: { _id: '$authorId', count: { $sum: 1 } } }]),
   ]);
 
-  // Add story counts to users
-  const storyCountMap = totalStories.reduce((acc, item) => {
-    acc[item._id.toString()] = item.count;
-    return acc;
-  }, {} as Record<string, number>);
+  // Add story counts and computed fields to users
+  const storyCountMap = totalStories.reduce(
+    (acc, item) => {
+      acc[item._id.toString()] = item.count;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const usersWithStats = users.map(user => ({
     ...user,
-    storyCount: storyCountMap[user._id.toString()] || 0,
+    storyCount: storyCountMap[user._id as string] || 0,
+    name: `${user.firstName} ${user.lastName}`,
+    points: user.totalPoints,
   }));
 
   // Calculate summary statistics
-  const activeUsers = users.filter(u => {
+  const activeUsers = usersWithStats.filter(u => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return new Date(u.lastActiveAt || 0) >= weekAgo;
+    return new Date((u as User).lastActiveDate || 0) >= weekAgo;
   }).length;
 
-  const newUsersThisMonth = users.filter(u => {
+  const newUsersThisMonth = usersWithStats.filter(u => {
     const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     return new Date(u.createdAt) >= monthAgo;
   }).length;
@@ -101,7 +106,8 @@ async function getUserManagementData(searchParams: any) {
       active: activeUsers,
       newThisMonth: newUsersThisMonth,
       averageStories: Math.round(
-        usersWithStats.reduce((sum, u) => sum + u.storyCount, 0) / Math.max(usersWithStats.length, 1)
+        usersWithStats.reduce((sum, u) => sum + u.storyCount, 0) /
+          Math.max(usersWithStats.length, 1)
       ),
     },
     filters: {
@@ -133,15 +139,15 @@ export default async function UserManagementPage({ searchParams }: PageProps) {
   const userData = await getUserManagementData(searchParams);
 
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <div className="flex justify-center items-center min-h-[400px]">
+        <div className="flex min-h-[400px] items-center justify-center">
           <LoadingAnimation size="lg" />
         </div>
       }
     >
-      <UserManagementClient 
-        users={userData.users}
+      <UserManagementClient
+        users={userData.users as User[]}
         pagination={userData.pagination}
         statistics={userData.statistics}
         filters={userData.filters}

@@ -3,37 +3,29 @@ import mongoose, { Schema, Document } from 'mongoose';
 import type { Comment as CommentType } from '../types/comment';
 
 export interface CommentDocument extends Document {
+  _id: mongoose.Types.ObjectId;
   storyId: mongoose.Types.ObjectId;
   authorId: mongoose.Types.ObjectId;
   authorName: string;
   authorRole: 'mentor' | 'admin';
   content: string;
-  type:
-    | 'grammar'
-    | 'creativity'
-    | 'suggestion'
-    | 'praise'
-    | 'improvement'
-    | 'question';
+  type: CommentType;
   highlightedText?: string;
   highlightPosition?: {
     start: number;
     end: number;
   };
+  parentId?: mongoose.Types.ObjectId;
   parentCommentId?: mongoose.Types.ObjectId;
   replies: mongoose.Types.ObjectId[];
   status: 'active' | 'resolved' | 'archived';
   resolvedBy?: mongoose.Types.ObjectId;
   resolvedAt?: Date;
+  likes?: mongoose.Types.ObjectId[];
   isHelpful: boolean;
   helpfulCount: number;
-  helpfulBy: mongoose.Types.ObjectId[];
   isPrivate: boolean;
   isHighPriority: boolean;
-  isFlagged: boolean;
-  flaggedBy?: mongoose.Types.ObjectId;
-  flaggedReason?: string;
-  flaggedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   addReply(replyData: any): Promise<CommentDocument>;
@@ -150,7 +142,7 @@ const commentSchema = new Schema<CommentDocument>(
       min: 0,
     },
 
-    helpfulBy: [
+    likes: [
       {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -166,26 +158,6 @@ const commentSchema = new Schema<CommentDocument>(
     isHighPriority: {
       type: Boolean,
       default: false,
-    },
-
-    // Moderation
-    isFlagged: {
-      type: Boolean,
-      default: false,
-    },
-
-    flaggedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    },
-
-    flaggedReason: {
-      type: String,
-      trim: true,
-    },
-
-    flaggedAt: {
-      type: Date,
     },
   },
   {
@@ -205,14 +177,6 @@ commentSchema.index({ isHighPriority: 1, createdAt: -1 });
 // Virtual for reply count
 commentSchema.virtual('replyCount').get(function (this: CommentDocument) {
   return this.replies.length;
-});
-
-// Virtual for age-appropriate content check
-commentSchema.virtual('isAgeAppropriate').get(function (this: CommentDocument) {
-  // Simple check for inappropriate content
-  const inappropriateWords = ['stupid', 'dumb', 'bad', 'terrible', 'awful'];
-  const content = this.content.toLowerCase();
-  return !inappropriateWords.some(word => content.includes(word));
 });
 
 // Pre-save middleware for content filtering
@@ -312,8 +276,10 @@ commentSchema.methods.markAsHelpful = async function (
 ): Promise<void> {
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
-  if (!this.helpfulBy.includes(userObjectId)) {
-    this.helpfulBy.push(userObjectId);
+  if (!this.likes) this.likes = [];
+
+  if (!this.likes.includes(userObjectId)) {
+    this.likes.push(userObjectId);
     this.helpfulCount += 1;
     this.isHelpful = true;
     await this.save();
