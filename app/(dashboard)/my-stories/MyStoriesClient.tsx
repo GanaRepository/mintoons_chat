@@ -33,7 +33,7 @@ import { StoryCard } from '@components/stories/StoryCard';
 import { StoryFilters } from '@components/stories/StoryFilters';
 import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-
+import type { StoryAssessment } from '../../../types/assessment';
 import { formatDate, formatNumber } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -129,7 +129,7 @@ export default function MyStoriesClient({
             if (response.ok) {
               toast.success('Story deleted successfully');
               // Remove from local state
-              setFilteredStories(prev => prev.filter(s => s.id !== storyId));
+              setFilteredStories(prev => prev.filter(s => s._id !== storyId));
 
               trackEvent(TRACKING_EVENTS.STORY_DELETE, {
                 userId: user._id,
@@ -201,7 +201,7 @@ export default function MyStoriesClient({
                 `${selectedStories.length} stories deleted successfully`
               );
               setFilteredStories(prev =>
-                prev.filter(s => !selectedStories.includes(s.id))
+                prev.filter(s => !selectedStories.includes(s._id))
               );
               setSelectedStories([]);
             } else {
@@ -279,10 +279,10 @@ export default function MyStoriesClient({
             </h2>
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {sampleStories.map((story, index) => (
-                <SlideIn key={story.id} direction="up" delay={0.1 * index}>
+                <SlideIn key={story._id} direction="up" delay={0.1 * index}>
                   <Card className="p-6 transition-shadow duration-300 hover:shadow-lg">
                     <div className="mb-4 flex items-start justify-between">
-                      <Badge variant="outline" size="sm">
+                      <Badge variant="default" size="sm">
                         {story.genre}
                       </Badge>
                       <div className="flex items-center gap-1 text-yellow-500">
@@ -315,7 +315,7 @@ export default function MyStoriesClient({
                       className="w-full"
                       onClick={() => {
                         // Open sample story in modal or new page
-                        window.open(`/sample-story/${story.id}`, '_blank');
+                        window.open(`/sample-story/${story._id}`, '_blank');
                       }}
                     >
                       <Eye className="mr-2 h-4 w-4" />
@@ -400,38 +400,40 @@ export default function MyStoriesClient({
             {/* Status Filter */}
             <Select
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={setStatusFilter}
               className="w-full lg:w-48"
-            >
-              <option value="all">All Stories</option>
-              <option value="draft">Drafts</option>
-              <option value="published">Published</option>
-              <option value="reviewing">Under Review</option>
-            </Select>
+              options={[
+                { value: 'all', label: 'All Stories' },
+                { value: 'draft', label: 'Drafts' },
+                { value: 'published', label: 'Published' },
+                { value: 'reviewing', label: 'Under Review' },
+              ]}
+            />
 
             {/* Sort */}
             <Select
               value={sortBy}
-              onChange={e => setSortBy(e.target.value as SortBy)}
+              onChange={value => setSortBy(value as SortBy)}
               className="w-full lg:w-48"
-            >
-              <option value="recent">Most Recent</option>
-              <option value="title">Title A-Z</option>
-              <option value="status">Status</option>
-              <option value="rating">Highest Rated</option>
-            </Select>
+              options={[
+                { value: 'recent', label: 'Most Recent' },
+                { value: 'title', label: 'Title A-Z' },
+                { value: 'status', label: 'Status' },
+                { value: 'rating', label: 'Highest Rated' },
+              ]}
+            />
 
             {/* View Mode */}
             <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                variant={viewMode === 'grid' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
+                variant={viewMode === 'list' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('list')}
               >
@@ -454,6 +456,8 @@ export default function MyStoriesClient({
           {showFilters && (
             <div className="mt-6 border-t border-gray-200 pt-6">
               <StoryFilters
+                totalStories={stories.length}
+                filteredCount={filteredStories.length}
                 onFiltersChange={filters => {
                   // Apply advanced filters
                   console.log('Advanced filters:', filters);
@@ -540,20 +544,20 @@ export default function MyStoriesClient({
           }`}
         >
           {filteredStories.map((story, index) => (
-            <SlideIn key={story.id} direction="up" delay={0.1 * index}>
+            <SlideIn key={story._id} direction="up" delay={0.1 * index}>
               {viewMode === 'grid' ? (
                 <div className="group relative">
                   {/* Selection Checkbox */}
                   <div className="absolute left-4 top-4 z-10">
                     <input
                       type="checkbox"
-                      checked={selectedStories.includes(story.id)}
+                      checked={selectedStories.includes(story._id)}
                       onChange={e => {
                         if (e.target.checked) {
-                          setSelectedStories(prev => [...prev, story.id]);
+                          setSelectedStories(prev => [...prev, story._id]);
                         } else {
                           setSelectedStories(prev =>
-                            prev.filter(id => id !== story.id)
+                            prev.filter(id => id !== story._id)
                           );
                         }
                       }}
@@ -577,13 +581,13 @@ export default function MyStoriesClient({
                     <div className="pt-1">
                       <input
                         type="checkbox"
-                        checked={selectedStories.includes(story.id)}
+                        checked={selectedStories.includes(story._id)}
                         onChange={e => {
                           if (e.target.checked) {
-                            setSelectedStories(prev => [...prev, story.id]);
+                            setSelectedStories(prev => [...prev, story._id]);
                           } else {
                             setSelectedStories(prev =>
-                              prev.filter(id => id !== story.id)
+                              prev.filter(id => id !== story._id)
                             );
                           }
                         }}
@@ -596,7 +600,7 @@ export default function MyStoriesClient({
                       <div className="mb-3 flex items-start justify-between">
                         <div className="flex items-center gap-3">
                           <h3 className="cursor-pointer text-xl font-bold text-gray-900 hover:text-purple-600">
-                            <Link href={`/dashboard/story/${story.id}`}>
+                            <Link href={`/dashboard/story/${story._id}`}>
                               {story.title}
                             </Link>
                           </h3>
@@ -615,14 +619,14 @@ export default function MyStoriesClient({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          {story.averageRating && (
-                            <div className="flex items-center gap-1 text-yellow-500">
-                              <Star className="h-4 w-4 fill-current" />
-                              <span className="text-sm font-medium">
-                                {story.averageRating}
-                              </span>
-                            </div>
-                          )}
+                        {story.assessment?.overallScore !== undefined && (
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          <Star className="h-4 w-4 fill-current" />
+                          <span className="text-sm font-medium">
+                            {story.assessment.overallScore}
+                          </span>
+                        </div>
+                      )}
                         </div>
                       </div>
 
@@ -649,7 +653,7 @@ export default function MyStoriesClient({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleStoryAction(story.id, 'view')}
+                            onClick={() => handleStoryAction(story._id, 'view')}
                           >
                             <Eye className="mr-1 h-4 w-4" />
                             View
@@ -660,7 +664,7 @@ export default function MyStoriesClient({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleStoryAction(story.id, 'edit')
+                                handleStoryAction(story._id, 'edit')
                               }
                             >
                               <Edit className="mr-1 h-4 w-4" />
@@ -671,7 +675,9 @@ export default function MyStoriesClient({
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleStoryAction(story.id, 'share')}
+                            onClick={() =>
+                              handleStoryAction(story._id, 'share')
+                            }
                           >
                             <Share2 className="mr-1 h-4 w-4" />
                             Share

@@ -535,29 +535,29 @@ export default function DashboardClient({
   ];
 
   const recentAchievements = [
-  {
-    id: 'first_story',
-    name: 'First Story',
-    title: 'First Story',
-    description: 'Completed your very first story!',
-    icon: '🎉',
-    unlockedAt: new Date(Date.now() - 86400000),
-    type: 'milestone',
-    rarity: 'common',
-    points: 10,
-  },
-  {
-    id: 'creative_writer',
-    name: 'Creative Writer',
-    title: 'Creative Writer',
-    description: 'Used 5 different genres in your stories',
-    icon: '🎨',
-    unlockedAt: new Date(Date.now() - 172800000),
-    type: 'milestone',
-    rarity: 'rare',
-    points: 20,
-  },
-];
+    {
+      id: 'first_story',
+      name: 'First Story',
+      title: 'First Story',
+      description: 'Completed your very first story!',
+      icon: '🎉',
+      unlockedAt: new Date(Date.now() - 86400000),
+      type: 'milestone',
+      rarity: 'common',
+      points: 10,
+    },
+    {
+      id: 'creative_writer',
+      name: 'Creative Writer',
+      title: 'Creative Writer',
+      description: 'Used 5 different genres in your stories',
+      icon: '🎨',
+      unlockedAt: new Date(Date.now() - 172800000),
+      type: 'milestone',
+      rarity: 'rare',
+      points: 20,
+    },
+  ];
 
   return (
     <div className="space-y-8">
@@ -571,7 +571,8 @@ export default function DashboardClient({
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">👋</span>
                   <h1 className="text-3xl font-bold lg:text-4xl">
-                    {greeting}, {user.fullName || `${user.firstName} ${user.lastName}`}!
+                    {greeting},{' '}
+                    {user.fullName || `${user.firstName} ${user.lastName}`}!
                   </h1>
                 </div>
                 <p className="text-xl text-purple-100">

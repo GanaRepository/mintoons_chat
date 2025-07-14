@@ -39,7 +39,7 @@ export default async function DashboardLayout({
   }
 
   // Get fresh user data
-  const userData = await getUserData(session.user.id);
+  const userData = await getUserData(session.user._id);
   
   if (!userData) {
     redirect('/login?error=SessionExpired');

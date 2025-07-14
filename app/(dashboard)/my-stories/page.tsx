@@ -140,7 +140,7 @@ export default async function MyStoriesPage() {
     redirect('/login?callbackUrl=/dashboard/my-stories');
   }
 
-  const { user, stories, hasStories, sampleStories } = await getUserStoriesData(session.user.id);
+  const { user, stories, hasStories, sampleStories } = await getUserStoriesData(session.user._id);
 
   if (!user) {
     redirect('/login?error=UserNotFound');
