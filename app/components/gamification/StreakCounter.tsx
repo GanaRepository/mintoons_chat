@@ -21,12 +21,16 @@ import {
   isStreakActive,
 } from '@utils/helpers';
 import { formatDate, formatTimeAgo } from '@utils/formatters';
-import { STREAK_MILESTONES, STREAK_REWARDS } from '@utils/constants';
-import type { User } from '../../../types/user';
+import { STREAK_MILESTONES } from '@utils/constants';
 import type { StreakData } from '../../../types/user';
 
+// Extend User type locally to include streakData for type safety
+interface UserWithStreak extends Record<string, any> {
+  streakData?: StreakData;
+}
+
 interface StreakCounterProps {
-  user: User;
+  user: UserWithStreak;
   onWriteStory?: () => void;
   showMotivation?: boolean;
   animated?: boolean;
@@ -49,10 +53,12 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  const streakData = user.streakData || {
+  const streakData: StreakData = user.streakData || {
     current: 0,
     longest: 0,
     lastStoryDate: null,
+    milestones: [],
+    totalRewards: 0,
   };
   const currentStreak = calculateCurrentStreak(streakData);
   const isActive = isStreakActive(streakData);
@@ -205,7 +211,6 @@ export const StreakCounter: React.FC<StreakCounterProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20"
           >
-            // app/components/gamification/StreakCounter.tsx (continued)
             <div className="flex items-center space-x-3">
               <Clock className="text-orange-600" size={20} />
               <div className="flex-1">

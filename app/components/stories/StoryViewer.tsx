@@ -44,17 +44,17 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const [viewsCount, setViewsCount] = useState(story.views || 0);
 
   useEffect(() => {
-    setIsLiked(story.likedBy?.includes(session?.user.id || '') || false);
+    setIsLiked(story.likedBy?.includes(session?.user._id || '') || false);
 
     // Track view
-    if (session?.user.id !== story.authorId) {
+    if (session?.user._id !== story.authorId) {
       trackView();
     }
   }, [story, session]);
 
   const trackView = async () => {
     try {
-      await fetch(`/api/stories/${story.id}/view`, { method: 'POST' });
+      await fetch(`/api/stories/${story._id}/view`, { method: 'POST' });
       setViewsCount(prev => prev + 1);
     } catch (error) {
       console.error('Failed to track view:', error);
@@ -65,7 +65,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     if (!session) return;
 
     try {
-      const response = await fetch(`/api/stories/${story.id}/like`, {
+      const response = await fetch(`/api/stories/${story._id}/like`, {
         method: 'POST',
       });
 
@@ -73,7 +73,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
         const newIsLiked = !isLiked;
         setIsLiked(newIsLiked);
         setLikesCount((prev: number) => (newIsLiked ? prev + 1 : prev - 1));
-        onLike?.(story.id);
+        onLike?.(story._id);
       }
     } catch (error) {
       console.error('Failed to like story:', error);
@@ -83,7 +83,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
   const handleShare = async () => {
     try {
       await shareStory(story);
-      onShare?.(story.id);
+      onShare?.(story._id);
     } catch (error) {
       console.error('Failed to share story:', error);
     }
@@ -91,7 +91,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
 
   const handleExport = async (format: 'pdf' | 'word') => {
     try {
-      const response = await fetch(`/api/export/${format}/${story.id}`);
+      const response = await fetch(`/api/export/${format}/${story._id}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -125,6 +125,45 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
     story.content.length,
     session?.user.age || 12
   );
+
+  // Helper to safely get comment count from story
+  function getCommentCount(story: Story): number {
+    if (Array.isArray((story as any).comments)) {
+      return (story as any).comments.length;
+    }
+    if (typeof (story as any).comments === 'number') {
+      return (story as any).comments;
+    }
+    if (Array.isArray(story.mentorComments)) {
+      return story.mentorComments.length;
+    }
+    return 0;
+  }
+
+  // Helper to safely get author story count
+  function getAuthorStoryCount(story: Story): number {
+    return (story as any).authorStoryCount ?? 1;
+  }
+
+  // Helper to safely get related stories
+  function getRelatedStories(story: Story): Array<{ _id: string; title: string; authorName: string }> {
+    return Array.isArray((story as any).relatedStories)
+      ? (story as any).relatedStories
+      : [];
+  }
+
+  // Helper to safely get assessment score
+  function getAssessmentScore(assessment: any): string {
+    if (assessment && typeof assessment === 'object' && 'overallScore' in assessment) {
+      return `${assessment.overallScore}/100`;
+    }
+    return '';
+  }
+
+  // Helper to safely get author points
+  function getAuthorPoints(story: Story): number {
+    return (story as any).authorPoints ?? 0;
+  }
 
   return (
     <div className="mx-auto max-w-4xl">
@@ -172,7 +211,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                 {story.assessment && (
                   <Badge variant="warning" size="sm">
                     <Star size={12} className="mr-1" />
-                    {story.assessment.overallScore}
+                    {getAssessmentScore(story.assessment)}
                   </Badge>
                 )}
               </div>
@@ -213,7 +252,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   className="flex items-center space-x-2 text-sm text-gray-600 transition-colors hover:text-purple-500 dark:text-gray-400"
                 >
                   <MessageSquare size={16} />
-                  <span>{formatNumber(story.comments?.length || 0)}</span>
+                  <span>{formatNumber(getCommentCount(story))}</span>
                 </button>
               </div>
 
@@ -274,7 +313,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
               <div className="grid grid-cols-2 gap-4 border-t border-gray-200 pt-3 dark:border-gray-700">
                 <div className="text-center">
                   <div className="font-semibold text-gray-900 dark:text-white">
-                    {story.authorStoryCount || 1}
+                    {getAuthorStoryCount(story)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Stories
@@ -282,7 +321,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                 </div>
                 <div className="text-center">
                   <div className="font-semibold text-gray-900 dark:text-white">
-                    {story.authorPoints || 0}
+                    {getAuthorPoints(story)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     Points
@@ -328,7 +367,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
                   <div className="flex items-center space-x-1">
                     <Star size={12} className="text-yellow-500" />
                     <span className="text-gray-900 dark:text-white">
-                      {story.assessment.overallScore}/100
+                      {getAssessmentScore(story.assessment)}
                     </span>
                   </div>
                 </div>
@@ -337,15 +376,15 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
           </Card>
 
           {/* Related Stories */}
-          {story.relatedStories && story.relatedStories.length > 0 && (
+          {getRelatedStories(story).length > 0 && (
             <Card className="p-4">
               <h4 className="mb-3 font-semibold text-gray-900 dark:text-white">
                 More Stories
               </h4>
               <div className="space-y-3">
-                {story.relatedStories.slice(0, 3).map(relatedStory => (
+                {getRelatedStories(story).slice(0, 3).map((relatedStory) => (
                   <div
-                    key={relatedStory.id}
+                    key={relatedStory._id}
                     className="flex items-start space-x-3"
                   >
                     <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-gradient-to-br from-blue-400 to-purple-400" />
@@ -368,7 +407,7 @@ export const StoryViewer: React.FC<StoryViewerProps> = ({
       {/* Comments Sidebar */}
       {showComments && (
         <CommentSystem
-          storyId={story.id}
+          storyId={story._id}
           onClose={() => setShowComments(false)}
           isReadOnly={isReadOnly}
         />

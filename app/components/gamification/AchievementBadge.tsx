@@ -18,9 +18,9 @@ import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
 import { Modal } from '@components/ui/modal';
 import {
-  ACHIEVEMENTS,
-  getAchievementProgress,
-  isAchievementUnlocked,
+  // ACHIEVEMENTS, // REMOVE
+  // getAchievementProgress, // REMOVE
+  // isAchievementUnlocked, // REMOVE
 } from '@utils/constants';
 import { formatNumber, formatDate } from '@utils/formatters';
 import { calculateAchievementProgress } from '@utils/helpers';
@@ -40,6 +40,7 @@ interface ExtendedAchievement extends Achievement {
 interface AchievementBadgeProps {
   achievement: ExtendedAchievement;
   user: User;
+  allAchievements: ExtendedAchievement[]; // <-- Add this prop
   isUnlocked?: boolean;
   progress?: AchievementProgress;
   size?: 'sm' | 'md' | 'lg';
@@ -48,9 +49,28 @@ interface AchievementBadgeProps {
   className?: string;
 }
 
+// Extend User type locally to include achievements property for type safety
+interface UserWithAchievements extends User {
+  achievements: string[];
+}
+
+// Helper to check if achievement is unlocked for user
+function isAchievementUnlocked(achievementId: string, user: UserWithAchievements): boolean {
+  return Array.isArray(user.achievements) && user.achievements.includes(achievementId);
+}
+
+// Helper to get achievement by id from prerequisites
+function getPrerequisiteAchievement(
+  prereqId: string,
+  achievements: ExtendedAchievement[]
+): ExtendedAchievement | undefined {
+  return achievements.find(a => a._id === prereqId);
+}
+
 export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
   achievement,
   user,
+  allAchievements,
   isUnlocked: propIsUnlocked,
   progress: propProgress,
   size = 'md',
@@ -58,10 +78,11 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
   onClick,
   className,
 }) => {
+  const userWithAchievements = user as UserWithAchievements;
   const [showDetails, setShowDetails] = useState(false);
 
   const isUnlocked =
-    propIsUnlocked ?? isAchievementUnlocked(achievement.id, user);
+    propIsUnlocked ?? isAchievementUnlocked(achievement._id, userWithAchievements);
   const progress =
     propProgress ?? calculateAchievementProgress(achievement, user);
 
@@ -318,12 +339,8 @@ export const AchievementBadge: React.FC<AchievementBadgeProps> = ({
                 </h4>
                 <div className="space-y-2">
                   {achievement.prerequisites.map((prereqId: string) => {
-                    const prereq =
-                      ACHIEVEMENTS[prereqId as keyof typeof ACHIEVEMENTS];
-                    const prereqUnlocked = isAchievementUnlocked(
-                      prereqId,
-                      user
-                    );
+                    const prereq = getPrerequisiteAchievement(prereqId, allAchievements);
+                    const prereqUnlocked = isAchievementUnlocked(prereqId, userWithAchievements);
 
                     return prereq ? (
                       <div

@@ -21,7 +21,7 @@ import { Dropdown } from '@components/ui/dropdown';
 import { Badge } from '@components/ui/badge';
 import { formatDate, formatTimeAgo } from '@utils/formatters';
 import { validateComment } from '@utils/validators';
-import type { Comment, CommentType } from '../../../types/comment';
+import type { Comment, CommentType, CommentWithReplies } from '../../../types/comment';
 
 interface CommentSystemProps {
   storyId: string;
@@ -43,6 +43,17 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
   const [editText, setEditText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Helper to convert API comment data to CommentWithReplies
+  function normalizeComment(raw: any): CommentWithReplies {
+    return {
+      ...raw,
+      replies: Array.isArray(raw.replies)
+        ? raw.replies.map((reply: any) => normalizeComment(reply))
+        : [],
+      parentCommentId: raw.parentCommentId || undefined,
+    };
+  }
+
   useEffect(() => {
     fetchComments();
   }, [storyId]);
@@ -52,7 +63,8 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
       const response = await fetch(`/api/stories/${storyId}/comments`);
       if (response.ok) {
         const data = await response.json();
-        setComments(data.comments || []);
+        // Normalize comments to ensure correct types
+        setComments((data.comments || []).map(normalizeComment));
       }
     } catch (error) {
       console.error('Failed to fetch comments:', error);
@@ -180,9 +192,9 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
     }
   };
 
-  const renderComment = (comment: Comment, isReply = false) => {
-    const isOwner = comment.authorId === session?.user.id;
-    const isLiked = comment.likes?.includes(session?.user.id || '');
+  const renderComment = (comment: CommentWithReplies, isReply = false) => {
+    const isOwner = comment.authorId === session?.user._id;
+    const isLiked = comment.likes?.includes(session?.user._id || '');
     const isEditing = editingComment === comment._id;
 
     const dropdownItems = [
@@ -363,7 +375,7 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
         {/* Replies */}
         {comment.replies && comment.replies.length > 0 && (
           <div className="mt-2 space-y-2">
-            {comment.replies.map(reply => renderComment(reply, true))}
+            {comment.replies.map(reply => renderComment(normalizeComment(reply), true))}
           </div>
         )}
       </motion.div>
@@ -400,8 +412,8 @@ export const CommentSystem: React.FC<CommentSystemProps> = ({
         <AnimatePresence>
           {comments.length > 0 ? (
             comments
-              .filter(comment => !comment.parentId) // Only top-level comments
-              .map(comment => renderComment(comment))
+              .filter(comment => !comment.parentCommentId)
+              .map(comment => renderComment(normalizeComment(comment)))
           ) : (
             <div className="py-8 text-center">
               <MessageSquare

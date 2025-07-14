@@ -34,6 +34,7 @@ export interface User {
   subscriptionId?: string;
   subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
   subscriptionExpires?: Date;
+  subscriptionCurrentPeriodEnd?: Date;
 
   storyCount: number;
   lastStoryCreated?: Date;

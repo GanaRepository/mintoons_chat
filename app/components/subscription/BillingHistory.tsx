@@ -83,27 +83,38 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
     }
   };
 
+  // Helper to safely get tier from BillingHistory
+  function getTier(item: BillingHistoryType): string {
+    return (item as any).tier ?? 'Unknown';
+  }
+  // Helper to safely get invoiceId from BillingHistory
+  function getInvoiceId(item: BillingHistoryType): string | undefined {
+    return (item as any).invoiceId ?? (item as any).stripeInvoiceId ?? undefined;
+  }
+
   const getStatusBadge = (status: PaymentStatus) => {
-    const variants = {
+    // Only allow known variants
+    const variants: Record<PaymentStatus, 'success' | 'warning' | 'error' | 'default'> = {
       succeeded: 'success',
       pending: 'warning',
       failed: 'error',
       canceled: 'default',
-      requires_action: 'warning',
-    } as const;
+      processing: 'warning',
+    };
 
-    const icons = {
+    const icons: Record<PaymentStatus, any> = {
       succeeded: Check,
       pending: RefreshCw,
       failed: AlertCircle,
       canceled: AlertCircle,
-      requires_action: AlertCircle,
+      processing: RefreshCw,
     };
 
-    const Icon = icons[status];
+    const Icon = icons[status] ?? AlertCircle;
+    const variant = variants[status] ?? 'default';
 
     return (
-      <Badge variant={variants[status]} className="flex items-center space-x-1">
+      <Badge variant={variant} className="flex items-center space-x-1">
         <Icon size={12} />
         <span className="capitalize">{status.replace('_', ' ')}</span>
       </Badge>
@@ -181,7 +192,7 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
         <div className="space-y-3">
           {billingHistory.map((item, index) => (
             <motion.div
-              key={item.id}
+              key={item._id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -195,7 +206,7 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                 <div>
                   <div className="flex items-center space-x-2">
                     <h4 className="font-medium text-gray-900 dark:text-white">
-                      {SUBSCRIPTION_TIERS[item.tier]?.name || item.tier} Plan
+                      {SUBSCRIPTION_TIERS[getTier(item)]?.name || getTier(item)} Plan
                     </h4>
                     {getStatusBadge(item.status)}
                   </div>
@@ -205,8 +216,8 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                       <Calendar size={14} />
                       <span>{formatDate(item.createdAt)}</span>
                     </div>
-                    {item.invoiceId && (
-                      <span>Invoice #{item.invoiceId.slice(-8)}</span>
+                    {getInvoiceId(item) && (
+                      <span>Invoice #{getInvoiceId(item)?.slice(-8)}</span>
                     )}
                   </div>
                 </div>
@@ -224,11 +235,11 @@ export const BillingHistory: React.FC<BillingHistoryProps> = ({
                   )}
                 </div>
 
-                {item.invoiceId && item.status === 'succeeded' && (
+                {getInvoiceId(item) && item.status === 'succeeded' && (
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDownloadInvoice(item.invoiceId!)}
+                    onClick={() => handleDownloadInvoice(getInvoiceId(item)!)}
                   >
                     <Download size={16} />
                   </Button>

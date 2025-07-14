@@ -21,9 +21,10 @@ import {
   Globe,
   Eye,
   EyeOff,
+  Moon,
+  Award,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-
 import { Card } from '@components/ui/card';
 import { Button } from '@components/ui/button';
 import { Input } from '@components/ui/input';
@@ -33,7 +34,6 @@ import { SubscriptionStatus } from '@components/subscription/SubscriptionStatus'
 import { BillingHistory } from '@components/subscription/BillingHistory';
 import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-
 import { formatDate } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -55,17 +55,19 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
   const [activeTab, setActiveTab] = useState<ProfileTab>('account');
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: user.name,
+    name: user.fullName,
     email: user.email,
     age: user.age?.toString() || '',
   });
+  // Map preferences to emailPreferences (from User type)
   const [preferences, setPreferences] = useState({
-    emailNotifications: user.preferences?.emailNotifications ?? true,
-    mentorFeedback: user.preferences?.mentorFeedback ?? true,
-    achievementAlerts: user.preferences?.achievementAlerts ?? true,
-    weeklyReports: user.preferences?.weeklyReports ?? true,
-    darkMode: user.preferences?.darkMode ?? false,
-    language: user.preferences?.language ?? 'en',
+    emailNotifications: user.emailPreferences?.notifications ?? true,
+    mentorFeedback: user.emailPreferences?.mentorFeedback ?? true,
+    achievementAlerts: user.emailPreferences?.achievements ?? true,
+    weeklyReports: user.emailPreferences?.weeklyReports ?? true,
+    // UI-only fields (darkMode, language) fallback
+    darkMode: false,
+    language: 'en',
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -86,7 +88,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
         toast.success('Profile updated successfully!');
         setIsEditing(false);
 
-        trackEvent(TRACKING_EVENTS.USER_PROFILE_UPDATE, {
+        trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
           userId: user._id,
           fields: ['name', 'age'],
         });
@@ -114,7 +116,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
       if (response.ok) {
         toast.success('Preferences updated successfully!');
 
-        trackEvent(TRACKING_EVENTS.USER_PREFERENCES_UPDATE, {
+        trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
           userId: user._id,
           preferences,
         });
@@ -146,7 +148,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
 
         toast.success('Data exported successfully!');
 
-        trackEvent(TRACKING_EVENTS.DATA_EXPORT, {
+        trackEvent(TRACKING_EVENTS.DOWNLOAD, {
           userId: user._id,
           format: 'json',
         });
@@ -182,7 +184,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
       if (response.ok) {
         toast.success('Account deleted successfully. You will be logged out.');
 
-        trackEvent(TRACKING_EVENTS.USER_DELETE_ACCOUNT, {
+        trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
           userId: user._id,
         });
 
@@ -228,13 +230,13 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
               <div className="mb-6 text-center">
                 <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500">
                   <span className="text-2xl font-bold text-white">
-                    {user.name.charAt(0).toUpperCase()}
+                    {user.fullName.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">{user.name}</h3>
+                <h3 className="text-lg font-bold text-gray-900">{user.fullName}</h3>
                 <p className="text-sm text-gray-600">{user.email}</p>
                 <div className="mt-2 flex items-center justify-center gap-2">
-                  <Badge variant="outline" size="sm">
+                  <Badge variant="default" size="sm">
                     {user.subscriptionTier}
                   </Badge>
                   {user.role === 'child' && (
@@ -282,11 +284,11 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     Account Information
                   </h2>
                   <Button
-                    variant={isEditing ? 'outline' : 'default'}
+                    variant={isEditing ? 'outline' : 'primary'}
                     onClick={() => {
                       if (isEditing) {
                         setFormData({
-                          name: user.name,
+                          name: user.fullName,
                           email: user.email,
                           age: user.age?.toString() || '',
                         });
@@ -323,7 +325,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                       />
                     ) : (
                       <div className="rounded-lg bg-gray-50 p-3">
-                        {user.name}
+                        {user.fullName}
                       </div>
                     )}
                   </div>
@@ -388,7 +390,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                       Member Since
                     </label>
                     <div className="rounded-lg bg-gray-50 p-3">
-                      {formatDate(user.createdAt, 'long')}
+                      {formatDate(user.createdAt)}
                     </div>
                   </div>
 
@@ -397,10 +399,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                       Last Active
                     </label>
                     <div className="rounded-lg bg-gray-50 p-3">
-                      {formatDate(
-                        user.lastActiveAt || user.updatedAt,
-                        'relative'
-                      )}
+                      {formatDate(user.lastActiveDate || user.updatedAt)}
                     </div>
                   </div>
                 </div>
@@ -442,7 +441,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
 
                   <div className="text-center">
                     <div className="mb-1 text-3xl font-bold text-green-600">
-                      {user.points || 0}
+                      {user.totalPoints || 0}
                     </div>
                     <div className="text-sm text-gray-600">
                       Achievement Points
@@ -491,7 +490,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     </div>
                     <Switch
                       checked={preferences.emailNotifications}
-                      onChange={checked =>
+                      onCheckedChange={(checked: boolean) =>
                         setPreferences({
                           ...preferences,
                           emailNotifications: checked,
@@ -514,7 +513,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     </div>
                     <Switch
                       checked={preferences.mentorFeedback}
-                      onChange={checked =>
+                      onCheckedChange={(checked: boolean) =>
                         setPreferences({
                           ...preferences,
                           mentorFeedback: checked,
@@ -537,7 +536,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     </div>
                     <Switch
                       checked={preferences.achievementAlerts}
-                      onChange={checked =>
+                      onCheckedChange={(checked: boolean) =>
                         setPreferences({
                           ...preferences,
                           achievementAlerts: checked,
@@ -560,7 +559,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     </div>
                     <Switch
                       checked={preferences.weeklyReports}
-                      onChange={checked =>
+                      onCheckedChange={(checked: boolean) =>
                         setPreferences({
                           ...preferences,
                           weeklyReports: checked,
@@ -591,7 +590,7 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
                     </div>
                     <Switch
                       checked={preferences.darkMode}
-                      onChange={checked =>
+                      onCheckedChange={(checked: boolean) =>
                         setPreferences({ ...preferences, darkMode: checked })
                       }
                     />
@@ -630,8 +629,16 @@ export default function ProfileClient({ user, subscription }: ProfileProps) {
               animate={{ opacity: 1, y: 0 }}
               className="space-y-6"
             >
-              <SubscriptionStatus user={user} subscription={subscription} />
-
+              {subscription && (
+                <SubscriptionStatus
+                  currentTier={subscription.tier}
+                  status={subscription.status}
+                  currentPeriodEnd={subscription.currentPeriodEnd}
+                  storiesUsed={subscription.storiesUsed}
+                  nextBillingDate={subscription.nextPaymentDate}
+                  paymentMethod={subscription.paymentMethod}
+                />
+              )}
               {subscription && <BillingHistory userId={user._id} />}
             </motion.div>
           )}

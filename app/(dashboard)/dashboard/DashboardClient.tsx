@@ -789,16 +789,12 @@ export default function DashboardClient({
 
         {/* Sidebar Content */}
         <div className="space-y-6">
-          {/* Writing Streak - MINIMAL FIX */}
+          {/* Writing Streak - FIX: Pass user object as expected by StreakCounter */}
           <FadeIn delay={0.6}>
-            <StreakCounter
-              currentStreak={user.streak || 0}
-              longestStreak={user.streak || 0}
-              lastWritingDate={user.lastActiveDate || undefined}
-            />
+            <StreakCounter user={user} />
           </FadeIn>
 
-          {/* Recent Achievements */}
+          {/* Recent Achievements - FIX: Provide mock ExtendedAchievement objects */}
           <SlideIn direction="right" delay={0.7}>
             <Card className="p-6">
               <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
@@ -815,14 +811,64 @@ export default function DashboardClient({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {recentAchievements.map(achievement => (
-                    <AchievementBadge
-                      key={achievement.id}
-                      achievement={achievement}
-                      size="sm"
-                      showDate={true}
-                    />
-                  ))}
+                  {recentAchievements.map(achievement => {
+                    // Fill all required ExtendedAchievement fields for AchievementBadge
+                    // Use AchievementType enum for 'type' property
+                    const extendedAchievement = {
+                      _id: achievement.id,
+                      id: achievement.id,
+                      name: achievement.name ?? achievement.title,
+                      title: achievement.title,
+                      description: achievement.description,
+                      icon: achievement.icon,
+                      unlockedAt: achievement.unlockedAt,
+                      type: 'story_milestone' as import('@/types/achievement').AchievementType,
+                      rarity: (achievement.rarity === 'rare' ? 'rare' : 'common') as import('@/types/achievement').AchievementRarity,
+                      points: achievement.points ?? 0,
+                      criteria: {} as import('@/types/achievement').AchievementCriteria,
+                      color: '#FFD700',
+                      unlockedMessage: 'Congratulations!',
+                      isUnlocked: true,
+                      userId: user._id,
+                      storyId: '',
+                      createdAt: achievement.unlockedAt,
+                      updatedAt: achievement.unlockedAt,
+                      isActive: true,
+                      sortOrder: 1,
+                      rarityColor: '#FFD700',
+                    };
+                    return (
+                      <AchievementBadge
+                        key={extendedAchievement._id}
+                        achievement={extendedAchievement}
+                        user={user}
+                        allAchievements={recentAchievements.map(a => ({
+                          ...extendedAchievement,
+                          _id: a.id,
+                          name: a.name ?? a.title,
+                          title: a.title,
+                          description: a.description,
+                          icon: a.icon,
+                          unlockedAt: a.unlockedAt,
+                          type: 'story_milestone' as import('@/types/achievement').AchievementType,
+                          rarity: (a.rarity === 'rare' ? 'rare' : 'common') as import('@/types/achievement').AchievementRarity,
+                          points: a.points ?? 0,
+                          criteria: {} as import('@/types/achievement').AchievementCriteria,
+                          color: '#FFD700',
+                          unlockedMessage: 'Congratulations!',
+                          isUnlocked: true,
+                          userId: user._id,
+                          storyId: '',
+                          createdAt: a.unlockedAt,
+                          updatedAt: a.unlockedAt,
+                          isActive: true,
+                          sortOrder: 1,
+                          rarityColor: '#FFD700',
+                        }))}
+                        size="sm"
+                      />
+                    );
+                  })}
                 </div>
               )}
 

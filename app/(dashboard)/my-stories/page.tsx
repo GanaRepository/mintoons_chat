@@ -141,10 +141,93 @@ export default async function MyStoriesPage() {
   }
 
   const { user, stories, hasStories, sampleStories } = await getUserStoriesData(session.user._id);
-
-  if (!user) {
+  let userDoc = user;
+  // Defensive: If userDoc is an array, pick first element; else use as is
+  if (Array.isArray(userDoc)) userDoc = userDoc[0];
+  if (!userDoc) {
     redirect('/login?error=UserNotFound');
   }
+
+  // Map userDoc to User type (fill all required fields)
+  const mappedUser = {
+    _id: userDoc._id?.toString?.() ?? '',
+    firstName: userDoc.firstName ?? '',
+    lastName: userDoc.lastName ?? '',
+    fullName: userDoc.fullName ?? `${userDoc.firstName ?? ''} ${userDoc.lastName ?? ''}`,
+    email: userDoc.email ?? '',
+    age: userDoc.age ?? 0,
+    ageGroup: userDoc.ageGroup ?? '',
+    role: userDoc.role ?? 'child',
+    subscriptionTier: userDoc.subscriptionTier ?? 'FREE',
+    isActive: userDoc.isActive ?? true,
+    emailVerified: userDoc.emailVerified ?? false,
+    avatar: userDoc.avatar ?? '',
+    bio: userDoc.bio ?? '',
+    parentEmail: userDoc.parentEmail ?? '',
+    stripeCustomerId: userDoc.stripeCustomerId ?? '',
+    subscriptionId: userDoc.subscriptionId ?? '',
+    subscriptionStatus: userDoc.subscriptionStatus ?? '',
+    subscriptionExpires: userDoc.subscriptionExpires ?? null,
+    subscriptionCurrentPeriodEnd: userDoc.subscriptionCurrentPeriodEnd ?? null,
+    storyCount: userDoc.storyCount ?? stories.length,
+    lastStoryCreated: userDoc.lastStoryCreated ?? null,
+    canCreateStory: userDoc.canCreateStory ?? true,
+    remainingStories: userDoc.remainingStories ?? 0,
+    totalPoints: userDoc.totalPoints ?? 0,
+    level: userDoc.level ?? 1,
+    streak: userDoc.streak ?? 0,
+    lastActiveDate: userDoc.lastActiveDate ?? null,
+    assignedStudents: (userDoc.assignedStudents ?? []).map((s: any) => typeof s === 'string' ? s : s?._id?.toString?.() ?? ''),
+    mentoringSince: userDoc.mentoringSince ?? null,
+    emailPreferences: userDoc.emailPreferences ?? {
+      notifications: true,
+      mentorFeedback: true,
+      achievements: true,
+      weeklyReports: true,
+      marketing: false,
+    },
+    lastLoginAt: userDoc.lastLoginAt ?? null,
+    loginAttempts: userDoc.loginAttempts ?? 0,
+    lockUntil: userDoc.lockUntil ?? null,
+    createdAt: userDoc.createdAt ?? new Date(),
+    updatedAt: userDoc.updatedAt ?? new Date(),
+  };
+
+  // Map stories to Story type (fill all required fields)
+  const mappedStories = (stories || []).map((story: any) => ({
+    _id: story._id?.toString?.() ?? '',
+    title: story.title ?? '',
+    content: story.content ?? '',
+    elements: story.elements ?? {
+      genre: '', setting: '', character: '', mood: '', conflict: '', theme: ''
+    },
+    status: story.status ?? 'draft',
+    authorId: story.authorId?.toString?.() ?? '',
+    authorName: story.authorName ?? mappedUser.fullName ?? '',
+    authorAge: story.authorAge ?? mappedUser.age ?? 0,
+    wordCount: story.wordCount ?? (story.content ? story.content.split(/\s+/).length : 0),
+    readingTime: story.readingTime ?? 1,
+    aiTurns: story.aiTurns ?? [],
+    currentTurn: story.currentTurn ?? 0,
+    assessment: story.assessment ?? undefined,
+    isPublic: story.isPublic ?? true,
+    likes: story.likes ?? 0,
+    likedBy: story.likedBy ?? [],
+    views: story.views ?? 0,
+    viewedBy: story.viewedBy ?? [],
+    mentorId: story.mentorId ?? '',
+    mentorComments: story.mentorComments ?? [],
+    hasUnreadComments: story.hasUnreadComments ?? false,
+    isModerated: story.isModerated ?? false,
+    moderationFlags: story.moderationFlags ?? [],
+    excerpt: story.excerpt ?? '',
+    ageGroup: story.ageGroup ?? mappedUser.ageGroup ?? '',
+    isCompleted: story.isCompleted ?? false,
+    createdAt: story.createdAt ?? new Date(),
+    updatedAt: story.updatedAt ?? new Date(),
+    publishedAt: story.publishedAt ?? undefined,
+    completedAt: story.completedAt ?? undefined,
+  }));
 
   return (
     <Suspense 
@@ -155,8 +238,8 @@ export default async function MyStoriesPage() {
       }
     >
       <MyStoriesClient 
-        user={user}
-        stories={stories}
+        user={mappedUser}
+        stories={mappedStories}
         hasStories={hasStories}
         sampleStories={sampleStories}
       />

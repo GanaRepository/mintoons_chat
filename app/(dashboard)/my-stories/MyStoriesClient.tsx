@@ -101,7 +101,10 @@ export default function MyStoriesClient({
         case 'status':
           return a.status.localeCompare(b.status);
         case 'rating':
-          return (b.averageRating || 0) - (a.averageRating || 0);
+          // Defensive: If assessment exists and is object, use overallScore for sorting
+          const aScore = typeof a.assessment === 'object' && a.assessment !== null && 'overallScore' in a.assessment ? (a.assessment as any).overallScore : 0;
+          const bScore = typeof b.assessment === 'object' && b.assessment !== null && 'overallScore' in b.assessment ? (b.assessment as any).overallScore : 0;
+          return bScore - aScore;
         default:
           return 0;
       }
@@ -619,14 +622,15 @@ export default function MyStoriesClient({
                         </div>
 
                         <div className="flex items-center gap-2">
-                        {story.assessment?.overallScore !== undefined && (
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <Star className="h-4 w-4 fill-current" />
-                          <span className="text-sm font-medium">
-                            {story.assessment.overallScore}
-                          </span>
-                        </div>
-                      )}
+                        {/* Defensive: Only show overallScore if assessment is object and has overallScore */}
+                        {typeof story.assessment === 'object' && story.assessment !== null && 'overallScore' in story.assessment && (
+                          <div className="flex items-center gap-1 text-yellow-500">
+                            <Star className="h-4 w-4 fill-current" />
+                            <span className="text-sm font-medium">
+                              {(story.assessment as any).overallScore}
+                            </span>
+                          </div>
+                        )}
                         </div>
                       </div>
 

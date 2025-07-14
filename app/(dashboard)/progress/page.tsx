@@ -96,7 +96,7 @@ export default async function ProgressPage() {
     redirect('/login?callbackUrl=/dashboard/progress');
   }
 
-  const progressData = await getProgressData(session.user.id);
+  const progressData = await getProgressData(session.user._id);
 
   if (!progressData) {
     redirect('/login?error=UserNotFound');

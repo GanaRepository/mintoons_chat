@@ -70,7 +70,7 @@ const FormWrapper: React.FC<FormWrapperProps> = ({
   // Type-safe user extraction
   const user = session?.user
     ? ({
-        id: session.user.id || '',
+        id: session.user._id || '',
         email: session.user.email || '',
         name: session.user.name || '',
         role: (session.user as any).role || 'child',

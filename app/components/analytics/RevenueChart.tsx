@@ -20,6 +20,7 @@ import { calculateMRR, calculateARPU, calculateChurnRate } from '@utils/helpers'
 import { getRevenueAnalytics } from '@lib/analytics/reporter';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
 import type { RevenueAnalytics, TimeRange } from '../../../types/analytics';
+import type { SubscriptionTierType } from '../../../types/subscription';
 
 interface RevenueChartProps {
   timeRange?: TimeRange;
@@ -193,14 +194,15 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
               {Object.entries(SUBSCRIPTION_TIERS)
                 .filter(([tier]) => tier !== 'FREE')
                 .map(([tier, config]) => {
-                  const tierRevenue = metrics.subscriptionBreakdown?.[tier] || { revenue: 0, subscribers: 0, percentage: 0 };
-                  
+                  // Cast tier to SubscriptionTierType to satisfy type checking
+                  const typedTier = tier as SubscriptionTierType;
+                  const tierRevenue = metrics.subscriptionBreakdown?.[typedTier] || { revenue: 0, subscribers: 0, percentage: 0 };
                   return (
-                    <div key={tier} className="space-y-2">
+                    <div key={typedTier} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {tier}
+                            {typedTier}
                           </span>
                           <Badge variant="default" size="sm">
                             {formatPrice(config.price)}/mo
@@ -219,8 +221,8 @@ export const RevenueChart: React.FC<RevenueChartProps> = ({
                       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                         <div 
                           className={`h-2 rounded-full ${
-                            tier === 'PRO' ? 'bg-purple-500' :
-                            tier === 'PREMIUM' ? 'bg-blue-500' :
+                            typedTier === 'PRO' ? 'bg-purple-500' :
+                            typedTier === 'PREMIUM' ? 'bg-blue-500' :
                             'bg-green-500'
                           }`}
                           style={{ width: `${tierRevenue.percentage}%` }}

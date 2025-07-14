@@ -1371,6 +1371,11 @@ export async function getStoryAnalytics(
         createdAt: story.createdAt,
       })),
       creationData,
+      // Add missing properties for StoryAnalytics
+      completedStories: currentStories.filter((s: any) => s.status === 'completed').length,
+      publishedStories: currentStories.filter((s: any) => s.status === 'published').length,
+      totalWords: currentStories.reduce((sum: number, s: any) => sum + (s.wordCount || 0), 0),
+      averageWordsPerStory: currentStories.length > 0 ? currentStories.reduce((sum: number, s: any) => sum + (s.wordCount || 0), 0) / currentStories.length : 0,
     };
   } catch (error) {
     console.error('Error getting story analytics:', error);
@@ -1569,6 +1574,9 @@ export async function getUserAnalytics(
       averageActionsPerSession: 8, // Mock data
       recentActivity,
       growthData,
+      // Add missing properties for UserAnalytics
+      childUsers: await (User as any).countDocuments({ isActive: true, role: 'child' }),
+      mentorUsers: await (User as any).countDocuments({ isActive: true, role: 'mentor' }),
     };
   } catch (error) {
     console.error('Error getting user analytics:', error);

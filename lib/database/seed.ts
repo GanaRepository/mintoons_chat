@@ -1,9 +1,50 @@
-// lib/database/seed.ts - Database seeding for sample stories
+import { STORY_ELEMENTS } from '@utils/constants';
 import { connectDB } from './connection';
 import Story from '@models/Story';
 import User from '@models/User';
-import { STORY_ELEMENTS, ACHIEVEMENTS } from '@utils/constants';
 import mongoose from 'mongoose';
+
+// Sample achievements for seeding
+const ACHIEVEMENTS: AchievementDocument[] = [
+  {
+    name: 'First Story',
+    description: 'Write and publish your first story!',
+    icon: '📝',
+    points: 10,
+    type: 'story_milestone',
+    rarity: 'common',
+    color: 'blue',
+    unlockedMessage: `Congratulations! You've unlocked the First Story achievement!`,
+    isActive: true,
+    sortOrder: 0,
+  },
+  {
+    name: 'Weekly Writer',
+    description: 'Write stories for 7 consecutive days.',
+    icon: '📅',
+    points: 50,
+    type: 'story_milestone',
+    rarity: 'common',
+    color: 'blue',
+    unlockedMessage: `Congratulations! You've unlocked the Weekly Writer achievement!`,
+    isActive: true,
+    sortOrder: 1,
+  },
+  {
+    name: 'Creative Genius',
+    description: 'Score high in creativity on a story.',
+    icon: '🎨',
+    points: 25,
+    type: 'story_milestone',
+    rarity: 'common',
+    color: 'blue',
+    unlockedMessage: `Congratulations! You've unlocked the Creative Genius achievement!`,
+    isActive: true,
+    sortOrder: 2,
+  },
+  // Add more achievements as needed
+];
+
 
 // Define Achievement interface
 interface AchievementDocument {

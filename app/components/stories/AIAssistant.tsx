@@ -17,7 +17,7 @@ import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 import { Badge } from '@components/ui/badge';
 import { Dropdown } from '@components/ui/dropdown';
-import { generateStoryPrompt, getAgeAppropriatePrompts } from '@utils/helpers';
+import { getAgeAppropriatePrompts } from '@utils/helpers';
 import { STORY_PROMPTS } from '@utils/constants';
 import type { StoryElements } from '../../../types/story';
 
@@ -62,6 +62,34 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({
       prompts: getAgeAppropriatePrompts(userAge, 'plot'),
     },
   };
+
+  // Utility to generate a custom story prompt based on elements, content, age, and category
+  const generateStoryPrompt = async ({ elements, currentContent, userAge, category }: {
+    elements: StoryElements;
+    currentContent: string;
+    userAge: number;
+    category: string;
+  }): Promise<string> => {
+    let basePrompt = '';
+    switch (category) {
+      case 'characters':
+        basePrompt = `Add a new character to your story. Think about their personality and role.`;
+        break;
+      case 'settings':
+        basePrompt = `Describe a new setting. What does it look, sound, and feel like?`;
+        break;
+      case 'plot':
+        basePrompt = `Introduce a plot twist or challenge for your characters.`;
+        break;
+      default:
+        basePrompt = `Continue your story. What happens next?`;
+    }
+    const elementsText = Object.entries(elements)
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
+    const prompt = `${basePrompt} (Elements: ${elementsText})`;
+    return Promise.resolve(prompt);
+  }
 
   const handleGenerateCustomPrompt = async () => {
     setIsGenerating(true);

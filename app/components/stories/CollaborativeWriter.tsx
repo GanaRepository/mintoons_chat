@@ -123,12 +123,22 @@ export const CollaborativeWriter: React.FC<CollaborativeWriterProps> = ({
     setIsAIGenerating(true);
     setShowAIResponse(false);
 
+    // Fix: Convert selectedElements (StoryElements) to Record<string, string> for AI provider
+    const selectedElementsRecord: Record<string, string> = {
+      genre: selectedElements.genre || '',
+      setting: selectedElements.setting || '',
+      character: selectedElements.character || '',
+      mood: selectedElements.mood || '',
+      conflict: selectedElements.conflict || '',
+      theme: selectedElements.theme || '',
+    };
+
     try {
       const aiResponse = await aiProviderManager.generateStoryResponse({
         prompt: userInput,
         context: currentStory.content,
         userAge: userAge,
-        storyElements: selectedElements,
+        storyElements: selectedElementsRecord,
         maxTokens: 100 + userAge * 5,
         temperature: 0.8,
       });

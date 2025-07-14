@@ -99,7 +99,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     try {
       const checkoutUrl = await createCheckoutSession({
         priceId: SUBSCRIPTION_TIERS[tier].stripePriceId,
-        userId: user.id,
+        userId: user._id,
         tier: tier,
         successUrl: `${window.location.origin}/dashboard?upgrade=success`,
         cancelUrl: window.location.href,

@@ -16,6 +16,9 @@ import { formatNumber } from '@utils/formatters';
 import { LEVEL_THRESHOLDS, LEVEL_REWARDS } from '@utils/constants';
 import type { User } from '../../../types/user';
 
+interface UserWithAchievements extends User {
+  achievements?: string[];
+}
 
 interface LevelIndicatorProps {
   user: User;
@@ -32,6 +35,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
   animated = true,
   className,
 }) => {
+  const userWithAchievements = user as UserWithAchievements;
   const currentLevel = calculateUserLevel(user.totalPoints || 0);
   const currentPoints = user.totalPoints || 0;
   const pointsForCurrentLevel = LEVEL_THRESHOLDS[currentLevel - 1] || 0;
@@ -177,7 +181,7 @@ export const LevelIndicator: React.FC<LevelIndicatorProps> = ({
 
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {user.achievements?.length || 0}
+                  {userWithAchievements.achievements?.length || 0}
                 </div>
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   Achievements

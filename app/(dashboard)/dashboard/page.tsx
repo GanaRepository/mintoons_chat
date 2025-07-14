@@ -9,6 +9,8 @@ import { LoadingAnimation } from '@components/animations/LoadingAnimation';
 import { connectDB } from '@lib/database/connection';
 import type { User as UserType } from '@/types/user';
 import type { Story as StoryType } from '@/types/story';
+import User from '@models/User';
+import Story from '@models/Story';
 import { SubscriptionConfig } from '@config/subscription';
 
 export const metadata: Metadata = {
@@ -23,7 +25,7 @@ export const metadata: Metadata = {
 async function getDashboardData(userId: string) {
   await connectDB();
 
-  const [userDoc, recentStoriesDocs, totalStories] = await Promise.all([
+  const [userDocRaw, recentStoriesDocs, totalStories] = await Promise.all([
     User.findById(userId).select('-password').lean(),
     Story.find({ authorId: userId })
       .sort({ updatedAt: -1 })
@@ -32,11 +34,13 @@ async function getDashboardData(userId: string) {
     Story.countDocuments({ authorId: userId }),
   ]);
 
+  // Defensive: If userDocRaw is an array, pick first element; else use as is
+  const userDoc = Array.isArray(userDocRaw) ? userDocRaw[0] : userDocRaw;
   if (!userDoc) return null;
 
   // Map userDoc to UserType (fill all required fields)
   const user: UserType = {
-    _id: userDoc._id.toString(),
+    _id: userDoc._id?.toString?.() ?? '',
     firstName: userDoc.firstName ?? '',
     lastName: userDoc.lastName ?? '',
     fullName: userDoc.fullName ?? `${userDoc.firstName ?? ''} ${userDoc.lastName ?? ''}`,
@@ -81,15 +85,38 @@ async function getDashboardData(userId: string) {
 
   // Map stories to your StoryType (fill all required fields)
   const recentStories: StoryType[] = recentStoriesDocs.map((story: any) => ({
-    _id: story._id.toString(),
+    _id: story._id?.toString?.() ?? '',
     title: story.title ?? '',
     content: story.content ?? '',
-    elements: story.elements ?? [],
-    status: story.status ?? '',
+    elements: story.elements ?? {
+      genre: '', setting: '', character: '', mood: '', conflict: '', theme: ''
+    },
+    status: story.status ?? 'draft',
     authorId: story.authorId?.toString?.() ?? '',
+    authorName: story.authorName ?? user.fullName ?? '',
+    authorAge: story.authorAge ?? user.age ?? 0,
+    wordCount: story.wordCount ?? (story.content ? story.content.split(/\s+/).length : 0),
+    readingTime: story.readingTime ?? 1,
+    aiTurns: story.aiTurns ?? [],
+    currentTurn: story.currentTurn ?? 0,
+    assessment: story.assessment ?? '',
+    isPublic: story.isPublic ?? true,
+    likes: story.likes ?? 0,
+    likedBy: story.likedBy ?? [],
+    views: story.views ?? 0,
+    viewedBy: story.viewedBy ?? [],
+    mentorId: story.mentorId ?? '',
+    mentorComments: story.mentorComments ?? [],
+    hasUnreadComments: story.hasUnreadComments ?? false,
+    isModerated: story.isModerated ?? false,
+    moderationFlags: story.moderationFlags ?? [],
+    excerpt: story.excerpt ?? '',
+    ageGroup: story.ageGroup ?? user.ageGroup ?? '',
+    isCompleted: story.isCompleted ?? false,
     createdAt: story.createdAt ?? new Date(),
     updatedAt: story.updatedAt ?? new Date(),
-    // add any other required fields from your StoryType here
+    publishedAt: story.publishedAt ?? undefined,
+    completedAt: story.completedAt ?? undefined,
   }));
 
   return {

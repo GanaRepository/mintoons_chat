@@ -36,7 +36,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
   showActions = true,
 }) => {
   /* --------- derived flags --------- */
-  const loggedInId = currentUser?.id ?? '';
+  const loggedInId = currentUser?._id ?? '';
   const isOwner = loggedInId === story.authorId;
   const isLiked = (story.likedBy ?? []).includes(loggedInId);
   const canEdit = isOwner && story.status !== 'published';
@@ -48,7 +48,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           {
             label: 'Edit Story',
             value: 'edit',
-            onClick: () => onEdit?.(story.id),
+            onClick: () => onEdit?.(story._id),
           },
         ]
       : []),
@@ -57,7 +57,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           {
             label: 'Delete Story',
             value: 'delete',
-            onClick: () => onDelete?.(story.id),
+            onClick: () => onDelete?.(story._id),
           },
         ]
       : []),
@@ -65,21 +65,36 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       label: 'Share Story',
       value: 'share',
       onClick: () =>
-        navigator.share?.({ title: story.title, url: `/story/${story.id}` }),
+        navigator.share?.({ title: story.title, url: `/story/${story._id}` }),
     },
   ];
 
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    onLike?.(story.id);
+    onLike?.(story._id);
   };
+
+  // Helper to safely get comment count from story
+  function getCommentCount(story: Story): number {
+    if (Array.isArray((story as any).comments)) {
+      return (story as any).comments.length;
+    }
+    if (typeof (story as any).comments === 'number') {
+      return (story as any).comments;
+    }
+    // Fallback: use mentorComments if available
+    if (Array.isArray(story.mentorComments)) {
+      return story.mentorComments.length;
+    }
+    return 0;
+  }
 
   /* --------- COMPACT card --------- */
   if (variant === 'compact') {
     return (
       <motion.div whileHover={{ y: -2 }} transition={{ duration: 0.2 }}>
-        <Link href={`/story/${story.id}`}>
+        <Link href={`/story/${story._id}`}>
           <Card className="cursor-pointer p-4 transition-shadow hover:shadow-md">
             <div className="flex items-start justify-between">
               <div className="min-w-0 flex-1">
@@ -144,7 +159,7 @@ export const StoryCard: React.FC<StoryCardProps> = ({
         <div className="p-6">
           {/* Title & excerpt */}
           <div className="mb-4">
-            <Link href={`/story/${story.id}`}>
+            <Link href={`/story/${story._id}`}>
               <h3 className="line-clamp-2 cursor-pointer text-xl font-bold text-gray-900 transition-colors hover:text-purple-600 dark:text-white dark:hover:text-purple-400">
                 {story.title}
               </h3>
@@ -209,19 +224,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({
               {/* Comments */}
               <div className="flex items-center space-x-1 text-sm">
                 <MessageCircle size={16} />
-                <span>
-                  {formatNumber(
-                    Array.isArray(story.comments)
-                      ? story.comments.length
-                      : (story.comments ?? 0)
-                  )}
-                </span>
+                <span>{formatNumber(getCommentCount(story))}</span>
               </div>
             </div>
           </div>
 
           {/* AI assessment */}
-          {story.assessment && (
+          {story.assessment && typeof story.assessment === 'object' && 'overallScore' in story.assessment ? (
             <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600 dark:text-gray-400">
@@ -230,12 +239,12 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                 <div className="flex items-center space-x-1">
                   <Star size={16} className="text-yellow-500" />
                   <span className="text-sm font-medium">
-                    {story.assessment.overallScore}/100
+                    {(story.assessment as any).overallScore}/100
                   </span>
                 </div>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </Card>
     </motion.div>

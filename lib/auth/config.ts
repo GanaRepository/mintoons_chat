@@ -13,6 +13,7 @@ const clientPromise = client.connect();
 
 // Extended user type for NextAuth (matching the types/next-auth.d.ts)
 interface ExtendedUser {
+  _id: string;
   id: string;
   email: string;
   name: string;
@@ -99,6 +100,7 @@ export const authOptions: NextAuthOptions = {
 
           // Return user object for NextAuth (matching exact types)
           return {
+            _id: user._id.toString(),
             id: user._id.toString(),
             email: user.email,
             name: user.fullName,
@@ -139,7 +141,8 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       // Initial sign in
       if (user) {
-        token.id = user.id;
+        token._id = (user as ExtendedUser)._id;
+        token.id = (user as ExtendedUser).id;
         token.role = (user as ExtendedUser).role;
         token.age = (user as ExtendedUser).age;
         token.subscriptionTier = (user as ExtendedUser).subscriptionTier;
@@ -175,7 +178,8 @@ export const authOptions: NextAuthOptions = {
 
     async session({ session, token }) {
       if (token && session.user) {
-        session.user.id = token.id;
+        session.user._id = token._id;
+        session.user.email = token.email;
         session.user.role = token.role;
         session.user.age = token.age;
         session.user.subscriptionTier = token.subscriptionTier;

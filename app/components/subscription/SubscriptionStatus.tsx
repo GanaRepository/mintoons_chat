@@ -25,7 +25,7 @@ import type {
 } from '../../../types/subscription';
 
 interface SubscriptionStatusProps {
-  currentTier: SubscriptionTierType; // Change from SubscriptionTier to SubscriptionTierType
+  currentTier: SubscriptionTierType; 
   status: Status;
   currentPeriodEnd?: Date;
   storiesUsed: number;
