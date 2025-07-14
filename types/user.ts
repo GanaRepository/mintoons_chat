@@ -1,4 +1,3 @@
-// types/user.ts - Updated User interface to match the model exactly
 export type UserRole = 'child' | 'mentor' | 'admin';
 
 export interface User {
@@ -10,7 +9,7 @@ export interface User {
   age: number;
   ageGroup: string; // Virtual field from model
   role: UserRole;
-  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO'; // Only the key!
   isActive: boolean;
   emailVerified: boolean;
   avatar?: string;
@@ -27,27 +26,24 @@ export interface User {
     | 'trialing'
     | 'incomplete';
   subscriptionExpires?: Date;
-  subscriptionCurrentPeriodEnd?: Date; // Added missing field from model
+  subscriptionCurrentPeriodEnd?: Date;
 
   // Story tracking
   storyCount: number;
   lastStoryCreated?: Date;
 
   // Virtual subscription fields
-  canCreateStory: boolean; // Virtual from model
-  remainingStories: number; // Virtual from model
+  canCreateStory: boolean;
+  remainingStories: number;
 
   // Gamification
   totalPoints: number;
   level: number;
   streak: number;
   lastActiveDate?: Date;
-  // Removed: points (duplicate of totalPoints)
-  // Removed: achievements (not in model schema)
-  // Removed: streakData (not in model schema)
 
   // Mentor-specific fields
-  assignedStudents?: string[] | User[]; // Can be populated or just IDs
+  assignedStudents?: string[] | User[];
   mentoringSince?: Date;
 
   // Email preferences (matches model structure)
@@ -81,16 +77,15 @@ export interface UserStats {
   streak: number;
   level: number;
   totalPoints: number;
-  achievements: string[]; // Keep here for stats display
+  achievements: string[];
 }
 
-// Fixed UserPreferences to match model emailPreferences structure
 export interface UserPreferences {
-  notifications: boolean; // matches model: emailPreferences.notifications
-  mentorFeedback: boolean; // matches model: emailPreferences.mentorFeedback
-  achievements: boolean; // matches model: emailPreferences.achievements
-  weeklyReports: boolean; // matches model: emailPreferences.weeklyReports
-  marketing: boolean; // matches model: emailPreferences.marketing
+  notifications: boolean;
+  mentorFeedback: boolean;
+  achievements: boolean;
+  weeklyReports: boolean;
+  marketing: boolean;
 }
 
 export interface UserActivity {
@@ -106,16 +101,16 @@ export interface MentorProfile extends User {
   role: 'mentor';
   assignedStudents: string[];
   mentoringSince: Date;
-  specializations: string[]; // Not in model - consider adding or removing
-  qualifications: string; // Not in model - consider adding or removing
-  isApproved: boolean; // Not in model - consider adding or removing
+  specializations: string[];
+  qualifications: string;
+  isApproved: boolean;
 }
 
 export interface AdminProfile extends User {
   role: 'admin';
-  permissions: string[]; // Not in model - consider adding or removing
+  permissions: string[];
   lastLoginAt?: Date;
-  adminSince: Date; // Not in model - consider adding or removing
+  adminSince: Date;
 }
 
 export interface UserSearchFilters {
@@ -144,7 +139,7 @@ export interface UserCreationData {
   age: number;
   role: UserRole;
   parentEmail?: string;
-  subscriptionTier?: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO'; // Added enum constraint
+  subscriptionTier?: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
 }
 
 export interface UserUpdateData {
@@ -154,10 +149,9 @@ export interface UserUpdateData {
   age?: number;
   bio?: string;
   avatar?: string;
-  emailPreferences?: Partial<UserPreferences>; // Changed from 'preferences' to match model
+  emailPreferences?: Partial<UserPreferences>;
 }
 
-// StreakData - consider if this should be in the User model or separate
 export interface StreakData {
   current: number;
   longest: number;

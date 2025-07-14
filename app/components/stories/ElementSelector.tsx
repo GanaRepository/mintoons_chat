@@ -34,17 +34,19 @@ type ElementOption = (typeof STORY_ELEMENTS)[ElementCategory][number];
 /* ------------------------------------------------------------------ */
 
 interface ElementSelectorProps {
+  elements: typeof STORY_ELEMENTS; // <-- FIXED TYPE
   selectedElements: Partial<StoryElements>;
-  onElementChange: (element: ElementKey, value: string) => void;
-  onComplete: () => void;
-  isDisabled?: boolean;
+  onElementsChange: (elements: Partial<StoryElements>) => void;
+  onComplete: (elements: StoryElements) => void | Promise<void>;
+  userAge: number;
 }
 
 export const ElementSelector: React.FC<ElementSelectorProps> = ({
+  elements,
   selectedElements,
-  onElementChange,
+  onElementsChange,
   onComplete,
-  isDisabled = false,
+  userAge,
 }) => {
   const [animatingElement, setAnimatingElement] =
     useState<ElementCategory | null>(null);
@@ -54,6 +56,15 @@ export const ElementSelector: React.FC<ElementSelectorProps> = ({
     cat => selectedElements[categoryToKey[cat]]
   );
   const isComplete = completed.length === 6;
+  const isDisabled = !!animatingElement; // or set your own logic
+
+  // Handler for changing an element
+  const onElementChange = (key: ElementKey, value: string) => {
+    onElementsChange({
+      ...selectedElements,
+      [key]: value,
+    });
+  };
 
   /* -------------------------- handlers --------------------------- */
 
@@ -220,7 +231,7 @@ export const ElementSelector: React.FC<ElementSelectorProps> = ({
         <Button
           variant="primary"
           size="lg"
-          onClick={onComplete}
+          onClick={() => onComplete(selectedElements as StoryElements)}
           disabled={!isComplete || isDisabled}
           className="px-8"
         >

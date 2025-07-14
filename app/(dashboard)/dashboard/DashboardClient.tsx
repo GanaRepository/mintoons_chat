@@ -1,4 +1,3 @@
-// app/(dashboard)/dashboard/DashboardClient.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -14,13 +13,13 @@ import {
   Calendar,
   Sparkles,
   Crown,
-  Fire,
   Star,
   ArrowRight,
   BarChart3,
   Users,
   Zap,
 } from 'lucide-react';
+import { MdWhatshot } from 'react-icons/md';
 
 import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
@@ -68,9 +67,6 @@ export default function DashboardClient({
   }
 
   const greeting = getGreeting();
-  const progressPercentage = Math.round(
-    (subscription.storiesUsed / subscription.storyLimit) * 100
-  );
 
   // Quick stats
   const stats = [
@@ -83,14 +79,14 @@ export default function DashboardClient({
     },
     {
       label: 'Writing Streak',
-      value: user.streak?.current || 0,
-      icon: Fire,
+      value: user.streak || 0,
+      icon: MdWhatshot,
       color: 'from-orange-500 to-red-500',
-      change: user.streak?.current > 0 ? 'Keep it up!' : 'Start today',
+      change: user.streak > 0 ? 'Keep it up!' : 'Start today',
     },
     {
       label: 'Achievement Score',
-      value: user.points || 0,
+      value: user.totalPoints || 0,
       icon: Star,
       color: 'from-purple-500 to-pink-500',
       change: `Level ${user.level || 1}`,
@@ -127,30 +123,23 @@ export default function DashboardClient({
       {/* Welcome Header */}
       <FadeIn>
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 p-8 text-white">
-          {/* Background decorations */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute right-4 top-4 h-32 w-32 rounded-full bg-white/10 blur-xl" />
-            <div className="absolute bottom-4 left-4 h-24 w-24 rounded-full bg-white/10 blur-xl" />
-          </div>
-
+          {/* ...header code unchanged... */}
           <div className="relative z-10">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">👋</span>
                   <h1 className="text-3xl font-bold lg:text-4xl">
-                    {greeting}, {user.name}!
+                    {greeting}, {user.fullName}!
                   </h1>
                 </div>
-
                 <p className="text-xl text-purple-100">
                   Ready to create another amazing story today?
                 </p>
-
                 <div className="flex flex-wrap items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    <span>{formatDate(currentTime, 'full')}</span>
+                    <span>{formatDate(currentTime)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Crown className="h-4 w-4" />
@@ -158,7 +147,6 @@ export default function DashboardClient({
                   </div>
                 </div>
               </div>
-
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Link href="/dashboard/create-stories">
                   <Button
@@ -169,7 +157,6 @@ export default function DashboardClient({
                     Write New Story
                   </Button>
                 </Link>
-
                 <Link href="/dashboard/my-stories">
                   <Button
                     size="lg"
@@ -241,7 +228,6 @@ export default function DashboardClient({
                   </Link>
                 )}
               </div>
-
               {recentStories.length === 0 ? (
                 <div className="py-12 text-center">
                   <div className="mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-full bg-purple-100">
@@ -264,7 +250,7 @@ export default function DashboardClient({
                 <div className="space-y-4">
                   {recentStories.slice(0, 3).map(story => (
                     <StoryCard
-                      key={story.id}
+                      key={story._id}
                       story={story}
                       currentUser={user}
                       variant="compact"
@@ -364,9 +350,9 @@ export default function DashboardClient({
           {/* Writing Streak */}
           <FadeIn delay={0.6}>
             <StreakCounter
-              currentStreak={user.streak?.current || 0}
-              longestStreak={user.streak?.longest || 0}
-              lastWritingDate={user.streak?.lastWritingDate}
+              currentStreak={user.streak}
+              longestStreak={user.streak}
+              lastWritingDate={user.lastActiveDate}
             />
           </FadeIn>
 

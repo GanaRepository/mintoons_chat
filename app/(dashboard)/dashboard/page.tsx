@@ -52,7 +52,7 @@ export default async function DashboardPage() {
     redirect('/login?callbackUrl=/dashboard/dashboard');
   }
 
-  const dashboardData = await getDashboardData(session.user.id);
+  const dashboardData = await getDashboardData(session.user._id);
 
   if (!dashboardData.user) {
     redirect('/login?error=UserNotFound');

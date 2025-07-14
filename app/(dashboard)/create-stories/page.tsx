@@ -10,27 +10,33 @@ import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
 import Story from '@models/Story';
 import { SubscriptionConfig } from '@config/subscription';
+import type { User as UserType } from '@/types/user';
 
 export const metadata: Metadata = {
   title: 'Create New Story',
-  description: 'Create amazing stories with AI guidance. Choose your story elements and start your collaborative writing journey.',
+  description:
+    'Create amazing stories with AI guidance. Choose your story elements and start your collaborative writing journey.',
   openGraph: {
     title: 'Create New Story | MINTOONS',
-    description: 'Start writing your next amazing story with AI guidance on MINTOONS.',
+    description:
+      'Start writing your next amazing story with AI guidance on MINTOONS.',
   },
 };
 
 async function getUserAndStoryData(userId: string) {
   await connectDB();
 
-  const [user, storyCount] = await Promise.all([
+  const [userDoc, storyCount] = await Promise.all([
     User.findById(userId).select('-password').lean(),
     Story.countDocuments({ authorId: userId }),
   ]);
 
-  if (!user) {
+  if (!userDoc) {
     return null;
   }
+
+  // Type cast the lean Mongoose result to our User interface
+  const user = userDoc as unknown as UserType;
 
   const storyLimit = SubscriptionConfig.getStoryLimit(user.subscriptionTier);
   const canCreateStory = storyCount < storyLimit;
@@ -51,21 +57,21 @@ export default async function CreateStoriesPage() {
     redirect('/login?callbackUrl=/dashboard/create-stories');
   }
 
-  const userData = await getUserAndStoryData(session.user.id);
+  const userData = await getUserAndStoryData(session.user._id);
 
   if (!userData || !userData.user) {
     redirect('/login?error=UserNotFound');
   }
 
   return (
-    <Suspense 
+    <Suspense
       fallback={
-        <div className="flex justify-center items-center min-h-[400px]">
+        <div className="flex min-h-[400px] items-center justify-center">
           <LoadingAnimation size="lg" />
         </div>
       }
     >
-      <CreateStoriesClient 
+      <CreateStoriesClient
         user={userData.user}
         storyCount={userData.storyCount}
         storyLimit={userData.storyLimit}
