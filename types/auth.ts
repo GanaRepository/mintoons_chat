@@ -1,5 +1,4 @@
-// types/auth.ts - Authentication types
-import { USER_ROLES } from '@utils/constants';
+import type { UserRole } from './user';
 
 export interface LoginCredentials {
   email: string;
@@ -13,7 +12,7 @@ export interface RegisterData {
   password: string;
   confirmPassword: string;
   age: number;
-  role?: string;
+  role?: UserRole;
   parentEmail?: string;
   termsAccepted: boolean;
 }
@@ -24,8 +23,8 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   age: number;
-  role: string;
-  subscriptionTier: string;
+  role: UserRole;
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
   isActive: boolean;
   emailVerified: boolean;
   createdAt: string;
@@ -62,15 +61,14 @@ export interface AuthResponse<T = any> {
   message?: string;
 }
 
-// NextAuth specific types
 export interface NextAuthUser {
   _id: string;
   name: string;
   email: string;
   image?: string;
-  role: string;
+  role: UserRole;
   age: number;
-  subscriptionTier: string;
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
 }
 
 export interface NextAuthSession {
@@ -82,9 +80,9 @@ export interface NextAuthToken {
   _id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
   age: number;
-  subscriptionTier: string;
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
   iat: number;
   exp: number;
 }

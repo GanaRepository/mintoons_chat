@@ -1,33 +1,34 @@
-// models/Comment.ts - Google Docs-style commenting system
 import mongoose, { Schema, Document } from 'mongoose';
-import type { Comment as CommentType } from '../types/comment';
 
 export interface CommentDocument extends Document {
   _id: mongoose.Types.ObjectId;
-  storyId: mongoose.Types.ObjectId;
-  authorId: mongoose.Types.ObjectId;
+  storyId: string;
+  authorId: string;
   authorName: string;
   authorRole: 'mentor' | 'admin';
   content: string;
-  type: CommentType;
+  type: 'grammar' | 'creativity' | 'suggestion' | 'praise' | 'improvement' | 'question';
   highlightedText?: string;
   highlightPosition?: {
     start: number;
     end: number;
   };
-  parentId?: mongoose.Types.ObjectId;
-  parentCommentId?: mongoose.Types.ObjectId;
-  replies: mongoose.Types.ObjectId[];
+  parentCommentId?: string;
+  replies: string[];
   status: 'active' | 'resolved' | 'archived';
-  resolvedBy?: mongoose.Types.ObjectId;
+  resolvedBy?: string;
   resolvedAt?: Date;
-  likes?: mongoose.Types.ObjectId[];
+  likes?: string[];
   isHelpful: boolean;
   helpfulCount: number;
   isPrivate: boolean;
   isHighPriority: boolean;
+  
+  replyCount: number;
+  
   createdAt: Date;
   updatedAt: Date;
+  
   addReply(replyData: any): Promise<CommentDocument>;
   markAsResolved(userId: string): Promise<void>;
   markAsHelpful(userId: string): Promise<void>;
@@ -36,31 +37,24 @@ export interface CommentDocument extends Document {
 const commentSchema = new Schema<CommentDocument>(
   {
     storyId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Story',
+      type: String,
       required: true,
       index: true,
     },
-
     authorId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
       required: true,
     },
-
     authorName: {
       type: String,
       required: true,
       trim: true,
     },
-
     authorRole: {
       type: String,
       enum: ['mentor', 'admin'],
       required: true,
     },
-
-    // Comment content
     content: {
       type: String,
       required: [true, 'Comment content is required'],
@@ -68,27 +62,16 @@ const commentSchema = new Schema<CommentDocument>(
       minlength: [1, 'Comment cannot be empty'],
       maxlength: [1000, 'Comment must be no more than 1000 characters'],
     },
-
     type: {
       type: String,
-      enum: [
-        'grammar',
-        'creativity',
-        'suggestion',
-        'praise',
-        'improvement',
-        'question',
-      ],
+      enum: ['grammar', 'creativity', 'suggestion', 'praise', 'improvement', 'question'],
       required: true,
     },
-
-    // Google Docs-style highlighting
     highlightedText: {
       type: String,
       trim: true,
       maxlength: [500, 'Highlighted text must be no more than 500 characters'],
     },
-
     highlightPosition: {
       start: {
         type: Number,
@@ -99,218 +82,120 @@ const commentSchema = new Schema<CommentDocument>(
         min: 0,
       },
     },
-
-    // Threading for replies
     parentCommentId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Comment',
+      type: String,
       default: null,
     },
-
     replies: [
       {
-        type: Schema.Types.ObjectId,
-        ref: 'Comment',
+        type: String,
       },
     ],
-
-    // Status and resolution
     status: {
       type: String,
       enum: ['active', 'resolved', 'archived'],
       default: 'active',
+      index: true,
     },
-
     resolvedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
     },
-
     resolvedAt: {
       type: Date,
     },
-
-    // Reactions and engagement
+    likes: [
+      {
+        type: String,
+      },
+    ],
     isHelpful: {
       type: Boolean,
       default: false,
     },
-
     helpfulCount: {
       type: Number,
       default: 0,
       min: 0,
     },
-
-    likes: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
-
-    // Visibility
     isPrivate: {
       type: Boolean,
       default: false,
+      index: true,
     },
-
     isHighPriority: {
       type: Boolean,
       default: false,
+      index: true,
     },
   },
   {
     timestamps: true,
-    toJSON: { virtuals: true },
+      toJSON: {
+      virtuals: true,
+      transform: function (doc: any, ret: any) {
+        ret._id = ret._id?.toString();
+        if (ret.storyId) ret.storyId = ret.storyId.toString();
+        if (ret.authorId) ret.authorId = ret.authorId.toString();
+        if (ret.parentCommentId) ret.parentCommentId = ret.parentCommentId.toString();
+        if (ret.resolvedBy) ret.resolvedBy = ret.resolvedBy.toString();
+        if (ret.replies) ret.replies = ret.replies.map((id: any) => id?.toString());
+        if (ret.likes) ret.likes = ret.likes.map((id: any) => id?.toString());
+        return ret;
+      },
+    },
     toObject: { virtuals: true },
   }
 );
 
-// Indexes
-commentSchema.index({ storyId: 1, parentCommentId: 1 });
-commentSchema.index({ authorId: 1, createdAt: -1 });
-commentSchema.index({ status: 1 });
+commentSchema.index({ storyId: 1, createdAt: -1 });
+commentSchema.index({ authorId: 1 });
 commentSchema.index({ type: 1 });
-commentSchema.index({ isHighPriority: 1, createdAt: -1 });
+commentSchema.index({ status: 1 });
+commentSchema.index({ parentCommentId: 1 });
 
-// Virtual for reply count
 commentSchema.virtual('replyCount').get(function (this: CommentDocument) {
-  return this.replies.length;
+  return this.replies?.length || 0;
 });
 
-// Pre-save middleware for content filtering
-commentSchema.pre('save', function (this: CommentDocument, next) {
-  // Filter content based on child safety
-  if (this.isModified('content')) {
-    // Replace potentially harsh words with more encouraging alternatives
-    const replacements: Record<string, string> = {
-      wrong: 'could be improved',
-      bad: 'needs work',
-      terrible: 'needs improvement',
-      awful: 'could be better',
-      stupid: 'unclear',
-      dumb: 'confusing',
-    };
-
-    let filteredContent = this.content;
-    Object.entries(replacements).forEach(([harsh, gentle]) => {
-      const regex = new RegExp(`\\b${harsh}\\b`, 'gi');
-      filteredContent = filteredContent.replace(regex, gentle);
-    });
-
-    this.content = filteredContent;
-  }
-
-  next();
-});
-
-// Post-save middleware to update story's unread comments flag
-commentSchema.post('save', async function (this: CommentDocument) {
-  if (this.isNew) {
-    try {
-      const Story = mongoose.model('Story');
-      await Story.findByIdAndUpdate(this.storyId, {
-        hasUnreadComments: true,
-        $push: { mentorComments: this._id },
-      });
-
-      // Create notification for story author
-      const Notification = mongoose.model('Notification');
-      const story = await Story.findById(this.storyId).populate('authorId');
-
-      if (story && story.authorId) {
-        await Notification.create({
-          userId: story.authorId._id,
-          type: 'mentor_comment',
-          title: 'New Comment on Your Story',
-          message: `${this.authorName} commented on "${story.title}"`,
-          data: {
-            storyId: this.storyId,
-            commentId: this._id,
-            commentType: this.type,
-            commentPreview: this.content.slice(0, 100),
-          },
-        });
-      }
-    } catch (error) {
-      console.error('Error updating story after comment save:', error);
-    }
-  }
-});
-
-// Method to add reply
 commentSchema.methods.addReply = async function (
   this: CommentDocument,
   replyData: any
 ): Promise<CommentDocument> {
-  const Comment = mongoose.model('Comment');
-
-  const reply = await Comment.create({
+  const reply = new Comment({
     ...replyData,
-    parentCommentId: this._id,
-    storyId: this.storyId,
+    parentCommentId: this._id.toString(),
   });
 
-  this.replies.push(reply._id);
+  await reply.save();
+
+  this.replies.push(reply._id.toString());
   await this.save();
 
   return reply;
 };
 
-// Method to mark as resolved
 commentSchema.methods.markAsResolved = async function (
   this: CommentDocument,
   userId: string
 ): Promise<void> {
   this.status = 'resolved';
-  this.resolvedBy = new mongoose.Types.ObjectId(userId);
+  this.resolvedBy = userId;
   this.resolvedAt = new Date();
   await this.save();
 };
 
-// Method to mark as helpful
 commentSchema.methods.markAsHelpful = async function (
   this: CommentDocument,
   userId: string
 ): Promise<void> {
-  const userObjectId = new mongoose.Types.ObjectId(userId);
-
   if (!this.likes) this.likes = [];
-
-  if (!this.likes.includes(userObjectId)) {
-    this.likes.push(userObjectId);
-    this.helpfulCount += 1;
+  
+  if (!this.likes.includes(userId)) {
+    this.likes.push(userId);
     this.isHelpful = true;
+    this.helpfulCount = this.likes.length;
     await this.save();
   }
-};
-
-// Static method to get comments for story
-commentSchema.statics.getStoryComments = function (storyId: string) {
-  return this.find({
-    storyId,
-    parentCommentId: null, // Only top-level comments
-  })
-    .populate('replies')
-    .populate('authorId', 'firstName lastName avatar')
-    .sort({ createdAt: 1 });
-};
-
-// Static method to get mentor activity
-commentSchema.statics.getMentorActivity = function (
-  mentorId: string,
-  days: number = 7
-) {
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - days);
-
-  return this.find({
-    authorId: mentorId,
-    createdAt: { $gte: startDate },
-  })
-    .populate('storyId', 'title authorName')
-    .sort({ createdAt: -1 });
 };
 
 const Comment =

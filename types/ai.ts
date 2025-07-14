@@ -1,29 +1,24 @@
-// types/ai.ts - AI-related types
 export type AIProvider = 'openai' | 'anthropic' | 'google';
 
-// Updated to match the actual low-cost models, but model has different enum
-// Note: The model enum needs to be updated to match these actual model names
 export type AIModel =
-  | 'gpt-4o-mini' // OpenAI budget flagship
-  | 'gpt-4o-nano' // OpenAI budget flagship
-  | 'claude-3-haiku' // Anthropic budget option
-  | 'gemini-1.5-flash' // Google budget option
-  | 'o1-mini' // OpenAI reasoning budget
-  | 'o3-mini'; // OpenAI alternative budget
+  | 'gpt-4o-mini'
+  | 'gpt-4o-nano'
+  | 'claude-3-haiku'
+  | 'gemini-1.5-flash'
+  | 'o1-mini'
+  | 'o3-mini';
 
-// Main AI Provider interface that matches the model exactly
 export interface AIProviderConfig {
   _id: string;
   provider: AIProvider;
-  modelName: AIModel; // Field name matches model
-  apiKey?: string; // Optional in interface since it's select: false
+  modelName: AIModel;
+  apiKey?: string;
   maxTokens: number;
   temperature: number;
   isActive: boolean;
   costPerToken: number;
   priority: number;
 
-  // Usage tracking - matches model structure exactly
   usage: {
     requestsToday: number;
     tokensUsed: number;
@@ -31,14 +26,12 @@ export interface AIProviderConfig {
     lastUsed?: Date;
   };
 
-  // Rate limits - matches model structure exactly
   rateLimits: {
     requestsPerMinute: number;
     requestsPerDay: number;
     tokensPerDay: number;
   };
 
-  // Performance metrics - matches model structure exactly
   performance: {
     averageResponseTime: number;
     successRate: number;
@@ -52,12 +45,10 @@ export interface AIProviderConfig {
   // Virtual field from model
   isAvailable: boolean;
 
-  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Simplified interface for basic AI configuration
 export interface AIConfiguration {
   provider: AIProvider;
   model: AIModel;
@@ -164,7 +155,6 @@ export interface AIAnalytics {
   requestsByType: Record<string, number>;
 }
 
-// Enhanced interfaces for specific model operations
 export interface AIProviderCreateData {
   provider: AIProvider;
   modelName: AIModel;
@@ -228,30 +218,8 @@ export interface AIFallbackStrategy {
   autoFailback: boolean;
 }
 
-// For provider selection logic
 export interface AIProviderSelection {
   selected: AIProviderConfig;
   reason: 'priority' | 'performance' | 'cost' | 'availability';
   alternatives: AIProviderConfig[];
-}
-
-// Document interfaces for MongoDB models (remove the redundant ones)
-export interface AIProviderDocument extends AIProviderConfig {
-  updateUsage(tokens: number, cost: number): Promise<void>;
-  resetDailyUsage(): Promise<void>;
-}
-
-// Analytics document interface (if needed elsewhere)
-export interface AnalyticsDocument {
-  _id?: string;
-  date: Date;
-  type: string;
-  metrics: {
-    aiRequests: number;
-    aiCost: number;
-    averageResponseTime: number;
-    [key: string]: number;
-  };
-  createdAt?: Date;
-  updatedAt?: Date;
 }

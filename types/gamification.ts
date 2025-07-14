@@ -1,4 +1,3 @@
-// types/gamification.ts
 import type { Achievement } from './achievement';
 
 export type RewardType =
@@ -15,20 +14,15 @@ export interface Reward {
   description: string;
   points?: number;
 
-  // Achievement-specific
   achievement?: Achievement;
 
-  // Level-specific
   newLevel?: number;
   previousLevel?: number;
 
-  // Streak-specific
   streakDays?: number;
 
-  // Special reward data
   specialData?: Record<string, any>;
 
-  // Metadata
   createdAt: Date;
   claimedAt?: Date;
   isClaimed?: boolean;

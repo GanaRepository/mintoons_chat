@@ -1,4 +1,3 @@
-// types/assessment.ts - Story assessment types
 export interface StoryAssessment {
   _id: string;
   storyId: string;

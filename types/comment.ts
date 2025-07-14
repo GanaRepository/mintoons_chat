@@ -1,4 +1,3 @@
-// types/comment.ts - Comment system types
 export type CommentType =
   | 'grammar'
   | 'creativity'
@@ -9,57 +8,45 @@ export type CommentType =
 
 export type CommentStatus = 'active' | 'resolved' | 'archived';
 
-// Main comment interface that matches the model exactly
 export interface Comment {
   _id: string;
   storyId: string;
-  authorId: string; // mentor or admin ID
+  authorId: string;
   authorName: string;
   authorRole: 'mentor' | 'admin';
-
-  // Comment content
   content: string;
   type: CommentType;
 
-  // Google Docs-style highlighting
   highlightedText?: string;
   highlightPosition?: {
     start: number;
     end: number;
   };
 
-  // Threading for replies - Fixed field names to match model
-  parentCommentId?: string; // Model uses parentCommentId, not parentId
-  replies: string[]; // Array of Comment IDs, not full Comment objects
+  parentCommentId?: string;
+  replies: string[];
 
-  // Status and resolution
   status: CommentStatus;
   resolvedBy?: string;
   resolvedAt?: Date;
 
-  // Reactions and engagement
-  likes?: string[]; // Array of User IDs who liked
+  likes?: string[];
   isHelpful: boolean;
   helpfulCount: number;
 
-  // Visibility
-  isPrivate: boolean; // Only visible to author and mentors
+  isPrivate: boolean;
   isHighPriority: boolean;
 
-  // Virtual field from model
-  replyCount: number; // Virtual field: replies.length
+  replyCount: number;
 
-  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
 
-// For populated comment data (when replies are populated)
 export interface CommentWithReplies extends Omit<Comment, 'replies'> {
-  replies: Comment[]; // Populated reply objects
+  replies: Comment[];
 }
 
-// For populated comment data (when author is populated)
 export interface CommentWithAuthor extends Comment {
   author: {
     _id: string;
@@ -78,9 +65,9 @@ export interface CommentThread {
 
 export interface CommentCreationData {
   storyId: string;
-  authorId: string; // Required field from model
-  authorName: string; // Required field from model
-  authorRole: 'mentor' | 'admin'; // Required field from model
+  authorId: string;
+  authorName: string;
+  authorRole: 'mentor' | 'admin';
   content: string;
   type: CommentType;
   highlightedText?: string;
@@ -106,10 +93,10 @@ export interface CommentFilters {
   authorId?: string;
   type?: CommentType;
   status?: CommentStatus;
-  parentCommentId?: string; // Filter for top-level vs replies
+  parentCommentId?: string;
   isResolved?: boolean;
   isHighPriority?: boolean;
-  isPrivate?: boolean; // Added from model
+  isPrivate?: boolean;
   dateFrom?: Date;
   dateTo?: Date;
   search?: string;
@@ -122,24 +109,24 @@ export interface CommentFilters {
 export interface CommentStats {
   totalComments: number;
   commentsByType: Record<CommentType, number>;
-  commentsByStatus: Record<CommentStatus, number>; // Added
+  commentsByStatus: Record<CommentStatus, number>;
   averageCommentsPerStory: number;
   resolvedComments: number;
   resolutionRate: number;
-  helpfulComments: number; // Added
-  privateComments: number; // Added
-  highPriorityComments: number; // Added
+  helpfulComments: number;
+  privateComments: number;
+  highPriorityComments: number;
   mostActiveCommenters: {
     authorId: string;
     authorName: string;
     commentCount: number;
-    authorRole: 'mentor' | 'admin'; // Added
+    authorRole: 'mentor' | 'admin';
   }[];
 }
 
 export interface CommentNotification {
   _id: string;
-  userId: string; // story author
+  userId: string;
   commentId: string;
   storyId: string;
   commentAuthor: string;
@@ -155,7 +142,7 @@ export interface CommentActivity {
   pendingReplies: Comment[];
   unresolvedComments: Comment[];
   commentsThisWeek: number;
-  averageResponseTime: number; // in hours
+  averageResponseTime: number;
 }
 
 export interface MentorCommentingGuidelines {
@@ -169,7 +156,6 @@ export interface MentorCommentingGuidelines {
   encouragementTips: string[];
 }
 
-// Additional interfaces for specific use cases
 export interface CommentSearchResult {
   comments: Comment[];
   total: number;
@@ -210,7 +196,6 @@ export interface MentorCommentActivity {
   };
 }
 
-// For reply creation
 export interface ReplyCreationData {
   content: string;
   authorId: string;

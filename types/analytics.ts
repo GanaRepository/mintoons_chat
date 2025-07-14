@@ -1,7 +1,3 @@
-// types/analytics.ts
-import type { StoryStatus } from './story';
-import type { SubscriptionTierType } from './subscription';
-
 export type ChartType = 'line' | 'area' | 'bar' | 'pie';
 export type TimeRange = '24h' | '7d' | '30d' | '90d' | '1y';
 export type AnalyticsType = 'daily' | 'weekly' | 'monthly';
@@ -23,61 +19,49 @@ export interface ChartProps {
   error?: string;
 }
 
-// Core analytics interface that matches the model exactly
 export interface Analytics {
   _id: string;
   date: Date;
   type: AnalyticsType;
 
-  // Platform metrics - matches model structure exactly
   metrics: {
-    // User metrics
     totalUsers: number;
     newUsers: number;
     activeUsers: number;
     childUsers: number;
     mentorUsers: number;
-
-    // Story metrics
     totalStories: number;
     newStories: number;
     completedStories: number;
     publishedStories: number;
     totalWords: number;
     averageWordsPerStory: number;
-
-    // Assessment metrics
     totalAssessments: number;
     averageGrammarScore: number;
     averageCreativityScore: number;
     averageOverallScore: number;
-
-    // Comment metrics
     totalComments: number;
     newComments: number;
     resolvedComments: number;
-
-    // Subscription metrics
     totalSubscriptions: number;
     newSubscriptions: number;
     canceledSubscriptions: number;
     revenue: number;
-
-    // Engagement metrics
     sessionDuration: number;
     storiesPerUser: number;
     commentsPerStory: number;
-
-    // AI metrics
     aiRequests: number;
     aiCost: number;
     averageResponseTime: number;
   };
 
-  // Breakdown by subscription tier - matches model structure
-  tierBreakdown: Record<SubscriptionTierType, number>;
+  tierBreakdown: {
+    FREE: number;
+    BASIC: number;
+    PREMIUM: number;
+    PRO: number;
+  };
 
-  // Breakdown by age group - matches model structure
   ageBreakdown: {
     toddler: number;
     preschool: number;
@@ -87,7 +71,6 @@ export interface Analytics {
     high_school: number;
   };
 
-  // Timestamps
   createdAt: Date;
   updatedAt: Date;
 }
@@ -131,14 +114,11 @@ export interface RevenueAnalytics {
     value: number;
     label?: string;
   }>;
-  subscriptionBreakdown?: Record<
-    SubscriptionTierType,
-    {
-      revenue: number;
-      subscribers: number;
-      percentage: number;
-    }
-  >;
+  subscriptionBreakdown?: Record<'FREE' | 'BASIC' | 'PREMIUM' | 'PRO', {
+    revenue: number;
+    subscribers: number;
+    percentage: number;
+  }>;
   forecastData?: Array<{
     date: string;
     value: number;
@@ -148,7 +128,7 @@ export interface RevenueAnalytics {
   confidenceLevel?: number;
   previousMRR?: number;
   previousARPU?: number;
-}
+  }
 
 export interface StoryAnalytics {
   totalStories: number;
@@ -161,15 +141,13 @@ export interface StoryAnalytics {
   totalComments: number;
   engagementRate: number;
   previousEngagementRate?: number;
-
-  // Enhanced with model data
   completedStories: number;
   publishedStories: number;
   totalWords: number;
   averageWordsPerStory: number;
 
   statusDistribution?: Array<{
-    status: StoryStatus;
+    status: 'draft' | 'in_progress' | 'completed' | 'published' | 'archived';
     count: number;
     percentage: number;
   }>;
@@ -215,8 +193,6 @@ export interface UserAnalytics {
   previousNewUsers?: number;
   activeUsers: number;
   previousActiveUsers?: number;
-
-  // Enhanced with model data
   childUsers: number;
   mentorUsers: number;
   retentionRate?: number;
@@ -254,7 +230,6 @@ export interface UserAnalytics {
   }>;
 }
 
-// Additional interfaces for analytics operations
 export interface AnalyticsPeriod {
   startDate: Date;
   endDate: Date;
@@ -315,24 +290,22 @@ export interface DashboardMetrics {
   };
 
   breakdown: {
-    tierDistribution: Record<SubscriptionTierType, number>;
+    tierDistribution: Record<'FREE' | 'BASIC' | 'PREMIUM' | 'PRO', number>;
     ageDistribution: Record<string, number>;
-    statusDistribution: Record<StoryStatus, number>;
+    statusDistribution: Record<'draft' | 'in_progress' | 'completed' | 'published' | 'archived', number>;
   };
 
   lastUpdated: Date;
 }
 
-// For creating analytics records
 export interface AnalyticsCreateData {
   date: Date;
   type: AnalyticsType;
   metrics: Partial<Analytics['metrics']>;
-  tierBreakdown?: Partial<Record<SubscriptionTierType, number>>;
+  tierBreakdown?: Partial<Analytics['tierBreakdown']>;
   ageBreakdown?: Partial<Analytics['ageBreakdown']>;
 }
 
-// For filtering analytics queries
 export interface AnalyticsFilters {
   startDate?: Date;
   endDate?: Date;

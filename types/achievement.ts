@@ -1,4 +1,3 @@
-// types/achievement.ts - Gamification and achievement types
 export type AchievementType =
   | 'story_milestone'
   | 'quality_score'
@@ -6,6 +5,7 @@ export type AchievementType =
   | 'creativity'
   | 'grammar'
   | 'special';
+
 export type AchievementRarity =
   | 'common'
   | 'uncommon'
@@ -14,26 +14,24 @@ export type AchievementRarity =
   | 'legendary';
 
 export interface Achievement {
-  _id: string; // unique identifier
+  _id: string;
   name: string;
   description: string;
   icon: string;
   type: AchievementType;
   rarity: AchievementRarity;
-
-  // Requirements
   criteria: AchievementCriteria;
   points: number;
-
-  // UI properties
   color: string;
   badgeImage?: string;
   unlockedMessage: string;
-
-  // Metadata
   isActive: boolean;
   sortOrder: number;
   createdAt: Date;
+  updatedAt: Date;
+  
+  // Virtual fields from model
+  rarityColor: string;
 }
 
 export interface AchievementCriteria {
@@ -55,22 +53,21 @@ export interface UserAchievement {
   _id: string;
   userId: string;
   achievementId: string;
-  achievement: Achievement;
-
-  // Progress tracking
-  progress: number; // 0-100 percentage
+  achievement: string; // ObjectId reference, not populated object
+  progress: number;
   isCompleted: boolean;
   completedAt?: Date;
-
-  // Context
-  storyId?: string; // if unlocked by specific story
+  storyId?: string;
   triggerEvent: string;
-
-  // Notification
   isNotified: boolean;
   notifiedAt?: Date;
-
   createdAt: Date;
+  updatedAt: Date;
+}
+
+// For when achievement is populated
+export interface UserAchievementWithPopulated extends Omit<UserAchievement, 'achievement'> {
+  achievement: Achievement;
 }
 
 export interface AchievementProgress {
@@ -83,7 +80,7 @@ export interface UserLevel {
   totalPoints: number;
   pointsInCurrentLevel: number;
   pointsToNextLevel: number;
-  levelProgress: number; // 0-100 percentage
+  levelProgress: number;
   levelBenefits: string[];
   nextLevelBenefits: string[];
 }
@@ -112,7 +109,7 @@ export interface LeaderboardEntry {
   avatar?: string;
   position: number;
   score: number;
-  change: number; // position change from last week
+  change: number;
   category: 'points' | 'stories' | 'creativity' | 'grammar';
 }
 
@@ -126,7 +123,7 @@ export interface Leaderboard {
 }
 
 export interface Badge {
- _id: string;
+  _id: string;
   name: string;
   description: string;
   icon: string;
@@ -149,32 +146,23 @@ export interface Challenge {
   title: string;
   description: string;
   type: 'daily' | 'weekly' | 'monthly' | 'special';
-
-  // Requirements
   requirements: {
     storiesRequired?: number;
     minWordCount?: number;
     specificGenre?: string;
     qualityThreshold?: number;
-    timeLimit?: number; // in hours
+    timeLimit?: number;
   };
-
-  // Rewards
   rewards: {
     points: number;
     badges: string[];
     specialPerks: string[];
   };
-
-  // Timing
   startDate: Date;
   endDate: Date;
   isActive: boolean;
-
-  // Participation
   participantCount: number;
   completionCount: number;
-
   createdAt: Date;
 }
 
@@ -183,17 +171,12 @@ export interface UserChallenge {
   userId: string;
   challengeId: string;
   challenge: Challenge;
-
-  // Progress
   isParticipating: boolean;
   progress: Record<string, any>;
   isCompleted: boolean;
   completedAt?: Date;
-
-  // Rewards claimed
   rewardsClaimed: boolean;
   claimedAt?: Date;
-
   joinedAt: Date;
 }
 

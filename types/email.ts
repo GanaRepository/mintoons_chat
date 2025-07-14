@@ -1,4 +1,3 @@
-// types/email.ts - Email template and notification types
 export type EmailType =
   | 'welcome'
   | 'password_reset'
@@ -127,20 +126,16 @@ export interface EmailQueue {
   text: string;
   type: EmailType;
 
-  // Queue management
   status: 'pending' | 'sending' | 'sent' | 'failed' | 'retry';
   attempts: number;
   maxAttempts: number;
 
-  // Scheduling
   scheduledFor: Date;
   sentAt?: Date;
 
-  // Error handling
   error?: string;
   lastAttemptAt?: Date;
 
-  // Metadata
   userId?: string;
   metadata: Record<string, any>;
 
@@ -157,23 +152,19 @@ export interface EmailStats {
   bounceRate: number;
   unsubscribeRate: number;
 
-  // By email type
-  statsByType: Record<
-    EmailType,
-    {
-      sent: number;
-      failed: number;
-      opened: number;
-      clicked: number;
-    }
-  >;
+ statsByType: Record<EmailType, {
+  sent: number;
+  failed: number;
+  opened: number;
+  clicked: number;
+}>;
 
-  // Recent activity
-  recentActivity: {
-    date: Date;
-    sent: number;
-    failed: number;
-  }[];
+recentActivity: Array<{
+  date: Date;
+  sent: number;
+  failed: number;
+}>;
+
 }
 
 export interface EmailPreferences {
@@ -186,10 +177,8 @@ export interface EmailPreferences {
   marketingEmails: boolean;
   reminderEmails: boolean;
 
-  // Frequency preferences
   digestFrequency: 'immediate' | 'daily' | 'weekly' | 'never';
 
-  // Unsubscribe tracking
   unsubscribedFrom: EmailType[];
   unsubscribedAt?: Date;
 
@@ -203,7 +192,6 @@ export interface EmailCampaign {
   subject: string;
   content: string;
 
-  // Targeting
   targetAudience: {
     ageMin?: number;
     ageMax?: number;
@@ -215,11 +203,9 @@ export interface EmailCampaign {
     hasCompletedStories?: boolean;
   };
 
-  // Scheduling
   scheduledFor: Date;
   status: 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled';
 
-  // Results
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
@@ -227,7 +213,6 @@ export interface EmailCampaign {
   clickCount: number;
   unsubscribeCount: number;
 
-  // Timestamps
   createdAt: Date;
   sentAt?: Date;
   completedAt?: Date;
@@ -253,18 +238,18 @@ export interface EmailAnalytics {
     unsubscribeRate: number;
   };
 
-  trends: {
+  trends: Array<{
     date: Date;
     sent: number;
     opened: number;
     clicked: number;
-  }[];
+  }>;
 
-  topPerformingTemplates: {
+  topPerformingTemplates: Array<{
     templateId: string;
     templateName: string;
     openRate: number;
     clickRate: number;
     sentCount: number;
-  }[];
+  }>;
 }

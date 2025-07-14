@@ -1,62 +1,68 @@
 export type UserRole = 'child' | 'mentor' | 'admin';
 
+export interface UserPreferences {
+  notifications: boolean;
+  mentorFeedback: boolean;
+  achievements: boolean;
+  weeklyReports: boolean;
+  marketing: boolean;
+}
+
+export interface StreakData {
+  current: number;
+  longest: number;
+  lastStoryDate: Date | null;
+  milestones: number[];
+  totalRewards: number;
+}
+
 export interface User {
   _id: string;
   firstName: string;
   lastName: string;
-  fullName: string; // Virtual field from model (firstName + lastName)
   email: string;
   age: number;
-  ageGroup: string; // Virtual field from model
   role: UserRole;
-  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO'; // Only the key!
+  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
   isActive: boolean;
   emailVerified: boolean;
   avatar?: string;
   bio?: string;
   parentEmail?: string;
 
-  // Subscription details
   stripeCustomerId?: string;
   subscriptionId?: string;
-  subscriptionStatus?:
-    | 'active'
-    | 'canceled'
-    | 'past_due'
-    | 'trialing'
-    | 'incomplete';
+  subscriptionStatus?: 'active' | 'canceled' | 'past_due' | 'trialing' | 'incomplete';
   subscriptionExpires?: Date;
-  subscriptionCurrentPeriodEnd?: Date;
 
-  // Story tracking
   storyCount: number;
   lastStoryCreated?: Date;
 
-  // Virtual subscription fields
-  canCreateStory: boolean;
-  remainingStories: number;
-
-  // Gamification
   totalPoints: number;
   level: number;
   streak: number;
   lastActiveDate?: Date;
 
-  // Mentor-specific fields
-  assignedStudents?: string[] | User[];
+  assignedStudents?: string[];
   mentoringSince?: Date;
 
-  // Email preferences (matches model structure)
   emailPreferences: UserPreferences;
 
-  // Security fields from model
   lastLoginAt?: Date;
   loginAttempts: number;
   lockUntil?: Date;
 
-  // Timestamps
+  fullName: string;
+  ageGroup: string;
+  canCreateStory: boolean;
+  remainingStories: number;
+
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface UserWithAssignedStudents extends Omit<User, 'assignedStudents'> {
+  assignedStudents: User[];
 }
 
 export interface UserProfile {
@@ -78,14 +84,6 @@ export interface UserStats {
   level: number;
   totalPoints: number;
   achievements: string[];
-}
-
-export interface UserPreferences {
-  notifications: boolean;
-  mentorFeedback: boolean;
-  achievements: boolean;
-  weeklyReports: boolean;
-  marketing: boolean;
 }
 
 export interface UserActivity {
@@ -150,12 +148,4 @@ export interface UserUpdateData {
   bio?: string;
   avatar?: string;
   emailPreferences?: Partial<UserPreferences>;
-}
-
-export interface StreakData {
-  current: number;
-  longest: number;
-  lastStoryDate: Date | null;
-  milestones: number[];
-  totalRewards: number;
 }

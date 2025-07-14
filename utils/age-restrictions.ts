@@ -1,4 +1,3 @@
-// utils/age-restrictions.ts - Age-based content filtering
 import { AGE_GROUPS } from './constants';
 
 export interface AgeGroup {
@@ -15,7 +14,7 @@ export interface ContentRating {
 }
 
 /**
- * Get age group for a given age
+ * Get age group for a given age using constants
  */
 export function getAgeGroup(age: number): AgeGroup | null {
   const groups = Object.values(AGE_GROUPS);
@@ -40,7 +39,18 @@ export function needsParentalConsent(age: number): boolean {
  * Get content rating based on age
  */
 export function getContentRating(age: number): ContentRating {
-  if (age >= 2 && age <= 4) {
+  const ageGroup = getAgeGroup(age);
+  
+  if (!ageGroup) {
+    return {
+      minAge: 2,
+      maxAge: 18,
+      restrictions: ['Content under review'],
+      allowedFeatures: ['Basic access'],
+    };
+  }
+
+  if (ageGroup === AGE_GROUPS.TODDLER) {
     return {
       minAge: 2,
       maxAge: 4,
@@ -60,7 +70,7 @@ export function getContentRating(age: number): ContentRating {
     };
   }
 
-  if (age >= 5 && age <= 6) {
+  if (ageGroup === AGE_GROUPS.PRESCHOOL) {
     return {
       minAge: 5,
       maxAge: 6,
@@ -79,7 +89,7 @@ export function getContentRating(age: number): ContentRating {
     };
   }
 
-  if (age >= 7 && age <= 9) {
+  if (ageGroup === AGE_GROUPS.EARLY_ELEMENTARY) {
     return {
       minAge: 7,
       maxAge: 9,
@@ -99,7 +109,7 @@ export function getContentRating(age: number): ContentRating {
     };
   }
 
-  if (age >= 10 && age <= 12) {
+  if (ageGroup === AGE_GROUPS.LATE_ELEMENTARY) {
     return {
       minAge: 10,
       maxAge: 12,
@@ -120,7 +130,7 @@ export function getContentRating(age: number): ContentRating {
     };
   }
 
-  if (age >= 13 && age <= 15) {
+  if (ageGroup === AGE_GROUPS.MIDDLE_SCHOOL) {
     return {
       minAge: 13,
       maxAge: 15,
@@ -141,7 +151,7 @@ export function getContentRating(age: number): ContentRating {
     };
   }
 
-  if (age >= 16 && age <= 18) {
+  if (ageGroup === AGE_GROUPS.HIGH_SCHOOL) {
     return {
       minAge: 16,
       maxAge: 18,
@@ -229,16 +239,10 @@ function ensurePositiveTone(response: string): string {
   ];
 
   // Simple check - if response doesn't start with encouragement, add some
-  const hasPositiveStart =
-    /^(great|wonderful|amazing|fantastic|excellent|love|perfect)/i.test(
-      response
-    );
+  const hasPositiveStart = /^(great|wonderful|amazing|fantastic|excellent|love|perfect)/i.test(response);
 
   if (!hasPositiveStart) {
-    const starter =
-      encouragingStarters[
-        Math.floor(Math.random() * encouragingStarters.length)
-      ];
+    const starter = encouragingStarters[Math.floor(Math.random() * encouragingStarters.length)];
     return `${starter} ${response}`;
   }
 
@@ -256,22 +260,23 @@ export function isFeatureAllowed(feature: string, age: number): boolean {
 /**
  * Get story length recommendations by age
  */
-
 export function getAgeAppropriateTarget(age: number): number {
-  if (age <= 4) return 100;
-  if (age <= 6) return 200;
-  if (age <= 9) return 300;
-  if (age <= 12) return 500;
-  if (age <= 15) return 700;
-  return 900; // 16-18
+  const ageGroup = getAgeGroup(age);
+  
+  if (ageGroup === AGE_GROUPS.TODDLER) return 100;
+  if (ageGroup === AGE_GROUPS.PRESCHOOL) return 200;
+  if (ageGroup === AGE_GROUPS.EARLY_ELEMENTARY) return 300;
+  if (ageGroup === AGE_GROUPS.LATE_ELEMENTARY) return 500;
+  if (ageGroup === AGE_GROUPS.MIDDLE_SCHOOL) return 700;
+  if (ageGroup === AGE_GROUPS.HIGH_SCHOOL) return 900;
+  
+  return 300; // Default
 }
 
 /**
  * Get AI complexity level based on age
  */
-export function getAIComplexityLevel(
-  age: number
-): 'simple' | 'moderate' | 'advanced' {
+export function getAIComplexityLevel(age: number): 'simple' | 'moderate' | 'advanced' {
   if (age <= 6) return 'simple';
   if (age <= 12) return 'moderate';
   return 'advanced';
@@ -280,9 +285,7 @@ export function getAIComplexityLevel(
 /**
  * Get vocabulary level for AI responses
  */
-export function getVocabularyLevel(
-  age: number
-): 'basic' | 'intermediate' | 'advanced' {
+export function getVocabularyLevel(age: number): 'basic' | 'intermediate' | 'advanced' {
   if (age <= 8) return 'basic';
   if (age <= 14) return 'intermediate';
   return 'advanced';
@@ -298,9 +301,7 @@ export function requiresPreModeration(age: number): boolean {
 /**
  * Get parental notification requirements
  */
-export function getParentalNotificationLevel(
-  age: number
-): 'none' | 'summary' | 'detailed' {
+export function getParentalNotificationLevel(age: number): 'none' | 'summary' | 'detailed' {
   if (age >= 16) return 'none';
   if (age >= 13) return 'summary';
   return 'detailed';

@@ -1,5 +1,5 @@
-// utils/formatters.ts - Data formatting utilities
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { AGE_GROUPS, ASSESSMENT_CRITERIA, SUBSCRIPTION_STATUS } from './constants';
 
 /**
  * Format price - handles both cents and dollars
@@ -32,10 +32,7 @@ export function formatNumber(num: number): string {
 /**
  * Format percentage (0.75 -> 75%)
  */
-export function formatPercentage(
-  decimal: number,
-  decimals: number = 0
-): string {
+export function formatPercentage(decimal: number, decimals: number = 0): string {
   return `${(decimal * 100).toFixed(decimals)}%`;
 }
 
@@ -79,10 +76,7 @@ export function formatStoryCount(count: number): string {
 /**
  * Format story remaining count
  */
-export function formatRemainingStories(
-  remaining: number,
-  total: number
-): string {
+export function formatRemainingStories(remaining: number, total: number): string {
   if (remaining === 0) return 'No stories remaining';
   return `${remaining} of ${total} stories remaining`;
 }
@@ -127,7 +121,7 @@ export function formatRelativeTime(date: string | Date): string {
 }
 
 /**
- * Format assessment score with label
+ * Format assessment score with label using constants
  */
 export function formatAssessmentScore(score: number): {
   score: string;
@@ -136,14 +130,30 @@ export function formatAssessmentScore(score: number): {
 } {
   const formattedScore = `${score}/100`;
 
-  if (score >= 90) {
-    return { score: formattedScore, label: 'Excellent', color: 'green' };
-  } else if (score >= 75) {
-    return { score: formattedScore, label: 'Good', color: 'blue' };
-  } else if (score >= 60) {
-    return { score: formattedScore, label: 'Fair', color: 'yellow' };
+  if (score >= ASSESSMENT_CRITERIA.OVERALL.EXCELLENT.min) {
+    return { 
+      score: formattedScore, 
+      label: ASSESSMENT_CRITERIA.OVERALL.EXCELLENT.label, 
+      color: ASSESSMENT_CRITERIA.OVERALL.EXCELLENT.color 
+    };
+  } else if (score >= ASSESSMENT_CRITERIA.OVERALL.GOOD.min) {
+    return { 
+      score: formattedScore, 
+      label: ASSESSMENT_CRITERIA.OVERALL.GOOD.label, 
+      color: ASSESSMENT_CRITERIA.OVERALL.GOOD.color 
+    };
+  } else if (score >= ASSESSMENT_CRITERIA.OVERALL.FAIR.min) {
+    return { 
+      score: formattedScore, 
+      label: ASSESSMENT_CRITERIA.OVERALL.FAIR.label, 
+      color: ASSESSMENT_CRITERIA.OVERALL.FAIR.color 
+    };
   } else {
-    return { score: formattedScore, label: 'Needs Improvement', color: 'red' };
+    return { 
+      score: formattedScore, 
+      label: ASSESSMENT_CRITERIA.OVERALL.NEEDS_IMPROVEMENT.label, 
+      color: ASSESSMENT_CRITERIA.OVERALL.NEEDS_IMPROVEMENT.color 
+    };
   }
 }
 
@@ -199,15 +209,14 @@ export function formatUserName(user: {
 }
 
 /**
- * Format age group from age
+ * Format age group from age using constants
  */
 export function formatAgeGroup(age: number): string {
-  if (age >= 2 && age <= 4) return 'Toddler (2-4)';
-  if (age >= 5 && age <= 6) return 'Preschool (5-6)';
-  if (age >= 7 && age <= 9) return 'Early Elementary (7-9)';
-  if (age >= 10 && age <= 12) return 'Late Elementary (10-12)';
-  if (age >= 13 && age <= 15) return 'Middle School (13-15)';
-  if (age >= 16 && age <= 18) return 'High School (16-18)';
+  for (const group of Object.values(AGE_GROUPS)) {
+    if (age >= group.min && age <= group.max) {
+      return group.label;
+    }
+  }
   return 'Unknown';
 }
 
@@ -262,27 +271,31 @@ export function formatReadingTime(wordCount: number): string {
 }
 
 /**
- * Format subscription status
+ * Format subscription status using constants
  */
 export function formatSubscriptionStatus(status: string): {
   label: string;
   color: string;
 } {
   switch (status) {
-    case 'active':
+    case SUBSCRIPTION_STATUS.ACTIVE:
       return { label: 'Active', color: 'green' };
-    case 'canceled':
+    case SUBSCRIPTION_STATUS.CANCELED:
       return { label: 'Canceled', color: 'red' };
-    case 'past_due':
+    case SUBSCRIPTION_STATUS.PAST_DUE:
       return { label: 'Past Due', color: 'orange' };
-    case 'trialing':
+    case SUBSCRIPTION_STATUS.TRIALING:
       return { label: 'Trial', color: 'blue' };
+    case SUBSCRIPTION_STATUS.INCOMPLETE:
+      return { label: 'Incomplete', color: 'yellow' };
     default:
       return { label: 'Unknown', color: 'gray' };
   }
 }
 
-// Define this function in a suitable file, such as utils/formatters.ts
+/**
+ * Format error message
+ */
 export function formatErrorMessage(error: any): string {
   if (typeof error === 'string') {
     return error;
@@ -292,8 +305,6 @@ export function formatErrorMessage(error: any): string {
   }
   return 'An unknown error occurred';
 }
-
-// Add this function to utils/formatters.ts
 
 /**
  * Format time ago (alias for formatRelativeTime for compatibility)

@@ -1,4 +1,3 @@
-// models/AIProvider.ts - AI provider configuration model
 import mongoose, { Schema, Document } from 'mongoose';
 import type { AIProvider as AIProviderType, AIModel } from '../types/ai';
 
@@ -11,12 +10,11 @@ export interface AIProviderDocument extends Document {
   isActive: boolean;
   costPerToken: number;
   priority: number;
-
   usage: {
     requestsToday: number;
     tokensUsed: number;
     costToday: number;
-    lastUsed: Date;
+    lastUsed?: Date;
   };
   rateLimits: {
     requestsPerMinute: number;
@@ -27,13 +25,17 @@ export interface AIProviderDocument extends Document {
     averageResponseTime: number;
     successRate: number;
     errorCount: number;
-    lastError: {
+    lastError?: {
       message: string;
       timestamp: Date;
     };
   };
+  
+  isAvailable: boolean;
+  
   createdAt: Date;
   updatedAt: Date;
+  
   updateUsage(tokens: number, cost: number): Promise<void>;
   resetDailyUsage(): Promise<void>;
 }
@@ -46,25 +48,16 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       required: true,
       index: true,
     },
-
     modelName: {
       type: String,
-      enum: [
-        'gpt-4o-mini', // OpenAI budget flagship
-        'gpt-4o-nano',
-        'claude-3-haiku', // Anthropic budget option
-        'gemini-1.5-flash', // Google budget option
-        'o1-mini', // OpenAI reasoning budget
-        'o3-mini', // OpenAI alternative budget
-      ],
+      enum: ['gpt-4o-mini', 'gpt-4o-nano', 'claude-3-haiku', 'gemini-1.5-flash', 'o1-mini', 'o3-mini'],
       required: true,
     },
     apiKey: {
       type: String,
       required: true,
-      select: false, // Don't include in queries by default
+      select: false,
     },
-
     maxTokens: {
       type: Number,
       required: true,
@@ -72,7 +65,6 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       max: 4000,
       default: 1000,
     },
-
     temperature: {
       type: Number,
       required: true,
@@ -80,19 +72,16 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       max: 2,
       default: 0.7,
     },
-
     isActive: {
       type: Boolean,
       default: true,
       index: true,
     },
-
     costPerToken: {
       type: Number,
       required: true,
       min: 0,
     },
-
     priority: {
       type: Number,
       required: true,
@@ -100,8 +89,6 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       max: 10,
       default: 5,
     },
-
-    // Usage tracking
     usage: {
       requestsToday: {
         type: Number,
@@ -122,8 +109,6 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
         type: Date,
       },
     },
-
-    // Rate limiting
     rateLimits: {
       requestsPerMinute: {
         type: Number,
@@ -138,8 +123,6 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
         default: 100000,
       },
     },
-
-    // Performance metrics
     performance: {
       averageResponseTime: {
         type: Number,
@@ -168,7 +151,7 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
       virtuals: true,
       transform: function (doc, ret) {
         if (ret.apiKey !== undefined) {
-          delete ret.apiKey; // Never expose API key
+          delete ret.apiKey;
         }
         return ret;
       },
@@ -177,31 +160,19 @@ const aiProviderSchema = new Schema<AIProviderDocument>(
   }
 );
 
-// Indexes
-aiProviderSchema.index({ provider: 1, model: 1 }, { unique: true });
+aiProviderSchema.index({ provider: 1, modelName: 1 }, { unique: true });
 aiProviderSchema.index({ isActive: 1, priority: -1 });
 
-// Virtual for availability status
-aiProviderSchema.virtual('isAvailable').get(function (
-  this: AIProviderDocument
-) {
+aiProviderSchema.virtual('isAvailable').get(function (this: AIProviderDocument) {
   const now = new Date();
-  const lastUsed = this.usage.lastUsed;
-
-  // Check if within rate limits
-  const withinDailyLimit =
-    this.usage.requestsToday < this.rateLimits.requestsPerDay;
+  const withinDailyLimit = this.usage.requestsToday < this.rateLimits.requestsPerDay;
   const withinTokenLimit = this.usage.tokensUsed < this.rateLimits.tokensPerDay;
-
-  // Check if not recently errored (within last 5 minutes)
-  const recentError =
-    this.performance.lastError?.timestamp &&
+  const recentError = this.performance.lastError?.timestamp &&
     now.getTime() - this.performance.lastError.timestamp.getTime() < 300000;
 
   return this.isActive && withinDailyLimit && withinTokenLimit && !recentError;
 });
 
-// Method to update usage
 aiProviderSchema.methods.updateUsage = async function (
   this: AIProviderDocument,
   tokens: number,
@@ -214,25 +185,20 @@ aiProviderSchema.methods.updateUsage = async function (
   await this.save();
 };
 
-// Method to reset daily usage
-aiProviderSchema.methods.resetDailyUsage = async function (
-  this: AIProviderDocument
-): Promise<void> {
+aiProviderSchema.methods.resetDailyUsage = async function (this: AIProviderDocument): Promise<void> {
   this.usage.requestsToday = 0;
   this.usage.tokensUsed = 0;
   this.usage.costToday = 0;
   await this.save();
 };
 
-// Static method to get best available provider
 aiProviderSchema.statics.getBestAvailable = function () {
   return this.findOne({
     isActive: true,
-    'usage.requestsToday': { $lt: 1000 }, // Use hardcoded value instead of accessing rateLimits
+    'usage.requestsToday': { $lt: 1000 },
   }).sort({ priority: -1, 'performance.averageResponseTime': 1 });
 };
 
-// Static method to get fallback providers
 aiProviderSchema.statics.getFallbacks = function (excludeProvider: string) {
   return this.find({
     provider: { $ne: excludeProvider },

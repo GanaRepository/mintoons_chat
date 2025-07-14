@@ -1,5 +1,3 @@
-// types/story.ts - Story-related types
-
 export type StoryStatus =
   | 'draft'
   | 'in_progress'
@@ -21,66 +19,6 @@ export interface StoryElements {
   mood: string;
   conflict: string;
   theme: string;
-  [key: string]: string;
-}
-
-// Main story interface that matches the model exactly
-export interface Story {
-  /* IDs */
-  _id: string;
-
-  /* Core */
-  title: string;
-  content: string;
-  elements: StoryElements;
-  status: StoryStatus;
-
-  /* Author */
-  authorId: string;
-  authorName: string;
-  authorAge: number;
-
-  /* Metrics & social */
-  wordCount: number;
-  readingTime: number;
-  likes: number;
-  likedBy: string[]; // Array of user IDs who liked the story
-  views: number;
-  viewedBy: Array<{
-    userId: string;
-    viewedAt: Date;
-  }>; // Detailed view tracking from model
-
-  /* AI collaboration */
-  aiTurns: AITurn[];
-  currentTurn: number;
-  assessment?: string; // Reference to StoryAssessment ID (ObjectId as string)
-
-  /* Mentor feedback */
-  mentorId?: string;
-  mentorComments: string[]; // Array of Comment IDs
-  hasUnreadComments: boolean;
-
-  /* Content moderation (missing from original types) */
-  isModerated: boolean;
-  moderationFlags: Array<{
-    type: string;
-    reason: string;
-    flaggedBy: string;
-    flaggedAt: Date;
-  }>;
-
-  /* Virtual fields from model */
-  excerpt: string; // Virtual field: content preview
-  ageGroup: string; // Virtual field: computed from authorAge
-  isCompleted: boolean; // Virtual field: status === 'completed' || 'published'
-
-  /* Visibility & timestamps */
-  isPublic: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-  publishedAt?: Date;
-  completedAt?: Date;
 }
 
 export interface AITurn {
@@ -92,12 +30,62 @@ export interface AITurn {
   timestamp: Date;
 }
 
+export interface Story {
+  _id: string;
+  title: string;
+  content: string;
+  elements: StoryElements;
+  status: StoryStatus;
+
+  authorId: string;
+  authorName: string;
+  authorAge: number;
+
+  wordCount: number;
+  readingTime: number;
+
+  aiTurns: AITurn[];
+  currentTurn: number;
+
+  assessment?: string;
+
+  isPublic: boolean;
+  likes: number;
+  likedBy: string[];
+  views: number;
+  viewedBy: Array<{
+    userId: string;
+    viewedAt: Date;
+  }>;
+
+  mentorId?: string;
+  mentorComments: string[];
+  hasUnreadComments: boolean;
+
+  isModerated: boolean;
+  moderationFlags: Array<{
+    type: string;
+    reason: string;
+    flaggedBy: string;
+    flaggedAt: Date;
+  }>;
+
+  excerpt: string;
+  ageGroup: string;
+  isCompleted: boolean;
+
+  createdAt: Date;
+  updatedAt: Date;
+  publishedAt?: Date;
+  completedAt?: Date;
+}
+
 export interface StoryCreationData {
   title: string;
   elements: StoryElements;
-  authorId: string; // Required field from model
-  authorName: string; // Required field from model
-  authorAge: number; // Required field from model
+  authorId: string;
+  authorName: string;
+  authorAge: number;
   initialContent?: string;
 }
 
@@ -106,7 +94,7 @@ export interface StoryUpdateData {
   content?: string;
   status?: StoryStatus;
   isPublic?: boolean;
-  elements?: Partial<StoryElements>; // Allow partial updates to elements
+  elements?: Partial<StoryElements>;
 }
 
 export interface StoryFilters {
@@ -115,8 +103,8 @@ export interface StoryFilters {
   genre?: string;
   isPublic?: boolean;
   hasAssessment?: boolean;
-  isModerated?: boolean; // Added from model
-  ageGroup?: string; // Can filter by virtual ageGroup
+  isModerated?: boolean;
+  ageGroup?: string;
   dateFrom?: Date;
   dateTo?: Date;
   search?: string;
@@ -151,14 +139,13 @@ export interface StoryStats {
   popularGenres: { genre: string; count: number }[];
 }
 
-// Simplified interface for public story display (matches model's static methods)
 export interface PublicStory {
   _id: string;
   title: string;
-  excerpt: string; // Virtual field
+  excerpt: string;
   authorName: string;
   authorAge: number;
-  ageGroup: string; // Virtual field
+  ageGroup: string;
   elements: StoryElements;
   wordCount: number;
   readingTime: number;
@@ -171,7 +158,7 @@ export interface SampleStory {
   _id: string;
   title: string;
   content: string;
-  elements: StoryElements; // Use proper type instead of Record
+  elements: StoryElements;
   authorName: string;
   authorAge: number;
   readingTime: number;
@@ -184,7 +171,6 @@ export interface SampleStory {
   learningGoals: string[];
 }
 
-// Additional interfaces for specific use cases
 export interface StoryWithAuthor extends Story {
   author: {
     _id: string;
@@ -209,7 +195,6 @@ export interface StoryInteraction {
   timestamp: Date;
 }
 
-// For the search functionality
 export interface StorySearchCriteria {
   query?: string;
   genre?: string;
