@@ -23,10 +23,10 @@ export const metadata: Metadata = {
 async function getProgressData(userId: string) {
   await connectDB();
 
-  const [user, stories, analytics] = await Promise.all([
+  const [userDoc, storiesDocs, analytics] = await Promise.all([
     User.findById(userId).select('-password').lean(),
     Story.find({ authorId: userId })
-      .select('title status wordCount aiAssessment createdAt elements')
+      .select('title status wordCount aiAssessment createdAt elements content')
       .sort({ createdAt: -1 })
       .lean(),
     Analytics.find({ userId })
@@ -35,9 +35,100 @@ async function getProgressData(userId: string) {
       .lean(),
   ]);
 
-  if (!user || !stories) {
+  // Defensive: ensure userDoc is a single object, not array
+  const userObj = Array.isArray(userDoc) ? userDoc[0] : userDoc;
+  if (!userObj || !storiesDocs) {
     return null;
   }
+
+  // Defensive mapping for user (full User type)
+  const user = {
+    _id: userObj._id?.toString?.() ?? '',
+    firstName: userObj.firstName ?? '',
+    lastName: userObj.lastName ?? '',
+    email: userObj.email ?? '',
+    age: userObj.age ?? 0,
+    role: userObj.role ?? 'child',
+    subscriptionTier: userObj.subscriptionTier ?? 'FREE',
+    isActive: userObj.isActive ?? true,
+    emailVerified: userObj.emailVerified ?? false,
+    avatar: userObj.avatar,
+    bio: userObj.bio,
+    parentEmail: userObj.parentEmail,
+    stripeCustomerId: userObj.stripeCustomerId,
+    subscriptionId: userObj.subscriptionId,
+    subscriptionStatus: userObj.subscriptionStatus,
+    subscriptionExpires: userObj.subscriptionExpires,
+    subscriptionCurrentPeriodEnd: userObj.subscriptionCurrentPeriodEnd,
+    storyCount: userObj.storyCount ?? 0,
+    lastStoryCreated: userObj.lastStoryCreated,
+    totalPoints: userObj.totalPoints ?? 0,
+    level: userObj.level ?? 1,
+    streak: userObj.streak ?? 0,
+    lastActiveDate: userObj.lastActiveDate,
+    assignedStudents: userObj.assignedStudents ?? [],
+    mentoringSince: userObj.mentoringSince,
+    emailPreferences: userObj.emailPreferences ?? {
+      notifications: true,
+      mentorFeedback: true,
+      achievements: true,
+      weeklyReports: true,
+      marketing: false,
+    },
+    lastLoginAt: userObj.lastLoginAt,
+    loginAttempts: userObj.loginAttempts ?? 0,
+    lockUntil: userObj.lockUntil,
+    fullName: userObj.fullName ?? `${userObj.firstName ?? ''} ${userObj.lastName ?? ''}`.trim(),
+    ageGroup: userObj.ageGroup ?? '',
+    canCreateStory: userObj.canCreateStory ?? true,
+    remainingStories: userObj.remainingStories ?? 0,
+    createdAt: userObj.createdAt ?? new Date(),
+    updatedAt: userObj.updatedAt ?? new Date(),
+  };
+
+  // Defensive mapping for stories
+  const stories = Array.isArray(storiesDocs)
+    ? storiesDocs.map(story => ({
+        _id: story._id?.toString?.() ?? '',
+        title: story.title ?? '',
+        content: story.content ?? '',
+        elements: story.elements ?? {
+          genre: '',
+          setting: '',
+          character: '',
+          mood: '',
+          conflict: '',
+          theme: '',
+        },
+        status: story.status ?? 'draft',
+        wordCount: story.wordCount ?? 0,
+        aiAssessment: story.aiAssessment ?? null,
+        createdAt: story.createdAt ?? new Date(),
+        updatedAt: story.updatedAt ?? new Date(),
+        authorId: story.authorId?.toString?.() ?? user._id,
+        authorName: story.authorName ?? user.fullName,
+        authorAge: story.authorAge ?? user.age,
+        readingTime: story.readingTime ?? 0,
+        aiTurns: story.aiTurns ?? [],
+        currentTurn: story.currentTurn ?? 0,
+        assessment: story.assessment,
+        isPublic: story.isPublic ?? false,
+        likes: story.likes ?? 0,
+        likedBy: story.likedBy ?? [],
+        views: story.views ?? 0,
+        viewedBy: story.viewedBy ?? [],
+        mentorId: story.mentorId,
+        mentorComments: story.mentorComments ?? [],
+        hasUnreadComments: story.hasUnreadComments ?? false,
+        isModerated: story.isModerated ?? false,
+        moderationFlags: story.moderationFlags ?? [],
+        excerpt: story.excerpt ?? '',
+        ageGroup: story.ageGroup ?? '',
+        isCompleted: story.isCompleted ?? false,
+        publishedAt: story.publishedAt,
+        completedAt: story.completedAt,
+      }))
+    : [];
 
   // Calculate statistics
   const totalStories = stories.length;

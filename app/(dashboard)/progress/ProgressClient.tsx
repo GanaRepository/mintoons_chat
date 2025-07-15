@@ -4,25 +4,24 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
-  TrendingUp,
-  Award,
-  BookOpen,
-  Target,
-  Calendar,
-  BarChart3,
-  PieChart,
-  Star,
-  Fire,
-  Zap,
-  Trophy,
-  Clock,
-  Edit,
-  Users,
-  Heart,
-  Brain,
-  Sparkles,
-  Crown,
-} from 'lucide-react';
+  FaChartLine,
+  FaAward,
+  FaBookOpen,
+  FaBullseye,
+  FaCalendarAlt,
+  FaChartBar,
+  FaStar,
+  FaFire,
+  FaBolt,
+  FaTrophy,
+  FaClock,
+  FaEdit,
+  FaUsers,
+  FaHeart,
+  FaBrain,
+  FaMagic,
+  FaCrown,
+} from 'react-icons/fa';
 
 import { Card } from '@components/ui/card';
 import { Badge } from '@components/ui/badge';
@@ -37,7 +36,7 @@ import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
 
 import { formatNumber, formatDate } from '@utils/formatters';
-import { calculateLevel, getNextLevelRequirement } from '@utils/helpers';
+import { calculateUserLevel, getPointsForNextLevel } from '@utils/helpers';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
 import type { User } from '@/types/user';
@@ -81,73 +80,135 @@ export default function ProgressClient({
   }, [statistics.totalStories, user.level]);
 
   const currentLevel = user.level || 1;
-  const currentPoints = user.points || 0;
-  const nextLevelPoints = getNextLevelRequirement(currentLevel);
+  const currentPoints = user.totalPoints || 0;
+  const nextLevelPoints = getPointsForNextLevel(currentLevel);
   const levelProgress = (currentPoints % 1000) / 10; // Assuming 1000 points per level
 
-  // Mock achievements data (would come from user.achievements in real app)
+  // Build streakData for StreakCounter
+  const streakData = {
+    current: typeof user.streak === 'number' ? user.streak : 0,
+    longest: typeof user.streak === 'number' ? user.streak : 0,
+    lastStoryDate: user.lastStoryCreated || null,
+    milestones: [],
+    totalRewards: 0,
+  };
+  const userWithStreak = { ...user, streakData };
+
+  // Achievements mock data matching Achievement type
   const achievements = [
     {
-      id: 'first_story',
-      title: 'First Story',
+      _id: 'first_story',
+      name: 'First Story',
       description: 'Completed your very first story!',
       icon: '🎉',
-      unlockedAt:
-        statistics.totalStories > 0 ? new Date(Date.now() - 86400000) : null,
-      category: 'milestone',
+      type: 'story_milestone' as const,
+      rarity: 'common' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: statistics.totalStories > 0 ? new Date(Date.now() - 86400000) : undefined,
+      category: 'story_milestone',
     },
     {
-      id: 'prolific_writer',
-      title: 'Prolific Writer',
+      _id: 'prolific_writer',
+      name: 'Prolific Writer',
       description: 'Written 10 amazing stories',
       icon: '📚',
-      unlockedAt:
-        statistics.totalStories >= 10 ? new Date(Date.now() - 172800000) : null,
-      category: 'milestone',
+      type: 'story_milestone' as const,
+      rarity: 'common' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 1,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: statistics.totalStories >= 10 ? new Date(Date.now() - 172800000) : undefined,
+      category: 'story_milestone',
     },
     {
-      id: 'grammar_master',
-      title: 'Grammar Master',
+      _id: 'grammar_master',
+      name: 'Grammar Master',
       description: 'Achieved 90%+ grammar score',
       icon: '✏️',
-      unlockedAt:
-        statistics.avgGrammarScore >= 90
-          ? new Date(Date.now() - 259200000)
-          : null,
-      category: 'skill',
+      type: 'grammar' as const,
+      rarity: 'uncommon' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 2,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: statistics.avgGrammarScore >= 90 ? new Date(Date.now() - 259200000) : undefined,
+      category: 'grammar',
     },
     {
-      id: 'creative_genius',
-      title: 'Creative Genius',
+      _id: 'creative_genius',
+      name: 'Creative Genius',
       description: 'Achieved 95%+ creativity score',
       icon: '🎨',
-      unlockedAt:
-        statistics.avgCreativityScore >= 95
-          ? new Date(Date.now() - 345600000)
-          : null,
-      category: 'skill',
+      type: 'creativity' as const,
+      rarity: 'rare' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 3,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: statistics.avgCreativityScore >= 95 ? new Date(Date.now() - 345600000) : undefined,
+      category: 'creativity',
     },
     {
-      id: 'streak_master',
-      title: 'Streak Master',
+      _id: 'streak_master',
+      name: 'Streak Master',
       description: 'Maintained a 7-day writing streak',
       icon: '🔥',
-      unlockedAt:
-        (user.streak?.longest || 0) >= 7
-          ? new Date(Date.now() - 432000000)
-          : null,
-      category: 'engagement',
+      type: 'streak' as const,
+      rarity: 'epic' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 4,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: (userWithStreak.streakData.current || 0) >= 7 ? new Date(Date.now() - 432000000) : undefined,
+      category: 'streak',
     },
     {
-      id: 'explorer',
-      title: 'Genre Explorer',
+      _id: 'explorer',
+      name: 'Genre Explorer',
       description: 'Written stories in 5 different genres',
       icon: '🗺️',
-      unlockedAt:
-        Object.keys(statistics.genreStats).length >= 5
-          ? new Date(Date.now() - 518400000)
-          : null,
-      category: 'exploration',
+      type: 'special' as const,
+      rarity: 'rare' as const,
+      criteria: {},
+      points: 10,
+      color: '',
+      unlockedMessage: '',
+      isActive: true,
+      sortOrder: 5,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rarityColor: '',
+      unlockedAt: Object.keys(statistics.genreStats).length >= 5 ? new Date(Date.now() - 518400000) : undefined,
+      category: 'special',
     },
   ];
 
@@ -158,28 +219,28 @@ export default function ProgressClient({
     {
       label: 'Total Stories',
       value: statistics.totalStories,
-      icon: BookOpen,
+      icon: FaBookOpen,
       color: 'from-blue-500 to-cyan-500',
       change: `+${statistics.recentStories} this month`,
     },
     {
       label: 'Words Written',
       value: formatNumber(statistics.totalWords),
-      icon: Edit,
+      icon: FaEdit,
       color: 'from-green-500 to-emerald-500',
       change: `${statistics.averageWordsPerStory} avg per story`,
     },
     {
       label: 'Writing Level',
       value: currentLevel,
-      icon: Crown,
+      icon: FaCrown,
       color: 'from-purple-500 to-pink-500',
       change: `${formatNumber(currentPoints)} points`,
     },
     {
       label: 'Achievement Score',
       value: `${statistics.avgOverallScore}%`,
-      icon: Star,
+      icon: FaStar,
       color: 'from-yellow-500 to-orange-500',
       change: 'Average AI score',
     },
@@ -203,9 +264,9 @@ export default function ProgressClient({
       <FadeIn delay={0.1}>
         <div className="mb-8 flex w-fit space-x-1 rounded-lg bg-gray-100 p-1">
           {[
-            { key: 'overview', label: 'Overview', icon: TrendingUp },
-            { key: 'achievements', label: 'Achievements', icon: Award },
-            { key: 'analytics', label: 'Analytics', icon: BarChart3 },
+            { key: 'overview', label: 'Overview', icon: FaChartLine },
+            { key: 'achievements', label: 'Achievements', icon: FaAward },
+            { key: 'analytics', label: 'Analytics', icon: FaChartBar },
           ].map(tab => (
             <button
               key={tab.key}
@@ -260,9 +321,7 @@ export default function ProgressClient({
               {/* Level Progress */}
               <SlideIn direction="up" delay={0.2}>
                 <LevelIndicator
-                  currentLevel={currentLevel}
-                  currentPoints={currentPoints}
-                  pointsToNextLevel={nextLevelPoints - currentPoints}
+                  user={user}
                   className="bg-gradient-to-br from-purple-50 to-pink-50"
                 />
               </SlideIn>
@@ -271,7 +330,7 @@ export default function ProgressClient({
               <SlideIn direction="up" delay={0.3}>
                 <Card className="p-6">
                   <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <Brain className="h-5 w-5 text-purple-600" />
+                    <FaBrain className="h-5 w-5 text-purple-600" />
                     Writing Skills Assessment
                   </h3>
 
@@ -288,7 +347,7 @@ export default function ProgressClient({
                       <ProgressBar
                         value={statistics.avgGrammarScore}
                         max={100}
-                        variant="blue"
+                        variant="success"
                         size="md"
                       />
                     </div>
@@ -305,7 +364,7 @@ export default function ProgressClient({
                       <ProgressBar
                         value={statistics.avgCreativityScore}
                         max={100}
-                        variant="purple"
+                        variant="success"
                         size="md"
                       />
                     </div>
@@ -322,7 +381,7 @@ export default function ProgressClient({
                       <ProgressBar
                         value={statistics.avgOverallScore}
                         max={100}
-                        variant="green"
+                        variant="success"
                         size="md"
                       />
                     </div>
@@ -354,13 +413,13 @@ export default function ProgressClient({
               <SlideIn direction="up" delay={0.4}>
                 <Card className="p-6">
                   <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                    <Calendar className="h-5 w-5 text-blue-600" />
+                    <FaCalendarAlt className="h-5 w-5 text-blue-600" />
                     Recent Writing Activity
                   </h3>
 
                   {stories.slice(0, 5).map((story, index) => (
                     <div
-                      key={story.id}
+                      key={story._id}
                       className="flex items-center gap-4 border-b border-gray-100 py-3 last:border-0"
                     >
                       <div
@@ -372,7 +431,7 @@ export default function ProgressClient({
                               : 'bg-gray-100 text-gray-600'
                         }`}
                       >
-                        <BookOpen className="h-5 w-5" />
+                        <FaBookOpen className="h-5 w-5" />
                       </div>
 
                       <div className="flex-1">
@@ -403,10 +462,10 @@ export default function ProgressClient({
                         </div>
                       </div>
 
-                      {story.aiAssessment && (
+                      {story.assessment && (
                         <div className="text-right">
                           <div className="text-lg font-bold text-green-600">
-                            {story.aiAssessment.overallScore}%
+                            {story.assessment}%
                           </div>
                           <div className="text-xs text-gray-500">AI Score</div>
                         </div>
@@ -416,7 +475,7 @@ export default function ProgressClient({
 
                   {stories.length === 0 && (
                     <div className="py-8 text-center">
-                      <BookOpen className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                      <FaBookOpen className="mx-auto mb-3 h-12 w-12 text-gray-300" />
                       <p className="text-gray-500">
                         No stories yet. Start writing to see your progress!
                       </p>
@@ -431,9 +490,7 @@ export default function ProgressClient({
               {/* Writing Streak */}
               <FadeIn delay={0.5}>
                 <StreakCounter
-                  currentStreak={user.streak?.current || 0}
-                  longestStreak={user.streak?.longest || 0}
-                  lastWritingDate={user.streak?.lastWritingDate}
+                  user={userWithStreak}
                 />
               </FadeIn>
 
@@ -441,16 +498,17 @@ export default function ProgressClient({
               <SlideIn direction="right" delay={0.6}>
                 <Card className="p-6">
                   <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
+                    <FaTrophy className="h-5 w-5 text-yellow-500" />
                     Recent Achievements
                   </h3>
 
                   {unlockedAchievements.slice(0, 3).map(achievement => (
                     <AchievementBadge
-                      key={achievement.id}
+                      key={achievement._id}
                       achievement={achievement}
+                      user={user}
+                      allAchievements={achievements}
                       size="sm"
-                      showDate={true}
                       className="mb-3"
                     />
                   ))}
@@ -479,7 +537,7 @@ export default function ProgressClient({
               <SlideIn direction="right" delay={0.7}>
                 <Card className="p-6">
                   <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-                    <PieChart className="h-5 w-5 text-indigo-600" />
+                    <FaChartBar className="h-5 w-5 text-indigo-600" />
                     Favorite Genres
                   </h3>
 
@@ -533,7 +591,7 @@ export default function ProgressClient({
           <FadeIn>
             <div className="text-center">
               <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-yellow-100">
-                <Trophy className="h-10 w-10 text-yellow-600" />
+                <FaTrophy className="h-10 w-10 text-yellow-600" />
               </div>
               <h2 className="mb-2 text-3xl font-bold text-gray-900">
                 Your Achievements
@@ -546,7 +604,7 @@ export default function ProgressClient({
                 <ProgressBar
                   value={unlockedAchievements.length}
                   max={achievements.length}
-                  variant="yellow"
+                  variant="success"
                   size="lg"
                 />
               </div>
@@ -558,18 +616,18 @@ export default function ProgressClient({
             <SlideIn direction="up" delay={0.2}>
               <div>
                 <h3 className="mb-6 flex items-center gap-2 text-2xl font-bold text-gray-900">
-                  <Sparkles className="h-6 w-6 text-green-500" />
+                  <FaMagic className="h-6 w-6 text-green-500" />
                   Unlocked Achievements ({unlockedAchievements.length})
                 </h3>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {unlockedAchievements.map((achievement, index) => (
-                    <FadeIn key={achievement.id} delay={0.1 * index}>
+                    <FadeIn key={achievement._id} delay={0.1 * index}>
                       <AchievementBadge
                         achievement={achievement}
+                        user={user}
+                        allAchievements={achievements}
                         size="lg"
-                        showDate={true}
-                        showDescription={true}
                         className="h-full"
                       />
                     </FadeIn>
@@ -584,25 +642,25 @@ export default function ProgressClient({
             <SlideIn direction="up" delay={0.3}>
               <div>
                 <h3 className="mb-6 flex items-center gap-2 text-2xl font-bold text-gray-900">
-                  <Target className="h-6 w-6 text-gray-400" />
+                  <FaBullseye className="h-6 w-6 text-gray-400" />
                   Locked Achievements ({lockedAchievements.length})
                 </h3>
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {lockedAchievements.map((achievement, index) => (
-                    <FadeIn key={achievement.id} delay={0.1 * index}>
+                    <FadeIn key={achievement._id} delay={0.1 * index}>
                       <Card className="border-2 border-dashed border-gray-300 bg-gray-50 p-6 opacity-75">
                         <div className="text-center">
                           <div className="mb-3 text-4xl grayscale">
                             {achievement.icon}
                           </div>
                           <h4 className="mb-2 text-lg font-bold text-gray-700">
-                            {achievement.title}
+                            {achievement.name}
                           </h4>
                           <p className="mb-4 text-sm text-gray-600">
                             {achievement.description}
                           </p>
-                          <Badge variant="outline" size="sm">
+                          <Badge variant="default" size="sm">
                             Not Unlocked
                           </Badge>
                         </div>
@@ -626,7 +684,7 @@ export default function ProgressClient({
                   {
                     category: 'milestone',
                     label: 'Milestones',
-                    icon: Flag,
+                    icon: FaBullseye,
                     color: 'from-blue-500 to-cyan-500',
                     count: achievements.filter(a => a.category === 'milestone')
                       .length,
@@ -637,7 +695,7 @@ export default function ProgressClient({
                   {
                     category: 'skill',
                     label: 'Skills',
-                    icon: Brain,
+                    icon: FaBrain,
                     color: 'from-purple-500 to-pink-500',
                     count: achievements.filter(a => a.category === 'skill')
                       .length,
@@ -648,7 +706,7 @@ export default function ProgressClient({
                   {
                     category: 'engagement',
                     label: 'Engagement',
-                    icon: Fire,
+                    icon: FaFire,
                     color: 'from-orange-500 to-red-500',
                     count: achievements.filter(a => a.category === 'engagement')
                       .length,
@@ -659,7 +717,7 @@ export default function ProgressClient({
                   {
                     category: 'exploration',
                     label: 'Exploration',
-                    icon: Target,
+                    icon: FaBullseye,
                     color: 'from-green-500 to-emerald-500',
                     count: achievements.filter(
                       a => a.category === 'exploration'
@@ -704,25 +762,25 @@ export default function ProgressClient({
                 {
                   label: 'Writing Days',
                   value: statistics.writingDays,
-                  icon: Calendar,
+                  icon: FaCalendarAlt,
                   description: "Unique days you've written",
                 },
                 {
                   label: 'Avg Words/Story',
                   value: statistics.averageWordsPerStory,
-                  icon: Edit,
+                  icon: FaEdit,
                   description: 'Average story length',
                 },
                 {
                   label: 'Published Rate',
                   value: `${Math.round((statistics.publishedStories / Math.max(statistics.totalStories, 1)) * 100)}%`,
-                  icon: BookOpen,
+                  icon: FaBookOpen,
                   description: "Stories you've published",
                 },
                 {
                   label: 'Active Streak',
-                  value: user.streak?.current || 0,
-                  icon: Fire,
+                  value: userWithStreak.streakData.current || 0,
+                  icon: FaFire,
                   description: 'Current writing streak',
                 },
               ].map((metric, index) => (
@@ -748,13 +806,12 @@ export default function ProgressClient({
           <SlideIn direction="up" delay={0.2}>
             <Card className="p-6">
               <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <FaChartBar className="h-5 w-5 text-blue-600" />
                 Story Creation Timeline
               </h3>
 
               <StoryMetrics
-                stories={stories}
-                timeRange="30days"
+                timeRange="30d"
                 className="h-64"
               />
             </Card>
@@ -764,14 +821,12 @@ export default function ProgressClient({
           <SlideIn direction="up" delay={0.3}>
             <Card className="p-6">
               <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                <TrendingUp className="h-5 w-5 text-green-600" />
+                <FaChartLine className="h-5 w-5 text-green-600" />
                 Writing Performance
               </h3>
 
               <UserMetrics
-                userId={user._id}
-                analytics={analytics}
-                timeRange="30days"
+                timeRange="30d"
                 className="h-64"
               />
             </Card>
@@ -783,7 +838,7 @@ export default function ProgressClient({
             <SlideIn direction="left" delay={0.4}>
               <Card className="p-6">
                 <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                  <PieChart className="h-5 w-5 text-indigo-600" />
+                  <FaChartBar className="h-5 w-5 text-indigo-600" />
                   Genre Distribution
                 </h3>
 
@@ -811,12 +866,12 @@ export default function ProgressClient({
                               max={statistics.totalStories}
                               variant={
                                 [
-                                  'blue',
-                                  'purple',
-                                  'green',
-                                  'orange',
-                                  'pink',
-                                  'cyan',
+                                  'default',
+                                  'success',
+                                  'warning',
+                                  'error',
+                                  'default',
+                                  'success',
                                 ][index % 6] as any
                               }
                               size="sm"
@@ -827,7 +882,7 @@ export default function ProgressClient({
                   </div>
                 ) : (
                   <div className="py-8 text-center">
-                    <PieChart className="mx-auto mb-3 h-12 w-12 text-gray-300" />
+                    <FaChartBar className="mx-auto mb-3 h-12 w-12 text-gray-300" />
                     <p className="text-gray-500">
                       Write stories to see genre distribution
                     </p>
@@ -840,7 +895,7 @@ export default function ProgressClient({
             <SlideIn direction="right" delay={0.5}>
               <Card className="p-6">
                 <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                  <Calendar className="h-5 w-5 text-green-600" />
+                  <FaCalendarAlt className="h-5 w-5 text-green-600" />
                   This Month's Summary
                 </h3>
 
@@ -848,7 +903,7 @@ export default function ProgressClient({
                   <div className="flex items-center justify-between rounded-lg bg-blue-50 p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                        <BookOpen className="h-5 w-5 text-blue-600" />
+                        <FaBookOpen className="h-5 w-5 text-blue-600" />
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
@@ -867,7 +922,7 @@ export default function ProgressClient({
                   <div className="flex items-center justify-between rounded-lg bg-purple-50 p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
-                        <Star className="h-5 w-5 text-purple-600" />
+                        <FaStar className="h-5 w-5 text-purple-600" />
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
@@ -886,7 +941,7 @@ export default function ProgressClient({
                   <div className="flex items-center justify-between rounded-lg bg-green-50 p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                        <Fire className="h-5 w-5 text-green-600" />
+                        <FaFire className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
@@ -898,14 +953,14 @@ export default function ProgressClient({
                       </div>
                     </div>
                     <div className="text-2xl font-bold text-green-600">
-                      {user.streak?.current || 0}
+                      {userWithStreak.streakData.current || 0}
                     </div>
                   </div>
 
                   <div className="flex items-center justify-between rounded-lg bg-orange-50 p-3">
                     <div className="flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                        <Crown className="h-5 w-5 text-orange-600" />
+                        <FaCrown className="h-5 w-5 text-orange-600" />
                       </div>
                       <div>
                         <div className="font-medium text-gray-900">
