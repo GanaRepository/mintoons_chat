@@ -16,7 +16,7 @@ export async function POST(
 ) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -31,7 +31,7 @@ export async function POST(
     }
 
     let updateQuery: any = {};
-    
+
     switch (action) {
       case 'activate':
         updateQuery = {
@@ -61,12 +61,12 @@ export async function POST(
     // Track admin action
     trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
       action: `bulk_${action}`,
-      adminId: session.user.id,
+      adminId: session.user._id,
       targetCount: userIds.length,
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: `${result.modifiedCount} users ${action}d successfully`,
       modifiedCount: result.modifiedCount
     });
@@ -74,7 +74,7 @@ export async function POST(
   } catch (error) {
     console.error(`Error bulk ${params.action}:`, error);
     return NextResponse.json(
-      { error: `Failed to bulk ${params.action} users` }, 
+      { error: `Failed to bulk ${params.action} users` },
       { status: 500 }
     );
   }
