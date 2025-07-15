@@ -38,7 +38,6 @@ export default function LoginClient() {
     formState: { errors, isSubmitting },
     setError,
   } = useForm<LoginFormData>({
-    resolver: zodResolver(userLoginSchema),
     defaultValues: {
       email: '',
       password: '',

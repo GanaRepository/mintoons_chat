@@ -11,23 +11,8 @@ import { validateUserLogin } from '@utils/validators';
 const client = new MongoClient(process.env.MONGODB_URI!);
 const clientPromise = client.connect();
 
-// Extended user type for NextAuth (matching the types/next-auth.d.ts)
-interface ExtendedUser {
-  _id: string;
-  id: string;
-  email: string;
-  name: string;
-  image?: string;
-  role: 'child' | 'mentor' | 'admin';
-  age: number;
-  subscriptionTier: 'FREE' | 'BASIC' | 'PREMIUM' | 'PRO';
-  isActive: boolean;
-  emailVerified: boolean;
-  storyCount: number;
-  totalPoints: number;
-  level: number;
-  streak: number;
-}
+// Use NextAuth User type augmentation from types/next-auth.d.ts
+
 
 export const authOptions: NextAuthOptions = {
   adapter: MongoDBAdapter(clientPromise) as unknown as Adapter,
@@ -38,7 +23,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials): Promise<ExtendedUser | null> {
+      async authorize(credentials, req): Promise<any> {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('Email and password are required');
         }
@@ -62,69 +47,74 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Verify password
-          const isValidPassword = await user.comparePassword(
-            credentials.password
-          );
+          const isValidPassword = await user.comparePassword(credentials.password);
           if (!isValidPassword) {
-            // Increment login attempts
             user.loginAttempts = (user.loginAttempts || 0) + 1;
-
-            // Lock account after 5 failed attempts
             if (user.loginAttempts >= 5) {
-              user.lockUntil = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+              user.lockUntil = new Date(Date.now() + 30 * 60 * 1000);
             }
-
             await user.save();
             throw new Error('Invalid email or password');
           }
 
-          // Check if account is locked
           if (user.lockUntil && user.lockUntil > new Date()) {
-            const minutesLeft = Math.ceil(
-              (user.lockUntil.getTime() - Date.now()) / (1000 * 60)
-            );
-            throw new Error(
-              `Account is locked. Try again in ${minutesLeft} minutes.`
-            );
+            const minutesLeft = Math.ceil((user.lockUntil.getTime() - Date.now()) / (1000 * 60));
+            throw new Error(`Account is locked. Try again in ${minutesLeft} minutes.`);
           }
 
-          // Reset login attempts on successful login
           if (user.loginAttempts > 0) {
             user.loginAttempts = 0;
-            user.lockUntil = null; // Use null instead of undefined
+            user.lockUntil = null;
           }
-
-          // Update last login
           user.lastLoginAt = new Date();
           await user.save();
 
-          // Return user object for NextAuth (matching exact types)
+          // Return object matching NextAuth User type (id, name, email, image, plus custom fields)
           return {
-            _id: user._id.toString(),
             id: user._id.toString(),
+            name: user.fullName || `${user.firstName} ${user.lastName}`,
             email: user.email,
-            name: user.fullName,
-            image: user.avatar,
-            role: user.role as 'child' | 'mentor' | 'admin',
+            image: user.avatar || null,
+            _id: user._id.toString(),
+            firstName: user.firstName,
+            lastName: user.lastName,
             age: user.age,
-            subscriptionTier: user.subscriptionTier as
-              | 'FREE'
-              | 'BASIC'
-              | 'PREMIUM'
-              | 'PRO',
+            role: user.role,
+            subscriptionTier: user.subscriptionTier,
             isActive: user.isActive,
             emailVerified: user.emailVerified,
+            avatar: user.avatar,
+            bio: user.bio,
+            parentEmail: user.parentEmail,
+            stripeCustomerId: user.stripeCustomerId,
+            subscriptionId: user.subscriptionId,
+            subscriptionStatus: user.subscriptionStatus,
+            subscriptionExpires: user.subscriptionExpires,
+            subscriptionCurrentPeriodEnd: user.subscriptionCurrentPeriodEnd,
             storyCount: user.storyCount,
+            lastStoryCreated: user.lastStoryCreated,
             totalPoints: user.totalPoints,
             level: user.level,
             streak: user.streak,
+            lastActiveDate: user.lastActiveDate,
+            assignedStudents: user.assignedStudents,
+            mentoringSince: user.mentoringSince,
+            emailPreferences: user.emailPreferences,
+            lastLoginAt: user.lastLoginAt,
+            loginAttempts: user.loginAttempts,
+            lockUntil: user.lockUntil,
+            fullName: user.fullName,
+            ageGroup: user.ageGroup,
+            canCreateStory: user.canCreateStory,
+            remainingStories: user.remainingStories,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
           };
         } catch (error) {
           console.error('Auth error:', error);
           throw error;
         }
-      },
-    }),
+      }),
   ],
 
   session: {
@@ -141,17 +131,16 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       // Initial sign in
       if (user) {
-        token._id = (user as ExtendedUser)._id;
-        token.id = (user as ExtendedUser).id;
-        token.role = (user as ExtendedUser).role;
-        token.age = (user as ExtendedUser).age;
-        token.subscriptionTier = (user as ExtendedUser).subscriptionTier;
-        token.isActive = (user as ExtendedUser).isActive;
-        token.emailVerified = (user as ExtendedUser).emailVerified;
-        token.storyCount = (user as ExtendedUser).storyCount;
-        token.totalPoints = (user as ExtendedUser).totalPoints;
-        token.level = (user as ExtendedUser).level;
-        token.streak = (user as ExtendedUser).streak;
+        token._id = user._id;
+        token.role = user.role;
+        token.age = user.age;
+        token.subscriptionTier = user.subscriptionTier;
+        token.isActive = user.isActive;
+        token.emailVerified = Boolean(user.emailVerified);
+        token.storyCount = user.storyCount;
+        token.totalPoints = user.totalPoints;
+        token.level = user.level;
+        token.streak = user.streak;
       }
 
       // Update session trigger

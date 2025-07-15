@@ -55,7 +55,6 @@ export default function RegisterClient() {
     trigger,
     setValue,
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(userRegistrationSchema),
     mode: 'onChange',
     defaultValues: {
       firstName: '',
@@ -63,9 +62,10 @@ export default function RegisterClient() {
       email: '',
       password: '',
       confirmPassword: '',
-      age: 2, // Changed to number
+      age: 2,
       parentEmail: '',
       termsAccepted: false,
+      role: 'child',
     },
   });
 
@@ -107,73 +107,15 @@ export default function RegisterClient() {
       const result = await response.json();
 
       if (!response.ok) {
-        if (result.error === 'USER_EXISTS') {
-          setError('email', {
-            message:
-              'An account with this email already exists. Please sign in instead.',
-          });
-        } else if (result.error === 'PARENTAL_CONSENT_REQUIRED') {
-          setError('parentEmail', {
-            message: 'Parental email is required for users under 13.',
-          });
-        } else if (result.error === 'RATE_LIMIT_EXCEEDED') {
-          setError('root', {
-            message: 'Too many registration attempts. Please wait a few minutes and try again. (For development, clear rate limit in backend cache/database.)',
-          });
-        } else {
-          setError('root', {
-            message: result.message || 'Registration failed. Please try again.',
-          });
-        }
-
-        trackEvent(TRACKING_EVENTS.ERROR_OCCURRED, {
-          type: 'registration_failed',
-          error: result.error,
-          email: data.email,
-          age: data.age,
-        });
-
+        setError('root', { message: result.message || result.error || 'Registration failed.' });
+        setIsLoading(false);
         return;
       }
-
-      // Track successful registration
-      trackEvent(TRACKING_EVENTS.USER_REGISTER, {
-        userId: result.user.id,
-        email: data.email,
-        age: data.age,
-        ageGroup: ageGroupInfo?.label,
-        needsParentalConsent: needsConsent,
-        method: 'credentials',
-      });
-
-      toast.success('Account created successfully! Signing you in...');
-
-      // Auto sign in after registration
-      const signInResult = await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      });
-
-      if (signInResult?.ok) {
-        toast.success('Welcome to MINTOONS! 🎉');
-        router.push('/dashboard/dashboard');
-      } else {
-        toast.success('Account created! Please sign in.');
-        router.push('/login');
-      }
+      toast.success('Account created successfully! Please sign in.');
+      router.push('/login');
+      setIsLoading(false);
     } catch (error) {
-      console.error('Registration error:', error);
-      setError('root', {
-        message: 'An unexpected error occurred. Please try again.',
-      });
-
-      trackEvent(TRACKING_EVENTS.ERROR_OCCURRED, {
-        type: 'registration_exception',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        email: data.email,
-      });
-    } finally {
+      setError('root', { message: 'An unexpected error occurred. Please try again.' });
       setIsLoading(false);
     }
   };
