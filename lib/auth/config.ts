@@ -114,7 +114,8 @@ export const authOptions: NextAuthOptions = {
           console.error('Auth error:', error);
           throw error;
         }
-      }),
+      }
+    }),
   ],
 
   session: {
