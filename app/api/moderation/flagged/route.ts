@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
@@ -7,7 +8,7 @@ import { contentModerationSystem } from '@lib/security/content-moderator';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching flagged content:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch flagged content' }, 
+      { error: 'Failed to fetch flagged content' },
       { status: 500 }
     );
   }

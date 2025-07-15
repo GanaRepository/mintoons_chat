@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
@@ -9,7 +10,7 @@ import Comment from '@models/Comment';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user || session.user.role !== 'mentor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     const assignedStudentIds = mentor.assignedStudents || [];
-    
+
     // Build query
     let query: any = {
       authorId: { $in: assignedStudentIds },
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching mentor stories:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch stories' }, 
+      { error: 'Failed to fetch stories' },
       { status: 500 }
     );
   }

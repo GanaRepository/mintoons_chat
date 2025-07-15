@@ -48,16 +48,16 @@ export interface StoryDocument extends Document {
     flaggedBy: string;
     flaggedAt: Date;
   }>;
-  
+
   excerpt: string;
   ageGroup: string;
   isCompleted: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
   publishedAt?: Date;
   completedAt?: Date;
-  
+
   addAITurn(userInput: string, aiResponse: string, responseType: string): Promise<void>;
   complete(): Promise<void>;
   publish(): Promise<void>;
@@ -153,12 +153,12 @@ const storySchema = new Schema<StoryDocument>(
       type: String,
       enum: ['draft', 'in_progress', 'completed', 'published', 'archived'],
       default: 'draft',
-      index: true,
+      // ...existing code...
     },
     authorId: {
       type: String,
       required: true,
-      index: true,
+      // ...existing code...
     },
     authorName: {
       type: String,
@@ -193,7 +193,7 @@ const storySchema = new Schema<StoryDocument>(
     isPublic: {
       type: Boolean,
       default: false,
-      index: true,
+      // ...existing code...
     },
     likes: {
       type: Number,
@@ -268,29 +268,29 @@ const storySchema = new Schema<StoryDocument>(
   {
     timestamps: true,
     toJSON: {
-    virtuals: true,
-    transform: function (doc: any, ret: any) {
-      ret._id = ret._id?.toString();
-      if (ret.authorId) ret.authorId = ret.authorId.toString();
-      if (ret.mentorId) ret.mentorId = ret.mentorId.toString();
-      if (ret.assessment) ret.assessment = ret.assessment.toString();
-      if (ret.likedBy) ret.likedBy = ret.likedBy.map((id: any) => id?.toString());
-      if (ret.mentorComments) ret.mentorComments = ret.mentorComments.map((id: any) => id?.toString());
-      if (ret.viewedBy) {
-        ret.viewedBy = ret.viewedBy.map((view: any) => ({
-          userId: view.userId?.toString(),
-          viewedAt: view.viewedAt,
-        }));
-      }
-      if (ret.moderationFlags) {
-        ret.moderationFlags = ret.moderationFlags.map((flag: any) => ({
-          ...flag,
-          flaggedBy: flag.flaggedBy?.toString(),
-        }));
-      }
-      return ret;
+      virtuals: true,
+      transform: function (doc: any, ret: any) {
+        ret._id = ret._id?.toString();
+        if (ret.authorId) ret.authorId = ret.authorId.toString();
+        if (ret.mentorId) ret.mentorId = ret.mentorId.toString();
+        if (ret.assessment) ret.assessment = ret.assessment.toString();
+        if (ret.likedBy) ret.likedBy = ret.likedBy.map((id: any) => id?.toString());
+        if (ret.mentorComments) ret.mentorComments = ret.mentorComments.map((id: any) => id?.toString());
+        if (ret.viewedBy) {
+          ret.viewedBy = ret.viewedBy.map((view: any) => ({
+            userId: view.userId?.toString(),
+            viewedAt: view.viewedAt,
+          }));
+        }
+        if (ret.moderationFlags) {
+          ret.moderationFlags = ret.moderationFlags.map((flag: any) => ({
+            ...flag,
+            flaggedBy: flag.flaggedBy?.toString(),
+          }));
+        }
+        return ret;
+      },
     },
-  },
     toObject: { virtuals: true },
   }
 );
@@ -334,7 +334,7 @@ storySchema.methods.addAITurn = async function (
   responseType: string
 ): Promise<void> {
   this.currentTurn += 1;
-  
+
   const aiTurn: AITurn = {
     turnNumber: this.currentTurn,
     userInput,
@@ -343,10 +343,10 @@ storySchema.methods.addAITurn = async function (
     wordCount: aiResponse.split(/\s+/).filter(word => word.length > 0).length,
     timestamp: new Date(),
   };
-  
+
   this.aiTurns.push(aiTurn);
   this.content += '\n\n' + aiResponse;
-  
+
   await this.save();
 };
 
@@ -354,7 +354,7 @@ storySchema.methods.complete = async function (this: StoryDocument): Promise<voi
   this.status = 'completed';
   this.completedAt = new Date();
   await this.save();
-  
+
   const User = mongoose.model('User');
   const user = await User.findById(this.authorId);
   if (user) {
@@ -389,7 +389,7 @@ storySchema.methods.removeLike = async function (this: StoryDocument, userId: st
 
 storySchema.methods.recordView = async function (this: StoryDocument, userId: string): Promise<void> {
   const existingView = this.viewedBy.find(view => view.userId === userId);
-  
+
   if (!existingView) {
     this.viewedBy.push({
       userId,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
@@ -10,7 +11,7 @@ import Analytics from '@models/Analytics';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user || session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     let startDate: Date;
-    
+
     switch (timeRange) {
       case '7days':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -52,11 +53,11 @@ export async function GET(request: NextRequest) {
       revenueGrowth
     ] = await Promise.all([
       User.countDocuments({ role: 'child' }),
-      User.countDocuments({ 
+      User.countDocuments({
         role: 'child',
         lastActiveAt: { $gte: startDate }
       }),
-      User.countDocuments({ 
+      User.countDocuments({
         role: 'child',
         createdAt: { $gte: startDate }
       }),
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
         { $group: { _id: null, total: { $sum: '$monthlyAmount' } } }
       ]),
       Subscription.countDocuments({ status: 'active' }),
-      
+
       // Growth data
       User.aggregate([
         {
@@ -160,7 +161,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching platform analytics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch platform analytics' }, 
+      { error: 'Failed to fetch platform analytics' },
       { status: 500 }
     );
   }

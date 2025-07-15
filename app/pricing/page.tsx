@@ -37,13 +37,15 @@ export const metadata: Metadata = {
   },
   other: {
     'pricing:currency': 'USD',
-    'pricing:amount': SubscriptionConfig.getTier('PREMIUM')?.price?.toString() || '19.99',
+    'pricing:amount': (typeof SubscriptionConfig.getTier('premium')?.price === 'number'
+      ? SubscriptionConfig.getTier('premium')!.price.toString()
+      : '19.99'),
   },
 };
 
 export default function PricingPage() {
   return (
-    <Suspense 
+    <Suspense
       fallback={
         <div className="flex justify-center items-center min-h-[400px]">
           <LoadingAnimation size="lg" />

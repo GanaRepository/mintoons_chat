@@ -23,12 +23,12 @@ export interface CommentDocument extends Document {
   helpfulCount: number;
   isPrivate: boolean;
   isHighPriority: boolean;
-  
+
   replyCount: number;
-  
+
   createdAt: Date;
   updatedAt: Date;
-  
+
   addReply(replyData: any): Promise<CommentDocument>;
   markAsResolved(userId: string): Promise<void>;
   markAsHelpful(userId: string): Promise<void>;
@@ -39,7 +39,7 @@ const commentSchema = new Schema<CommentDocument>(
     storyId: {
       type: String,
       required: true,
-      index: true,
+      // ...existing code...
     },
     authorId: {
       type: String,
@@ -95,7 +95,7 @@ const commentSchema = new Schema<CommentDocument>(
       type: String,
       enum: ['active', 'resolved', 'archived'],
       default: 'active',
-      index: true,
+      // ...existing code...
     },
     resolvedBy: {
       type: String,
@@ -120,17 +120,17 @@ const commentSchema = new Schema<CommentDocument>(
     isPrivate: {
       type: Boolean,
       default: false,
-      index: true,
+      // ...existing code...
     },
     isHighPriority: {
       type: Boolean,
       default: false,
-      index: true,
+      // ...existing code...
     },
   },
   {
     timestamps: true,
-      toJSON: {
+    toJSON: {
       virtuals: true,
       transform: function (doc: any, ret: any) {
         ret._id = ret._id?.toString();
@@ -189,7 +189,7 @@ commentSchema.methods.markAsHelpful = async function (
   userId: string
 ): Promise<void> {
   if (!this.likes) this.likes = [];
-  
+
   if (!this.likes.includes(userId)) {
     this.likes.push(userId);
     this.isHelpful = true;

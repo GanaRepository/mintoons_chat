@@ -14,7 +14,7 @@ export interface PasswordResetDocument extends Document {
   maxAttempts: number;
   createdAt: Date;
   updatedAt: Date;
-  
+
   generateToken(): string;
   isExpired(): boolean;
   markAsUsed(): Promise<void>;
@@ -30,13 +30,12 @@ const passwordResetSchema = new Schema<PasswordResetDocument>(
     userId: {
       type: String,
       required: true,
-      index: true,
+      // ...existing code...
     },
     token: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
+      // ...existing code...
     },
     expiresAt: {
       type: Date,
@@ -44,12 +43,11 @@ const passwordResetSchema = new Schema<PasswordResetDocument>(
       default: function () {
         return new Date(Date.now() + 3600000);
       },
-      index: { expireAfterSeconds: 0 },
     },
     isUsed: {
       type: Boolean,
       default: false,
-      index: true,
+      // ...existing code...
     },
     usedAt: {
       type: Date,

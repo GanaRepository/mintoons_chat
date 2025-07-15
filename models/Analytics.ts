@@ -66,13 +66,13 @@ const analyticsSchema = new Schema<AnalyticsDocument>(
     date: {
       type: Date,
       required: true,
-      index: true,
+      // ...existing code...
     },
     type: {
       type: String,
       enum: ['daily', 'weekly', 'monthly'],
       required: true,
-      index: true,
+      // ...existing code...
     },
     metrics: {
       totalUsers: { type: Number, default: 0 },

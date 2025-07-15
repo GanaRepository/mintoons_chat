@@ -19,14 +19,14 @@ export interface SubscriptionDocument extends Document {
   lastPaymentDate?: Date;
   nextPaymentDate?: Date;
   prorationCredit: number;
-  
+
   daysUntilRenewal: number;
   usagePercentage: number;
   canCreateStory: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
-  
+
   incrementUsage(): Promise<void>;
   resetUsage(): Promise<void>;
   cancel(): Promise<void>;
@@ -38,27 +38,25 @@ const subscriptionSchema = new Schema<SubscriptionDocument>(
     userId: {
       type: String,
       required: true,
-      unique: true,
-      index: true,
+      // ...existing code...
     },
     tier: {
       type: String,
       enum: ['FREE', 'BASIC', 'PREMIUM', 'PRO'],
       default: 'FREE',
       required: true,
-      index: true,
+      // ...existing code...
     },
     status: {
       type: String,
       enum: ['active', 'canceled', 'past_due', 'trialing', 'incomplete'],
       default: 'active',
       required: true,
-      index: true,
+      // ...existing code...
     },
     stripeSubscriptionId: {
       type: String,
-      sparse: true,
-      index: true,
+      // ...existing code...
     },
     stripeCustomerId: {
       type: String,
@@ -120,7 +118,7 @@ const subscriptionSchema = new Schema<SubscriptionDocument>(
   },
   {
     timestamps: true,
-      toJSON: {
+    toJSON: {
       virtuals: true,
       transform: function (doc: any, ret: any) {
         ret._id = ret._id?.toString();
@@ -157,23 +155,23 @@ subscriptionSchema.virtual('canCreateStory').get(function (this: SubscriptionDoc
 
 subscriptionSchema.methods.incrementUsage = async function (this: SubscriptionDocument): Promise<void> {
   this.storiesUsed += 1;
-  
+
   const limits = { FREE: 3, BASIC: 20, PREMIUM: 50, PRO: 999999 };
   this.storiesRemaining = Math.max(0, limits[this.tier] - this.storiesUsed);
-  
+
   await this.save();
 };
 
 subscriptionSchema.methods.resetUsage = async function (this: SubscriptionDocument): Promise<void> {
   this.storiesUsed = 0;
-  
+
   const limits = { FREE: 3, BASIC: 20, PREMIUM: 50, PRO: 999999 };
   this.storiesRemaining = limits[this.tier];
-  
+
   const now = new Date();
   this.currentPeriodStart = now;
   this.currentPeriodEnd = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
-  
+
   await this.save();
 };
 
@@ -192,10 +190,10 @@ subscriptionSchema.methods.upgrade = async function (
   this.status = 'active';
   this.cancelAtPeriodEnd = false;
   this.set('canceledAt', undefined);
-  
+
   const limits = { FREE: 3, BASIC: 20, PREMIUM: 50, PRO: 999999 };
   this.storiesRemaining = Math.max(0, limits[newTier] - this.storiesUsed);
-  
+
   await this.save();
 };
 

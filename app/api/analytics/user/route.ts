@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
@@ -8,7 +9,7 @@ import Story from '@models/Story';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
     // Calculate date range
     const now = new Date();
     let startDate: Date;
-    
+
     switch (timeRange) {
       case '7days':
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest) {
     // Calculate summary stats
     const totalStories = storyData.reduce((sum, item) => sum + item.count, 0);
     const totalWords = storyData.reduce((sum, item) => sum + item.totalWords, 0);
-    const avgScore = storyData.length > 0 
+    const avgScore = storyData.length > 0
       ? Math.round(storyData.reduce((sum, item) => sum + (item.avgScore || 0), 0) / storyData.length)
       : 0;
 
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching user analytics:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch analytics' }, 
+      { error: 'Failed to fetch analytics' },
       { status: 500 }
     );
   }

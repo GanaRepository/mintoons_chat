@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
@@ -11,7 +12,7 @@ import { TRACKING_EVENTS } from '@utils/constants';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -51,23 +52,23 @@ export async function GET(request: NextRequest) {
 
     // Get writing streak
     const user = await User.findById(userId).select('streak level points');
-    
+
     // Calculate average scores
-    const storiesWithScores = await Story.find({ 
-      authorId: userId, 
+    const storiesWithScores = await Story.find({
+      authorId: userId,
       'aiAssessment.overallScore': { $exists: true },
       isDeleted: { $ne: true }
     }).select('aiAssessment');
 
-    const avgOverallScore = storiesWithScores.length > 0 
+    const avgOverallScore = storiesWithScores.length > 0
       ? Math.round(storiesWithScores.reduce((sum, story) => sum + (story.aiAssessment?.overallScore || 0), 0) / storiesWithScores.length)
       : 0;
 
-    const avgGrammarScore = storiesWithScores.length > 0 
+    const avgGrammarScore = storiesWithScores.length > 0
       ? Math.round(storiesWithScores.reduce((sum, story) => sum + (story.aiAssessment?.grammarScore || 0), 0) / storiesWithScores.length)
       : 0;
 
-    const avgCreativityScore = storiesWithScores.length > 0 
+    const avgCreativityScore = storiesWithScores.length > 0
       ? Math.round(storiesWithScores.reduce((sum, story) => sum + (story.aiAssessment?.creativityScore || 0), 0) / storiesWithScores.length)
       : 0;
 
@@ -108,7 +109,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching dashboard stats:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch dashboard stats' }, 
+      { error: 'Failed to fetch dashboard stats' },
       { status: 500 }
     );
   }

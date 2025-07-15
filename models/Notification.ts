@@ -13,7 +13,7 @@ export interface NotificationDocument extends Document {
   expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  
+
   markAsRead(): Promise<void>;
 }
 
@@ -28,13 +28,13 @@ const notificationSchema = new Schema<NotificationDocument>(
     userId: {
       type: String,
       required: true,
-      index: true,
+      // ...existing code...
     },
     type: {
       type: String,
       enum: ['story_completed', 'mentor_comment', 'achievement_unlocked', 'subscription_expiring', 'weekly_progress', 'system_announcement'],
       required: true,
-      index: true,
+      // ...existing code...
     },
     title: {
       type: String,
@@ -55,7 +55,7 @@ const notificationSchema = new Schema<NotificationDocument>(
     isRead: {
       type: Boolean,
       default: false,
-      index: true,
+      // ...existing code...
     },
     readAt: {
       type: Date,
@@ -73,13 +73,13 @@ const notificationSchema = new Schema<NotificationDocument>(
   {
     timestamps: true,
     toJSON: {
-  virtuals: true,
-  transform: function (doc: any, ret: any) {
-    ret._id = ret._id?.toString();
-    if (ret.userId) ret.userId = ret.userId.toString();
-    return ret;
-  },
-},
+      virtuals: true,
+      transform: function (doc: any, ret: any) {
+        ret._id = ret._id?.toString();
+        if (ret.userId) ret.userId = ret.userId.toString();
+        return ret;
+      },
+    },
     toObject: { virtuals: true },
   }
 );
@@ -110,7 +110,7 @@ notificationSchema.statics.getUnreadCount = function (userId: string) {
 notificationSchema.statics.cleanup = function (days: number = 30) {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
-  
+
   return this.deleteMany({
     isRead: true,
     readAt: { $lt: cutoffDate },

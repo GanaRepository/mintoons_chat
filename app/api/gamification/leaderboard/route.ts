@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
@@ -7,7 +8,7 @@ import User from '@models/User';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,9 +21,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
 
     // Build query for age-appropriate leaderboard
-    let query: any = { 
+    let query: any = {
       role: 'child',
-      isActive: true 
+      isActive: true
     };
 
     // Age group filtering for privacy
@@ -32,9 +33,9 @@ export async function GET(request: NextRequest) {
     } else {
       // Default: only show users within 2 years of current user's age
       const userAge = session.user.age || 10;
-      query.age = { 
-        $gte: Math.max(2, userAge - 2), 
-        $lte: Math.min(18, userAge + 2) 
+      query.age = {
+        $gte: Math.max(2, userAge - 2),
+        $lte: Math.min(18, userAge + 2)
       };
     }
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     if (timeframe !== 'all') {
       const now = new Date();
       let startDate: Date;
-      
+
       if (timeframe === 'week') {
         startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       } else if (timeframe === 'month') {
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest) {
         ...query,
         $or: [
           { totalPoints: { $gt: session.user.totalPoints || 0 } },
-          { 
+          {
             totalPoints: session.user.totalPoints || 0,
             level: { $gt: session.user.level || 1 }
           },
@@ -111,7 +112,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch leaderboard' }, 
+      { error: 'Failed to fetch leaderboard' },
       { status: 500 }
     );
   }

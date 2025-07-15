@@ -10,7 +10,7 @@ import { Badge } from '@components/ui/badge';
 import { Modal } from '@components/ui/modal';
 import { SUBSCRIPTION_TIERS, SubscriptionConfig } from '@config/subscription';
 import { formatPrice } from '@utils/formatters';
-import { createCheckoutSession } from '@lib/subscription/stripe';
+// import { createCheckoutSession } from '@lib/subscription/stripe';
 import type { SubscriptionTierType } from '../../../types/subscription';
 import type { User } from '../../../types/user';
 
@@ -97,16 +97,25 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
 
     setIsLoading(true);
     try {
-      const checkoutUrl = await createCheckoutSession({
-        priceId: SUBSCRIPTION_TIERS[tier].stripePriceId,
-        userId: user._id,
-        tier: tier,
-        successUrl: `${window.location.origin}/dashboard?upgrade=success`,
-        cancelUrl: window.location.href,
+      // Call API route to create checkout session on the server
+      const response = await fetch('/api/subscription/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          priceId: SUBSCRIPTION_TIERS[tier].stripePriceId,
+          userId: user._id,
+          tier: tier,
+          successUrl: `${window.location.origin}/dashboard?upgrade=success`,
+          cancelUrl: window.location.href,
+        })
       });
-
-      window.location.href = checkoutUrl;
-      onUpgrade?.(tier);
+      const data = await response.json();
+      if (data.url) {
+        window.location.href = data.url;
+        onUpgrade?.(tier);
+      } else {
+        throw new Error(data.error || 'Failed to create checkout session');
+      }
     } catch (error) {
       console.error('Upgrade failed:', error);
     } finally {
@@ -228,20 +237,18 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleUpgrade(tier)}
                 disabled={isLoading}
-                className={`rounded-lg border-2 p-4 text-left transition-all ${
-                  isRecommended
+                className={`rounded-lg border-2 p-4 text-left transition-all ${isRecommended
                     ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
                     : 'border-gray-200 hover:border-purple-300 dark:border-gray-700'
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div
-                      className={`rounded-lg p-2 ${
-                        tier === 'PRO'
+                      className={`rounded-lg p-2 ${tier === 'PRO'
                           ? 'bg-gradient-to-br from-yellow-400 to-orange-500'
                           : 'bg-purple-100 dark:bg-purple-900/20'
-                      }`}
+                        }`}
                     >
                       {tier === 'PRO' ? (
                         <Crown className="text-white" size={20} />
@@ -331,7 +338,7 @@ export const UpgradePrompt: React.FC<UpgradePromptProps> = ({
     return (
       <Modal
         isOpen={true}
-        onClose={onClose || (() => {})}
+        onClose={onClose || (() => { })}
         size="lg"
         className="max-w-2xl"
       >

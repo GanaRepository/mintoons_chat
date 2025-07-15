@@ -32,15 +32,15 @@ export interface UserDocument extends Document {
   lastLoginAt?: Date;
   loginAttempts: number;
   lockUntil?: Date;
-  
+
   fullName: string;
   ageGroup: string;
   canCreateStory: boolean;
   remainingStories: number;
-  
+
   createdAt: Date;
   updatedAt: Date;
-  
+
   comparePassword(candidatePassword: string): Promise<boolean>;
   incrementLoginAttempts(): Promise<UserDocument>;
   resetLoginAttempts(): Promise<void>;
@@ -85,7 +85,6 @@ const userSchema = new Schema<UserDocument>(
     email: {
       type: String,
       required: [true, 'Email is required'],
-      unique: true,
       lowercase: true,
       trim: true,
       validate: {
@@ -121,7 +120,7 @@ const userSchema = new Schema<UserDocument>(
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
+      // ...existing code...
     },
     emailVerified: {
       type: Boolean,
@@ -274,7 +273,7 @@ userSchema.virtual('remainingStories').get(function (this: UserDocument) {
 
 userSchema.pre('save', async function (this: UserDocument, next) {
   if (!this.isModified('password')) return next();
-  
+
   try {
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
@@ -302,13 +301,13 @@ userSchema.methods.incrementLoginAttempts = async function (this: UserDocument):
       $set: { loginAttempts: 1 },
     }).exec();
   }
-  
+
   const updates: any = { $inc: { loginAttempts: 1 } };
-  
+
   if (this.loginAttempts + 1 >= 5 && !this.isLocked()) {
     updates.$set = { lockUntil: Date.now() + 2 * 60 * 60 * 1000 };
   }
-  
+
   return this.updateOne(updates).exec();
 };
 
@@ -325,12 +324,12 @@ userSchema.methods.isLocked = function (this: UserDocument): boolean {
 
 userSchema.methods.addPoints = async function (this: UserDocument, points: number): Promise<void> {
   this.totalPoints += points;
-  
+
   const newLevel = Math.floor(this.totalPoints / 100) + 1;
   if (newLevel > this.level) {
     const oldLevel = this.level;
     this.level = newLevel;
-    
+
     const Notification = mongoose.model('Notification');
     await Notification.create({
       userId: this._id.toString(),
@@ -344,33 +343,33 @@ userSchema.methods.addPoints = async function (this: UserDocument, points: numbe
       },
     });
   }
-  
+
   await this.save();
 };
 
 userSchema.methods.updateStreak = async function (this: UserDocument): Promise<void> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const lastActive = this.lastActiveDate ? new Date(this.lastActiveDate) : null;
   if (lastActive) {
     lastActive.setHours(0, 0, 0, 0);
   }
-  
+
   if (!lastActive || lastActive.getTime() === today.getTime()) {
     this.streak += 1;
   } else {
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (lastActive.getTime() !== yesterday.getTime()) {
       this.streak = 1;
     }
   }
-  
+
   this.lastActiveDate = new Date();
   await this.save();
-  
+
   const UserAchievement = mongoose.model('UserAchievement') as UserAchievementModel;
   await UserAchievement.checkAndAward(this._id.toString(), 'streak_updated', {
     streak: this.streak,
@@ -381,7 +380,7 @@ userSchema.methods.incrementStoryCount = async function (this: UserDocument): Pr
   this.storyCount += 1;
   this.lastStoryCreated = new Date();
   await this.save();
-  
+
   const UserAchievement = mongoose.model('UserAchievement') as UserAchievementModel;
   await UserAchievement.checkAndAward(this._id.toString(), 'story_completed', {
     storyCount: this.storyCount,

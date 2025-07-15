@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+export const dynamic = 'force-dynamic';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import Achievement from '@models/Achievement';
@@ -8,7 +9,7 @@ import { UserAchievement, UserAchievementDocument } from '@models/Achievement';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     const achievementsWithStatus = achievements.map(achievement => ({
       ...achievement,
       isUnlocked: unlockedIds.has(achievement.id.toString()),
-      unlockedAt: (userAchievements.find((ua: any) => 
+      unlockedAt: (userAchievements.find((ua: any) =>
         ua.achievementId.toString() === achievement.id.toString()
       )?.unlockedAt) || null
     }));
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching achievements:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch achievements' }, 
+      { error: 'Failed to fetch achievements' },
       { status: 500 }
     );
   }

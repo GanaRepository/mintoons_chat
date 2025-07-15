@@ -22,12 +22,12 @@ export interface ContactMessageDocument extends Document {
     addedBy: string;
     addedAt: Date;
   }>;
-  
+
   ticketId: string;
-  
+
   createdAt: Date;
   updatedAt: Date;
-  
+
   assignTo(userId: string): Promise<void>;
   addNote(note: string, addedBy: string): Promise<void>;
   resolve(): Promise<void>;
@@ -63,7 +63,7 @@ const contactMessageSchema = new Schema<ContactMessageDocument>(
       type: String,
       enum: ['general', 'technical', 'billing', 'safety', 'feature', 'bug', 'mentor', 'partnership', 'media', 'feedback'],
       required: true,
-      index: true,
+      // ...existing code...
     },
     message: {
       type: String,
@@ -75,19 +75,19 @@ const contactMessageSchema = new Schema<ContactMessageDocument>(
       type: String,
       enum: ['low', 'medium', 'high'],
       default: 'medium',
-      index: true,
+      // ...existing code...
     },
     userType: {
       type: String,
       enum: ['parent', 'child', 'mentor', 'educator', 'other'],
       required: true,
-      index: true,
+      // ...existing code...
     },
     status: {
       type: String,
       enum: ['new', 'in_progress', 'resolved', 'closed'],
       default: 'new',
-      index: true,
+      // ...existing code...
     },
     assignedTo: {
       type: String,
@@ -136,13 +136,12 @@ const contactMessageSchema = new Schema<ContactMessageDocument>(
     ],
     ticketId: {
       type: String,
-      unique: true,
       required: true,
     },
   },
   {
     timestamps: true,
-        toJSON: {
+    toJSON: {
       virtuals: true,
       transform: function (doc: any, ret: any) {
         ret._id = ret._id?.toString();

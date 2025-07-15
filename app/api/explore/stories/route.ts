@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { connectDB } from '@lib/database/connection';
 import Story from '@models/Story';
 
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching public stories:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch stories' }, 
+      { error: 'Failed to fetch stories' },
       { status: 500 }
     );
   }
