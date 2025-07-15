@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Schema, Document } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { UserRole, UserPreferences, StreakData } from '../types/user';
 

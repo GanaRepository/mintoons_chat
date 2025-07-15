@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
@@ -8,6 +8,8 @@ import User from '@models/User';
 import Achievement from '@models/Achievement';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

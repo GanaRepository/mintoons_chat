@@ -5,7 +5,7 @@ import User from '@models/User';
 import Story from '@models/Story';
 import Subscription from '@models/Subscription';
 import { SUBSCRIPTION_TIERS } from '@config/subscription';
-import mongoose from 'mongoose';
+import * as mongoose from 'mongoose';
 import { calculateEngagementRate } from '@utils/helpers';
 import { StoryStatus } from '../../types';
 import { StoryAnalytics } from '../../types/analytics';
@@ -884,13 +884,13 @@ export class AnalyticsReporter {
         // Get recent activity from event log if available
         mongoose.models.EventLog
           ? (mongoose.models.EventLog as any)
-              .find({
-                timestamp: { $gte: oneHourAgo },
-              })
-              .sort({ timestamp: -1 })
-              .limit(50)
-              .lean()
-              .exec()
+            .find({
+              timestamp: { $gte: oneHourAgo },
+            })
+            .sort({ timestamp: -1 })
+            .limit(50)
+            .lean()
+            .exec()
           : [],
       ]);
 

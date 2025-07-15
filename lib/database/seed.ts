@@ -2,7 +2,7 @@ import { STORY_ELEMENTS } from '@utils/constants';
 import { connectDB } from './connection';
 import Story from '@models/Story';
 import User from '@models/User';
-import mongoose from 'mongoose';
+import * as mongoose from 'mongoose';
 
 // Sample achievements for seeding
 const ACHIEVEMENTS: AchievementDocument[] = [

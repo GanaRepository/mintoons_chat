@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-export const dynamic = 'force-dynamic';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import Achievement from '@models/Achievement';
 import { UserAchievement, UserAchievementDocument } from '@models/Achievement';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {

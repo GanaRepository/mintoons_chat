@@ -1,6 +1,6 @@
 // lib/security/logger.ts - Security logging system
 import { connectDB } from '@lib/database/connection';
-import mongoose from 'mongoose';
+import * as mongoose from 'mongoose';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -100,10 +100,10 @@ export class SecurityLogger {
     const errorData =
       error instanceof Error
         ? {
-            name: error.name,
-            message: error.message,
-            stack: error.stack,
-          }
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        }
         : error;
 
     await this.logEvent(

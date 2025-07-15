@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Schema, Document } from 'mongoose';
 import type { AIProvider as AIProviderType, AIModel } from '../types/ai';
 
 export interface AIProviderDocument extends Document {
@@ -30,12 +31,12 @@ export interface AIProviderDocument extends Document {
       timestamp: Date;
     };
   };
-  
+
   isAvailable: boolean;
-  
+
   createdAt: Date;
   updatedAt: Date;
-  
+
   updateUsage(tokens: number, cost: number): Promise<void>;
   resetDailyUsage(): Promise<void>;
 }

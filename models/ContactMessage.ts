@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Schema, Document } from 'mongoose';
 
 export interface ContactMessageDocument extends Document {
   _id: mongoose.Types.ObjectId;

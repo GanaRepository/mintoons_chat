@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Schema, Document } from 'mongoose';
 
 export interface AnalyticsDocument extends Document {
   _id: mongoose.Types.ObjectId;
@@ -268,6 +269,6 @@ analyticsSchema.statics.getMetricsForPeriod = function (
 };
 
 const Analytics =
-  mongoose.models.Analytics ||
+  (mongoose.models && mongoose.models.Analytics) ||
   mongoose.model<AnalyticsDocument, AnalyticsModel>('Analytics', analyticsSchema);
 export default Analytics;

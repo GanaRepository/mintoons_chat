@@ -1,4 +1,5 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import * as mongoose from 'mongoose';
+import { Schema, Document } from 'mongoose';
 
 
 export interface AchievementDocument extends Document {
@@ -17,7 +18,7 @@ export interface AchievementDocument extends Document {
   sortOrder: number;
   createdAt: Date;
   updatedAt: Date;
-  
+
   rarityColor: string;
 }
 
@@ -35,7 +36,7 @@ export interface UserAchievementDocument extends Document {
   notifiedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
-  
+
   updateProgress(currentValue: number): Promise<void>;
   complete(triggerEvent: string, storyId?: string): Promise<void>;
 }
@@ -204,7 +205,7 @@ const userAchievementSchema = new Schema<UserAchievementDocument>(
   },
   {
     timestamps: true,
-      toJSON: {
+    toJSON: {
       virtuals: true,
       transform: function (doc: any, ret: any) {
         ret._id = ret._id?.toString();

@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, User, LogOut, Settings } from 'lucide-react';
 import { Button } from '@components/ui/button';
@@ -14,6 +15,7 @@ import { cn } from '@utils/cn';
 
 export const Header: React.FC = () => {
   const { data: session } = useSession();
+  const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -21,7 +23,6 @@ export const Header: React.FC = () => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
-
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
@@ -31,19 +32,19 @@ export const Header: React.FC = () => {
       label: 'Dashboard',
       value: 'dashboard',
       icon: <User size={16} />,
-      onClick: () => (window.location.href = '/dashboard'),
+      onClick: () => router.push('/dashboard'),
     },
     {
       label: 'Settings',
       value: 'settings',
       icon: <Settings size={16} />,
-      onClick: () => (window.location.href = '/profile'),
+      onClick: () => router.push('/profile'),
     },
     {
       label: 'Logout',
       value: 'logout',
       icon: <LogOut size={16} />,
-      onClick: () => (window.location.href = '/api/auth/signout'),
+      onClick: () => router.push('/api/auth/signout'),
     },
   ];
 
@@ -63,10 +64,10 @@ export const Header: React.FC = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2" aria-label="Go to homepage">
             <Image
               src="/images/logo/logo.svg"
-              alt="MINTOONS"
+              alt="MINTOONS Logo - Home"
               width={40}
               height={40}
               className="h-10 w-10"
@@ -77,23 +78,30 @@ export const Header: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden items-center gap-8 md:flex">
             <Link
-              href="/explore-stories"
-              className="text-gray-700 transition-colors hover:text-purple-600 dark:text-gray-300"
-            >
-              Explore Stories
-            </Link>
-            <Link
               href="/pricing"
               className="text-gray-700 transition-colors hover:text-purple-600 dark:text-gray-300"
             >
               Pricing
             </Link>
             <Link
-              href="/about"
+              href="/contact"
               className="text-gray-700 transition-colors hover:text-purple-600 dark:text-gray-300"
             >
-              About
+              Contact
             </Link>
+            {session && (
+              <Dropdown
+                trigger={<span className="text-gray-700 cursor-pointer hover:text-purple-600 dark:text-gray-300">Dashboard</span>}
+                items={[
+                  { label: 'Main', value: 'main', onClick: () => router.push('/dashboard/user-dashboard') },
+                  { label: 'My Stories', value: 'my-stories', onClick: () => router.push('/dashboard/my-stories') },
+                  { label: 'Create Story', value: 'create-story', onClick: () => router.push('/dashboard/create-stories') },
+                  { label: 'Progress', value: 'progress', onClick: () => router.push('/dashboard/progress') },
+                  { label: 'Profile', value: 'profile', onClick: () => router.push('/dashboard/profile') },
+                ]}
+                align="right"
+              />
+            )}
           </nav>
 
           {/* Desktop User Menu */}
@@ -141,6 +149,7 @@ export const Header: React.FC = () => {
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 md:hidden"
+            aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -155,14 +164,10 @@ export const Header: React.FC = () => {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 md:hidden"
+            role="navigation"
+            aria-label="Mobile navigation"
           >
             <nav className="container mx-auto space-y-4 px-4 py-4">
-              <Link
-                href="/explore-stories"
-                className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
-              >
-                Explore Stories
-              </Link>
               <Link
                 href="/pricing"
                 className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
@@ -170,32 +175,52 @@ export const Header: React.FC = () => {
                 Pricing
               </Link>
               <Link
-                href="/about"
+                href="/contact"
                 className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
               >
-                About
+                Contact
               </Link>
 
               {session ? (
                 <>
                   <Link
-                    href="/dashboard"
+                    href="/dashboard/user-dashboard"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     Dashboard
                   </Link>
                   <Link
-                    href="/profile"
+                    href="/dashboard/my-stories"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
-                    Settings
+                    My Stories
                   </Link>
-                  <button
-                    onClick={() => (window.location.href = '/api/auth/signout')}
+                  <Link
+                    href="/dashboard/create-stories"
+                    className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
+                  >
+                    Create Story
+                  </Link>
+                  <Link
+                    href="/dashboard/progress"
+                    className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
+                  >
+                    Progress
+                  </Link>
+                  <Link
+                    href="/dashboard/profile"
+                    className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
+                  >
+                    Profile
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="md"
                     className="block w-full text-left text-red-600"
+                    onClick={() => router.push('/api/auth/signout')}
                   >
                     Logout
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <div className="space-y-2">

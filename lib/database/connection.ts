@@ -1,5 +1,5 @@
 // lib/database/connection.ts - MongoDB connection management
-import mongoose from 'mongoose';
+import * as mongoose from 'mongoose';
 
 interface ConnectionState {
   isConnected?: number;
