@@ -1,7 +1,7 @@
 // lib/analytics/tracker.ts - User/system activity tracking
 import { connectDB } from '@lib/database/connection';
 import Analytics from '@models/Analytics';
-import * as mongoose from 'mongoose';
+import mongoose from 'mongoose';
 
 interface TrackingEvent {
   eventType: string;
