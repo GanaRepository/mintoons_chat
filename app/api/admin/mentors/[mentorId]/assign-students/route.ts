@@ -117,7 +117,7 @@ export async function POST(
     // Track admin action
     trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
       action: 'assign_students_to_mentor',
-      adminId: session.user.id,
+      adminId: session.user._id,
       mentorId,
       studentCount: students.length,
     });
@@ -171,7 +171,7 @@ export async function DELETE(
     // Track admin action
     trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
       action: 'unassign_students_from_mentor',
-      adminId: session.user.id,
+      adminId: session.user._id,
       mentorId,
       studentCount: studentIds.length,
     });

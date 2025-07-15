@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
-import { gamificationManager } from '@lib/gamification/manager';
+import User from '@models/User';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +14,9 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const points = await gamificationManager.getUserPoints(session.user.id);
+    // Use session.user._id and fetch points from User model
+    const user = await User.findById(session.user._id).select('totalPoints');
+    const points = user?.totalPoints || 0;
 
     return NextResponse.json({ points });
 
@@ -47,13 +49,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const result = await gamificationManager.awardPoints(userId, points, reason);
-
+    // Find user and add points
+    const user = await User.findById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    const oldLevel = user.level;
+    await user.addPoints(points);
+    const newLevel = user.level;
     return NextResponse.json({
       success: true,
-      newTotal: result.newTotal,
-      levelUp: result.levelUp,
-      newLevel: result.newLevel
+      newTotal: user.totalPoints,
+      levelUp: newLevel > oldLevel,
+      newLevel
     });
 
   } catch (error) {

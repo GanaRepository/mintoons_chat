@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { 
+import {
   Users,
   TrendingUp,
   BookOpen,
@@ -26,7 +26,6 @@ import {
   ArrowUp,
   ArrowDown,
   Minus,
-  Fire,
   Crown
 } from 'lucide-react';
 
@@ -229,42 +228,34 @@ export default function StudentProgressClient({
             </div>
 
             {/* Status Filter */}
-            <Select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full lg:w-48"
-            >
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="w-full lg:w-48">
               <option value="all">All Students</option>
               <option value="active">Active (7 days)</option>
               <option value="inactive">Inactive</option>
               <option value="new">New Students</option>
               <option value="experienced">Experienced (5+ stories)</option>
-            </Select>
+            </select>
 
             {/* Sort */}
-            <Select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortBy)}
-              className="w-full lg:w-48"
-            >
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortBy)} className="w-full lg:w-48">
               <option value="activity">Recent Activity</option>
               <option value="name">Name A-Z</option>
               <option value="stories">Most Stories</option>
               <option value="score">Highest Score</option>
               <option value="joined">Recently Joined</option>
-            </Select>
+            </select>
 
             {/* View Mode */}
             <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                variant={viewMode === 'grid' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
+                variant={viewMode === 'list' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('list')}
               >
@@ -326,7 +317,7 @@ export default function StudentProgressClient({
                         <div className={`w-3 h-3 rounded-full ${activityStatus.color}`} title={activityStatus.label} />
                         {student.streak?.current > 0 && (
                           <div className="flex items-center gap-1 text-orange-500">
-                            <Fire className="w-4 h-4" />
+                            <span className="w-4 h-4">🔥</span>
                             <span className="text-sm font-medium">{student.streak.current}</span>
                           </div>
                         )}
@@ -363,7 +354,6 @@ export default function StudentProgressClient({
                         <ProgressBar
                           value={(student.points || 0) % 1000}
                           max={1000}
-                          variant="purple"
                           size="sm"
                         />
                       </div>
@@ -377,7 +367,7 @@ export default function StudentProgressClient({
                           <ProgressBar
                             value={student.statistics.avgOverallScore}
                             max={100}
-                            variant="green"
+                            variant="success"
                             size="sm"
                           />
                         </div>
@@ -393,7 +383,7 @@ export default function StudentProgressClient({
                         </div>
                       ) : (
                         <div className="text-sm text-gray-500">
-                          Last active {formatDate(student.lastActiveAt || student.createdAt, 'relative')}
+                          Last active {formatDate(student.lastActiveAt || student.createdAt)}
                         </div>
                       )}
                     </div>
@@ -401,7 +391,7 @@ export default function StudentProgressClient({
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       <Link href={`/student-progress/${student._id}`} className="flex-1">
-                        <Button size="sm" className="w-full">
+                        <Button size="sm" className="w-full" variant="primary">
                           <Eye className="w-4 h-4 mr-1" />
                           View Details
                         </Button>
@@ -429,16 +419,16 @@ export default function StudentProgressClient({
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-1">
                             <h3 className="text-lg font-bold text-gray-900">{student.name}</h3>
-                            <Badge variant="outline" size="sm">Age {student.age}</Badge>
+                            <Badge variant="default" size="sm">Age {student.age}</Badge>
                             <div className={`w-2 h-2 rounded-full ${activityStatus.color}`} title={activityStatus.label} />
                           </div>
                           
                           <div className="flex items-center gap-6 text-sm text-gray-600">
-                            <span>Joined {formatDate(student.createdAt, 'relative')}</span>
+                            <span>Joined {formatDate(student.createdAt)}</span>
                             <span>Level {student.level || 1}</span>
                             {student.streak?.current > 0 && (
                               <div className="flex items-center gap-1 text-orange-500">
-                                <Fire className="w-3 h-3" />
+                                <span className="w-4 h-4">🔥</span>
                                 <span>{student.streak.current} day streak</span>
                               </div>
                             )}

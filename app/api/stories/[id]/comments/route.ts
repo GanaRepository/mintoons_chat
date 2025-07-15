@@ -87,7 +87,7 @@ export async function POST(
     const canComment = 
       session.user.role === 'admin' ||
       session.user.role === 'mentor' ||
-      (story.authorId._id.toString() === session.user.id && parentCommentId); // Authors can only reply
+      (story.authorId._id.toString() === session.user._id && parentCommentId); // Authors can only reply
 
     if (!canComment) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
@@ -96,8 +96,8 @@ export async function POST(
     // Create comment
     const comment = await Comment.create({
       storyId: params.id,
-      authorId: session.user.id,
-      authorName: `${session.user.firstName} ${session.user.lastName}`,
+      authorId: session.user._id,
+      authorName: session.user.name || '',
       authorRole: session.user.role,
       content,
       type,
@@ -112,7 +112,7 @@ export async function POST(
     await comment.populate('authorId', 'firstName lastName role');
 
     // Send notification to story author (if not commenting on own story)
-    if (story.authorId._id.toString() !== session.user.id) {
+    if (story.authorId._id.toString() !== session.user._id) {
       await sendEmail({
         to: story.authorId.email,
         subject: 'New comment on your story',
@@ -131,7 +131,7 @@ export async function POST(
     trackEvent(TRACKING_EVENTS.COMMENT_CREATED, {
       commentId: comment._id,
       storyId: params.id,
-      authorId: session.user.id,
+      authorId: session.user._id,
       type,
       isReply: !!parentCommentId
     });

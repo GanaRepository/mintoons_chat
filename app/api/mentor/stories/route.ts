@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get('student');
 
     // Get mentor's assigned students
-    const mentor = await User.findById(session.user.id).select('assignedStudents');
+    const mentor = await User.findById(session.user._id).select('assignedStudents');
     if (!mentor) {
       return NextResponse.json({ error: 'Mentor not found' }, { status: 404 });
     }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Add comment counts to stories
     const storiesWithCounts = stories.map(story => ({
       ...story,
-      commentCount: commentCountMap[story._id.toString()] || 0
+      commentCount: commentCountMap[(story._id as string | { toString(): string }).toString()] || 0
     }));
 
     return NextResponse.json({

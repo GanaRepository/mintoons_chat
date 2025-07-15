@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if mentor has access to this student
-    const mentor = await User.findById(session.user.id);
-    if (!mentor?.assignedStudents?.includes(story.authorId._id)) {
+    const mentor = await User.findById(session.user._id);
+    if (!mentor?.assignedStudents?.map(String).includes(String(story.authorId._id))) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -67,8 +67,8 @@ ${encouragement}` : ''}
     // Create feedback comment
     const feedback = await Comment.create({
       storyId,
-      authorId: session.user.id,
-      authorName: `${session.user.firstName} ${session.user.lastName}`,
+      authorId: session.user._id,
+      authorName: session.user.name,
       authorRole: 'mentor',
       content: feedbackContent,
       type: 'comprehensive_feedback',
@@ -87,17 +87,17 @@ ${encouragement}` : ''}
     await Story.findByIdAndUpdate(storyId, {
       needsMentorReview: false,
       lastReviewedAt: new Date(),
-      lastReviewedBy: session.user.id
+      lastReviewedBy: session.user._id
     });
 
     // Send notification to student
     await sendEmail({
       to: story.authorId.email,
-      subject: `${session.user.firstName} reviewed your story!`,
+      subject: `${session.user.name} reviewed your story!`,
       template: 'mentor_feedback',
       data: {
-        studentName: story.authorId.firstName,
-        mentorName: `${session.user.firstName} ${session.user.lastName}`,
+        studentName: story.authorId.firstName ?? story.authorId.name ?? '',
+        mentorName: session.user.name,
         storyTitle: story.title,
         feedbackPreview: overallFeedback.slice(0, 150),
         storyUrl: `${process.env.APP_URL}/dashboard/story/${storyId}`,
@@ -107,13 +107,13 @@ ${encouragement}` : ''}
     });
 
     // Award points to mentor for providing feedback
-    await User.findByIdAndUpdate(session.user.id, {
+    await User.findByIdAndUpdate(session.user._id, {
       $inc: { mentorPoints: 50 }
     });
 
     // Track feedback provided
     trackEvent(TRACKING_EVENTS.MENTOR_FEEDBACK, {
-      mentorId: session.user.id,
+      mentorId: session.user._id,
       studentId: story.authorId._id,
       storyId,
       hasRating: !!rating,

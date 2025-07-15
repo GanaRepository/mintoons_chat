@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get subscription usage
-    const usage = await stripeManager.getSubscriptionUsage(session.user.id);
+    const usage = await stripeManager.getSubscriptionUsage(session.user._id);
 
     return NextResponse.json({ usage });
 

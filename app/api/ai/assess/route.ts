@@ -24,15 +24,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Assess story content
-    const assessment = await aiProviderManager.assessStory({
-      content,
-      storyElements,
-      userAge: session.user.age || 8
-    });
+    const assessment = await aiProviderManager.assessStory(content, session.user.age || 8);
 
     // Track assessment
     trackEvent(TRACKING_EVENTS.AI_ASSESSMENT, {
-      userId: session.user.id,
+      userId: session.user._id,
       contentLength: content.length,
       grammarScore: assessment.grammarScore,
       creativityScore: assessment.creativityScore,

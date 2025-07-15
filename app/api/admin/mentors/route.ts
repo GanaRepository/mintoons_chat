@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
    // Track admin action
    trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
      action: 'create_mentor',
-     adminId: session.user.id,
+     adminId: session.user._id,
      mentorId: mentor._id,
    });
 

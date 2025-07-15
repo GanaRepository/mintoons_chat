@@ -379,6 +379,11 @@ export const STORY_PROMPTS = {
 // Tracking Events
 export const TRACKING_EVENTS = {
   USER_REGISTER: 'user_register',
+  MENTOR_FEEDBACK: 'mentor_feedback',
+  DASHBOARD_VIEWED: 'dashboard_viewed',
+  CONTACT_FORM_SUBMIT: 'contact_form_submit',
+  AI_GENERATION: 'ai_generation',
+  ADMIN_ACTION: 'admin_action',
   USER_LOGIN: 'user_login',
   USER_LOGOUT: 'user_logout',
   STORY_CREATE: 'story_create',
@@ -393,10 +398,14 @@ export const TRACKING_EVENTS = {
   AI_ASSESSMENT: 'ai_assessment',
   AI_COST: 'ai_cost',
   PAGE_VIEW: 'page_view',
+  CHECKOUT_START: 'checkout_start',
   BUTTON_CLICK: 'button_click',
   FORM_SUBMIT: 'form_submit',
   DOWNLOAD: 'download',
   ERROR_OCCURRED: 'error_occurred',
   API_ERROR: 'api_error',
   PAYMENT_FAILED: 'payment_failed',
+  CONTENT_REPORTED: 'content_reported',
+  STORY_ASSESSED: 'story_assessed',
+  COMMENT_CREATED: 'comment_created',
 } as const;

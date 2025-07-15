@@ -4,7 +4,7 @@ import { Suspense } from 'react';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { redirect } from 'next/navigation';
-import StudentStoriesClient from './StudentStoriesClient';
+import StudentStoriesClient from './student-stories';
 import { LoadingAnimation } from '@components/animations/LoadingAnimation';
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
@@ -17,18 +17,28 @@ export const metadata: Metadata = {
 };
 
 async function getStudentStoriesData(mentorId: string, searchParams: any) {
- await connectDB();
+  await connectDB();
 
- const mentor = await User.findById(mentorId)
-   .select('-password')
-   .populate('assignedStudents', 'name email age')
-   .lean();
+  let mentor = await User.findById(mentorId)
+    .select('-password')
+    .populate('assignedStudents', 'name email age')
+    .lean();
 
- if (!mentor || mentor.role !== 'mentor') {
-   return null;
- }
+  // Defensive: sometimes Mongoose returns an array, ensure it's an object
+  if (Array.isArray(mentor)) {
+    mentor = mentor[0];
+  }
 
- const studentIds = mentor.assignedStudents?.map(s => s._id) || [];
+  if (!mentor || typeof mentor !== 'object' || mentor.role !== 'mentor') {
+    return null;
+  }
+
+  // Defensive: assignedStudents may be missing or not an array
+  const assignedStudents = Array.isArray(mentor.assignedStudents)
+    ? mentor.assignedStudents
+    : [];
+
+  const studentIds = assignedStudents.map((s: any) => s._id) || [];
 
  // Build query based on filters
  let query: any = { authorId: { $in: studentIds } };
@@ -83,17 +93,55 @@ async function getStudentStoriesData(mentorId: string, searchParams: any) {
    return acc;
  }, {} as Record<string, any[]>);
 
- return {
-   mentor,
-   students: mentor.assignedStudents || [],
-   stories,
-   commentsByStory,
-   filters: {
-     filter: filter || 'all',
-     student: student || 'all',
-     status: status || 'all',
-   },
- };
+  // Map stories to strict Story type
+  const safeStories = Array.isArray(stories)
+    ? stories.map((s: any) => ({
+        _id: s._id?.toString() || '',
+        title: s.title || '',
+        content: s.content || '',
+        elements: s.elements || {
+          genre: '', setting: '', character: '', mood: '', conflict: '', theme: ''
+        },
+        status: s.status || 'draft',
+        authorId: typeof s.authorId === 'string' ? s.authorId : (s.authorId?._id?.toString() || ''),
+        authorName: (typeof s.authorId === 'object' && s.authorId?.name) ? s.authorId.name : (s.authorName || ''),
+        authorAge: (typeof s.authorId === 'object' && s.authorId?.age) ? s.authorId.age : (s.authorAge || 0),
+        wordCount: s.wordCount || 0,
+        readingTime: s.readingTime || 0,
+        aiTurns: s.aiTurns || [],
+        currentTurn: s.currentTurn || 0,
+        assessment: s.assessment,
+        isPublic: typeof s.isPublic === 'boolean' ? s.isPublic : false,
+        likes: s.likes || 0,
+        likedBy: Array.isArray(s.likedBy) ? s.likedBy : [],
+        views: s.views || 0,
+        viewedBy: Array.isArray(s.viewedBy) ? s.viewedBy : [],
+        mentorId: s.mentorId || '',
+        mentorComments: Array.isArray(s.mentorComments) ? s.mentorComments : [],
+        hasUnreadComments: typeof s.hasUnreadComments === 'boolean' ? s.hasUnreadComments : false,
+        isModerated: typeof s.isModerated === 'boolean' ? s.isModerated : false,
+        moderationFlags: Array.isArray(s.moderationFlags) ? s.moderationFlags : [],
+        excerpt: s.excerpt || '',
+        ageGroup: s.ageGroup || '',
+        isCompleted: typeof s.isCompleted === 'boolean' ? s.isCompleted : false,
+        createdAt: s.createdAt ? new Date(s.createdAt) : new Date(),
+        updatedAt: s.updatedAt ? new Date(s.updatedAt) : new Date(),
+        publishedAt: s.publishedAt ? new Date(s.publishedAt) : undefined,
+        completedAt: s.completedAt ? new Date(s.completedAt) : undefined,
+      }))
+    : [];
+
+  return {
+    mentor: mentor as any, // will be type-checked at usage
+    students: assignedStudents as any[],
+    stories: safeStories,
+    commentsByStory,
+    filters: {
+      filter: filter || 'all',
+      student: student || 'all',
+      status: status || 'all',
+    },
+  };
 }
 
 interface PageProps {
@@ -106,33 +154,36 @@ interface PageProps {
 }
 
 export default async function StudentStoriesPage({ searchParams }: PageProps) {
- const session = await getServerSession(authOptions);
+  const session = await getServerSession(authOptions);
 
- if (!session?.user) {
-   redirect('/login?callbackUrl=/student-stories');
- }
+  if (!session?.user) {
+    redirect('/login?callbackUrl=/student-stories');
+  }
 
- const storiesData = await getStudentStoriesData(session.user.id, searchParams);
+  const storiesData = await getStudentStoriesData(session.user._id, searchParams);
 
- if (!storiesData) {
-   redirect('/unauthorized?role=mentor');
- }
+  if (!storiesData) {
+    redirect('/unauthorized?role=mentor');
+  }
 
- return (
-   <Suspense 
-     fallback={
-       <div className="flex justify-center items-center min-h-[400px]">
-         <LoadingAnimation size="lg" />
-       </div>
-     }
-   >
-     <StudentStoriesClient 
-       mentor={storiesData.mentor}
-       students={storiesData.students}
-       stories={storiesData.stories}
-       commentsByStory={storiesData.commentsByStory}
-       filters={storiesData.filters}
-     />
-   </Suspense>
- );
+  // Defensive: ensure correct types for props
+  const { mentor, students, stories, commentsByStory, filters } = storiesData;
+
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center min-h-[400px]">
+          <LoadingAnimation size="lg" />
+        </div>
+      }
+    >
+      <StudentStoriesClient
+        mentor={mentor as any}
+        students={Array.isArray(students) ? students : []}
+        stories={Array.isArray(stories) ? stories : []}
+        commentsByStory={commentsByStory}
+        filters={filters}
+      />
+    </Suspense>
+  );
 }

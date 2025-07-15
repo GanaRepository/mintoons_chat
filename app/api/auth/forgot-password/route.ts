@@ -5,14 +5,21 @@ import User from '@models/User';
 import PasswordReset from '@models/PasswordReset';
 import { validateEmailOnly } from '@utils/validators';
 import { generateSecureToken } from '@utils/helpers';
-import { sendPasswordResetEmail } from '@lib/email/sender';
+import { emailSender } from '@lib/email/sender';
 import { rateLimiter } from '@lib/security/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting - 3 attempts per hour
-    const rateLimitResult = await rateLimiter.check(request, 'forgot-password', 3, 3600);
-    if (!rateLimitResult.success) {
+    // Rate limiting - 3 attempts per hour (custom implementation)
+    // Use IP as key for rate limiting
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const key = `forgot-password:${ip}`;
+    const rateLimitInfo = await (rateLimiter as any).getRateLimitInfo(key, {
+      windowMs: 3600 * 1000,
+      max: 3,
+      prefix: 'rate_limit',
+    });
+    if (rateLimitInfo.current > rateLimitInfo.limit) {
       return NextResponse.json(
         { error: 'RATE_LIMIT_EXCEEDED', message: 'Too many password reset attempts. Please try again later.' },
         { status: 429 }
@@ -62,18 +69,11 @@ export async function POST(request: NextRequest) {
 
     // Send reset email
     try {
-      await sendPasswordResetEmail({
-        to: user.email,
-        userName: user.name,
-        resetToken: token,
-        expiresAt,
-      });
+      await emailSender.sendPasswordResetEmail(user, token);
     } catch (emailError) {
       console.error('Password reset email failed:', emailError);
-      
       // Clean up the token if email fails
       await PasswordReset.deleteOne({ _id: passwordReset._id });
-      
       return NextResponse.json(
         { error: 'EMAIL_FAILED', message: 'Failed to send reset email. Please try again.' },
         { status: 500 }

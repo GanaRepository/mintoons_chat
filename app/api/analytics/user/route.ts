@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const timeRange = searchParams.get('timeRange') || '30days';
-    const userId = session.user.id;
+    const userId = session.user._id;
 
     // Calculate date range
     const now = new Date();

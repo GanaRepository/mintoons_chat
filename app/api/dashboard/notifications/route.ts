@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const unreadOnly = searchParams.get('unread') === 'true';
 
-    let query: any = { userId: session.user.id };
+    let query: any = { userId: session.user._id };
     if (unreadOnly) {
       query.isRead = false;
     }
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       .lean();
 
     const unreadCount = await Notification.countDocuments({
-      userId: session.user.id,
+      userId: session.user._id,
       isRead: false
     });
 
@@ -65,14 +65,14 @@ export async function PUT(request: NextRequest) {
       await Notification.updateMany(
         { 
           _id: { $in: notificationIds },
-          userId: session.user.id 
+          userId: session.user._id 
         },
         { isRead: markAsRead }
       );
     } else {
       // Mark all notifications
       await Notification.updateMany(
-        { userId: session.user.id },
+        { userId: session.user._id },
         { isRead: markAsRead }
       );
     }

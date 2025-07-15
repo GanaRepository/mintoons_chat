@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const userId = session.user.id;
+    const userId = session.user._id;
     const last7Days = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const last30Days = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
-import { uploadToCloudinary } from '@lib/upload/cloudinary';
+import { connectDB } from '@lib/database/connection';
+import Story from '@models/Story';
 
 export async function POST(request: NextRequest) {
   try {
@@ -49,33 +50,38 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload all files
-    const uploadPromises = files.map(async (file, index) => {
+    // Convert files to base64 and store in MongoDB
+    await connectDB();
+    const imageDocs = [];
+    for (const file of files) {
       const bytes = await file.arrayBuffer();
       const buffer = Buffer.from(bytes);
-
-      return uploadToCloudinary(buffer, {
-        folder: 'story-images',
-        public_id: `story_${session.user.id}_${Date.now()}_${index}`,
-        transformation: [
-          { width: 800, height: 600, crop: 'limit' },
-          { quality: 'auto', fetch_format: 'auto' }
-        ]
+      const base64 = buffer.toString('base64');
+      imageDocs.push({
+        data: base64,
+        mimetype: file.type,
+        uploadedBy: session.user._id,
+        uploadedAt: new Date()
       });
+    }
+
+    // Option 1: Store as separate documents (recommended for flexibility)
+    // You may want a StoryImage model, but for now, store in Story.images[]
+    // If you have a storyId, you can associate images with a story
+    // For demo, just insert as new story with images
+    const story = new Story({
+      author: session.user._id,
+      images: imageDocs,
+      createdAt: new Date()
     });
-
-    const uploadResults = await Promise.all(uploadPromises);
-
-    const imageUrls = uploadResults.map(result => ({
-      url: result.secure_url,
-      publicId: result.public_id,
-      width: result.width,
-      height: result.height
-    }));
+    await story.save();
 
     return NextResponse.json({
-      images: imageUrls,
-      message: 'Images uploaded successfully'
+      images: imageDocs.map(img => ({
+        mimetype: img.mimetype,
+        uploadedAt: img.uploadedAt
+      })),
+      message: 'Images uploaded and stored in MongoDB successfully'
     });
 
   } catch (error) {

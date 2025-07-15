@@ -30,16 +30,15 @@ export async function POST(
     }
 
     // Check permissions
-    if (story.authorId._id.toString() !== session.user.id && session.user.role !== 'admin') {
+    if (story.authorId._id.toString() !== session.user._id && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get AI assessment
-    const assessment = await aiProviderManager.assessStory({
-      content: story.content,
-      userAge: story.authorId.age || 8,
-      storyElements: story.storyElements,
-    });
+    const assessment = await aiProviderManager.assessStory(
+      story.content,
+      story.authorId.age || 8
+    );
 
     // Update story with assessment
     const updatedStory = await Story.findByIdAndUpdate(
@@ -62,7 +61,7 @@ export async function POST(
     // Track assessment
     trackEvent(TRACKING_EVENTS.STORY_ASSESSED, {
       storyId: params.id,
-      userId: session.user.id,
+      userId: session.user._id,
       grammarScore: assessment.grammarScore,
       creativityScore: assessment.creativityScore,
       overallScore: assessment.overallScore

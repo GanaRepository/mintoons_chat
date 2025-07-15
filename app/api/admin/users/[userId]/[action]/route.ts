@@ -95,7 +95,7 @@ export async function POST(
     // Track admin action
     trackEvent(TRACKING_EVENTS.ADMIN_ACTION, {
       action: `user_${action}`,
-      adminId: session.user.id,
+      adminId: session.user._id,
       targetUserId: userId,
     });
 

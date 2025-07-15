@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // Get mentor's assigned students
-    const mentor = await User.findById(session.user.id)
+    const mentor = await User.findById(session.user._id)
       .populate({
         path: 'assignedStudents',
         select: 'firstName lastName email age storyCount level points streak lastActiveAt createdAt',
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Mentor not found' }, { status: 404 });
     }
 
-    const students = mentor.assignedStudents || [];
+    const students = ((mentor as any).assignedStudents as any[] | undefined) || [];
     const studentIds = students.map(s => s._id);
 
     // Get recent stories for each student

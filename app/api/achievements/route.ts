@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import Achievement from '@models/Achievement';
-import UserAchievement from '@models/UserAchievement';
+import { UserAchievement, UserAchievementDocument } from '@models/Achievement';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,18 +30,18 @@ export async function GET(request: NextRequest) {
 
     // Get user's unlocked achievements
     const userAchievements = await UserAchievement.find({
-      userId: session.user.id
+      userId: session.user._id
     }).lean();
 
-    const unlockedIds = new Set(userAchievements.map(ua => ua.achievementId.toString()));
+    const unlockedIds = new Set(userAchievements.map((ua: any) => ua.achievementId.toString()));
 
     // Combine data
     const achievementsWithStatus = achievements.map(achievement => ({
       ...achievement,
-      isUnlocked: unlockedIds.has(achievement._id.toString()),
-      unlockedAt: userAchievements.find(ua => 
-        ua.achievementId.toString() === achievement._id.toString()
-      )?.unlockedAt || null
+      isUnlocked: unlockedIds.has(achievement.id.toString()),
+      unlockedAt: (userAchievements.find((ua: any) => 
+        ua.achievementId.toString() === achievement.id.toString()
+      )?.unlockedAt) || null
     }));
 
     return NextResponse.json({

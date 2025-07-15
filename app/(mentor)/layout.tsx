@@ -21,16 +21,21 @@ export const metadata: Metadata = {
 
 async function getMentorData(userId: string) {
   await connectDB();
-  
-  const mentor = await User.findById(userId)
+
+  let mentor = await User.findById(userId)
     .select('-password')
     .populate('assignedStudents', 'name email age storyCount level')
     .lean();
-    
-  if (!mentor || mentor.role !== 'mentor') {
+
+  // Defensive: sometimes Mongoose returns an array, ensure it's an object
+  if (Array.isArray(mentor)) {
+    mentor = mentor[0];
+  }
+
+  if (!mentor || typeof mentor !== 'object' || mentor.role !== 'mentor') {
     return null;
   }
-  
+
   return mentor;
 }
 
@@ -45,18 +50,21 @@ export default async function MentorLayout({
     redirect('/login?callbackUrl=/mentor-dashboard');
   }
 
-  const mentor = await getMentorData(session.user.id);
-  
+  let mentor = await getMentorData(session.user._id);
+
   if (!mentor) {
     redirect('/unauthorized?role=mentor');
   }
+
+  // Defensive: ensure mentor is correct shape for MentorSidebar
+  mentor = { ...mentor };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-          <MentorSidebar mentor={mentor} />
+          <MentorSidebar isOpen={true} />
         </aside>
 
         {/* Main content */}

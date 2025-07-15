@@ -30,11 +30,12 @@ export async function GET(request: NextRequest) {
     let query: any = {};
     
     if (session.user.role === 'child') {
-      query.authorId = session.user.id;
+      query.authorId = session.user._id;
     } else if (session.user.role === 'mentor') {
       // Get mentor's assigned students
-      const mentor = await User.findById(session.user.id).select('assignedStudents');
-      query.authorId = { $in: mentor?.assignedStudents || [] };
+      const mentor = await User.findById(session.user._id).select('assignedStudents').lean();
+      const assigned = (mentor && (mentor as any).assignedStudents) || [];
+      query.authorId = { $in: assigned };
     }
     // Admin can see all stories
 
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check subscription limits
-    const user = await User.findById(session.user.id);
+    const user = await User.findById(session.user._id);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
       title,
       content: moderationResult?.moderatedContent || content,
       genre: genre || 'adventure',
-      authorId: session.user.id,
+      authorId: session.user._id,
       storyElements: storyElements || {},
       status,
       wordCount: content.split(/\s+/).length,
@@ -146,15 +147,15 @@ export async function POST(request: NextRequest) {
     });
 
     // Update user story count
-    await User.findByIdAndUpdate(session.user.id, {
+    await User.findByIdAndUpdate(session.user._id, {
       $inc: { storyCount: 1 },
       lastStoryCreated: new Date()
     });
 
     // Track story creation
-    trackEvent(TRACKING_EVENTS.STORY_CREATED, {
+    trackEvent(TRACKING_EVENTS.STORY_CREATE, {
       storyId: story._id,
-      userId: session.user.id,
+      userId: session.user._id,
       genre,
       wordCount: story.wordCount,
       status

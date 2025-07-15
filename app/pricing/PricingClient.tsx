@@ -18,6 +18,7 @@ import {
   ArrowRight,
   Gift,
   TrendingUp
+  , Lock, Eye
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -118,7 +119,7 @@ export default function PricingClient() {
   ];
 
   const handlePlanSelection = (tier: string) => {
-    trackEvent(TRACKING_EVENTS.PRICING_PLAN_CLICK, {
+    trackEvent(TRACKING_EVENTS.BUTTON_CLICK, {
       tier,
       currentTier,
       isAnnual,
@@ -155,7 +156,7 @@ export default function PricingClient() {
               </span>
               <Switch
                 checked={isAnnual}
-                onChange={setIsAnnual}
+                onCheckedChange={setIsAnnual}
                 className="data-[state=checked]:bg-purple-600"
               />
               <span className={`text-sm font-medium ${isAnnual ? 'text-gray-900' : 'text-gray-500'}`}>
@@ -298,7 +299,7 @@ export default function PricingClient() {
                        <div className="font-medium text-gray-900">{testimonial.name}</div>
                        <div className="text-sm text-gray-600">{testimonial.role}</div>
                      </div>
-                     <Badge variant="outline" size="sm">
+                     <Badge variant="default" size="sm">
                        {SUBSCRIPTION_TIERS[testimonial.tier as keyof typeof SUBSCRIPTION_TIERS]?.name}
                      </Badge>
                    </div>

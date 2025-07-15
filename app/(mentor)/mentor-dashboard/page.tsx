@@ -19,20 +19,27 @@ export const metadata: Metadata = {
 async function getMentorDashboardData(mentorId: string) {
   await connectDB();
 
-  const mentor = await User.findById(mentorId)
+  const mentorRaw = await User.findById(mentorId)
     .select('-password')
-    .populate('assignedStudents', 'name email age storyCount level streak')
+    .populate('assignedStudents', 'firstName lastName name email age storyCount level streak')
     .lean();
+
+  // Defensive cast for mentor and students
+  const mentor = mentorRaw as unknown as import('@/types/user').User & { assignedStudents?: any[] };
+  // Filter out string ids from assignedStudents and cast to UserType
+  const students = Array.isArray(mentor.assignedStudents)
+    ? mentor.assignedStudents.filter(s => typeof s === 'object' && s !== null) as import('@/types/user').User[]
+    : [];
 
   if (!mentor || mentor.role !== 'mentor') {
     return null;
   }
 
-  const studentIds = mentor.assignedStudents?.map(s => s._id) || [];
+  const studentIds = students.map(s => (s as import('@/types/user').User)._id) || [];
 
-  const [recentStories, pendingReviews, myComments, totalComments] = await Promise.all([
+  const [recentStoriesRaw, pendingReviewsRaw, myCommentsRaw, totalComments] = await Promise.all([
     Story.find({ authorId: { $in: studentIds } })
-      .populate('authorId', 'name age')
+      .populate('authorId', 'firstName lastName name age')
       .sort({ updatedAt: -1 })
       .limit(10)
       .lean(),
@@ -42,7 +49,7 @@ async function getMentorDashboardData(mentorId: string) {
       status: 'published',
       needsMentorReview: true
     })
-      .populate('authorId', 'name age')
+      .populate('authorId', 'firstName lastName name age')
       .sort({ updatedAt: -1 })
       .lean(),
     
@@ -55,10 +62,17 @@ async function getMentorDashboardData(mentorId: string) {
     Comment.countDocuments({ commenterId: mentorId })
   ]);
 
+  // Defensive cast for stories/comments
+  const recentStories = recentStoriesRaw as any[];
+  const pendingReviews = pendingReviewsRaw as any[];
+  const myComments = myCommentsRaw as any[];
+
   // Calculate statistics
   const totalStudents = studentIds.length;
-  const activeStudents = mentor.assignedStudents?.filter(s => 
-    s.streak?.current > 0 || new Date(s.lastActiveAt || 0) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  const activeStudents = students.filter(s =>
+    typeof s !== 'string' &&
+    ((s.streak && typeof s.streak === 'object' && 'current' in s.streak && (s.streak as any).current > 0) ||
+      new Date((s as any).lastActiveAt || 0) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
   ).length || 0;
 
   const totalStories = recentStories.length;
@@ -68,7 +82,7 @@ async function getMentorDashboardData(mentorId: string) {
 
   return {
     mentor,
-    students: mentor.assignedStudents || [],
+    students,
     recentStories,
     pendingReviews,
     myComments,
@@ -90,7 +104,7 @@ export default async function MentorDashboardPage() {
     redirect('/login?callbackUrl=/mentor-dashboard');
   }
 
-  const dashboardData = await getMentorDashboardData(session.user.id);
+  const dashboardData = await getMentorDashboardData(session.user._id);
 
   if (!dashboardData) {
     redirect('/unauthorized?role=mentor');

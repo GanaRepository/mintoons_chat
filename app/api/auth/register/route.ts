@@ -2,18 +2,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
-import { registerSchema } from '@utils/validators';
+import { userRegistrationSchema } from '@utils/validators';
 import { needsParentalConsent } from '@utils/age-restrictions';
-import { sendWelcomeEmail } from '@lib/email/sender';
+import { emailSender } from '@lib/email/sender';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
 import { rateLimiter } from '@lib/security/rate-limiter';
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const rateLimitResult = await rateLimiter.check(request, 'register', 5, 3600); // 5 attempts per hour
-    if (!rateLimitResult.success) {
+    // Rate limiting (custom implementation)
+    const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+    const key = `register:${ip}`;
+    const rateLimitInfo = await (rateLimiter as any).getRateLimitInfo(key, {
+      windowMs: 3600 * 1000,
+      max: 5,
+      prefix: 'rate_limit',
+    });
+    if (rateLimitInfo.current > rateLimitInfo.limit) {
       return NextResponse.json(
         { error: 'RATE_LIMIT_EXCEEDED', message: 'Too many registration attempts. Please try again later.' },
         { status: 429 }
@@ -25,7 +31,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate input
-    const validation = registerSchema.safeParse(body);
+    const validation = userRegistrationSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { error: 'VALIDATION_ERROR', message: 'Invalid input data', details: validation.error.errors },
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password, age, parentalConsent } = validation.data;
+    const { firstName, lastName, email, password, age, role, parentEmail, termsAccepted } = validation.data;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
@@ -43,7 +49,6 @@ export async function POST(request: NextRequest) {
         email,
         ip: request.ip,
       });
-
       return NextResponse.json(
         { error: 'USER_EXISTS', message: 'An account with this email already exists' },
         { status: 409 }
@@ -52,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     // COPPA compliance check
     const requiresConsent = needsParentalConsent(age);
-    if (requiresConsent && !parentalConsent) {
+    if (requiresConsent && !parentEmail) {
       return NextResponse.json(
         { error: 'PARENTAL_CONSENT_REQUIRED', message: 'Parental consent is required for users under 13' },
         { status: 400 }
@@ -61,13 +66,14 @@ export async function POST(request: NextRequest) {
 
     // Create user
     const user = new User({
-      name: name.trim(),
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
       email: email.toLowerCase().trim(),
       password, // Will be hashed by pre-save middleware
       age,
-      role: 'child',
+      role: role || 'child',
       subscriptionTier: 'FREE',
-      parentalConsent: requiresConsent ? parentalConsent : null,
+      parentEmail: requiresConsent ? parentEmail : null,
       emailVerified: false, // Will be verified via email
       isActive: true,
       preferences: {
@@ -93,12 +99,7 @@ export async function POST(request: NextRequest) {
 
     // Send welcome email (async)
     try {
-      await sendWelcomeEmail({
-        to: email,
-        userName: name,
-        userAge: age,
-        needsParentalConsent: requiresConsent,
-      });
+      await emailSender.sendWelcomeEmail(user);
     } catch (emailError) {
       console.error('Welcome email failed:', emailError);
       // Don't fail registration if email fails

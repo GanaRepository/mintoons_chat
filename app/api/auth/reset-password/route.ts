@@ -26,8 +26,12 @@ export async function POST(request: NextRequest) {
     try {
       validatePasswordOnly(password);
     } catch (error) {
+      const errorMessage =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message?: string }).message ?? 'Invalid password'
+          : 'Invalid password';
       return NextResponse.json(
-        { error: 'INVALID_PASSWORD', message: error.message },
+        { error: 'INVALID_PASSWORD', message: errorMessage },
         { status: 400 }
       );
     }

@@ -28,7 +28,7 @@ import { Select } from '@components/ui/select';
 import { Badge } from '@components/ui/badge';
 import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-import { FormField } from '@components/forms/FormField';
+import FormField from '@components/forms/FormField';
 
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -67,6 +67,14 @@ export default function ContactClient() {
     { value: 'partnership', label: 'Partnership Inquiry' },
     { value: 'media', label: 'Media & Press' },
     { value: 'feedback', label: 'Feedback & Suggestions' },
+  ];
+
+  const userTypeOptions = [
+    { value: 'parent', label: 'Parent/Guardian' },
+    { value: 'child', label: 'Child (with permission)' },
+    { value: 'mentor', label: 'Mentor' },
+    { value: 'educator', label: 'Educator/Teacher' },
+    { value: 'other', label: 'Other' },
   ];
 
   const validateForm = () => {
@@ -117,7 +125,6 @@ export default function ContactClient() {
       if (response.ok) {
         const result = await response.json();
         toast.success('Message sent successfully! We\'ll get back to you soon.');
-        
         // Reset form
         setFormData({
           name: '',
@@ -128,9 +135,8 @@ export default function ContactClient() {
           priority: 'medium',
           userType: 'parent',
         });
-
         // Track contact form submission
-        trackEvent(TRACKING_EVENTS.CONTACT_FORM_SUBMIT, {
+        trackEvent(TRACKING_EVENTS.FORM_SUBMIT, {
           category: formData.category,
           userType: formData.userType,
           priority: formData.priority,
@@ -282,65 +288,45 @@ export default function ContactClient() {
                       label="Your Name"
                       error={errors.name}
                       required
-                    >
-                      <Input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="Enter your full name"
-                        disabled={isLoading}
-                      />
-                    </FormField>
-
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      placeholder="Enter your full name"
+                      {...({ placeholder: 'Enter your full name', disabled: isLoading } as React.InputHTMLAttributes<HTMLInputElement>)}
+                    />
                     <FormField
                       label="Email Address"
                       error={errors.email}
                       required
-                    >
-                      <Input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="your@email.com"
-                        disabled={isLoading}
-                      />
-                    </FormField>
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="your@email.com"
+                      type="email"
+                      {...({ placeholder: 'your@email.com', disabled: isLoading, type: 'email' } as React.InputHTMLAttributes<HTMLInputElement>)}
+                    />
                   </div>
 
                   {/* User Type and Category */}
                   <div className="grid md:grid-cols-2 gap-6">
-                    <FormField label="I am a..." required>
-                      <Select
-                        value={formData.userType}
-                        onChange={(e) => setFormData({ ...formData, userType: e.target.value as any })}
-                        disabled={isLoading}
-                      >
-                        <option value="parent">Parent/Guardian</option>
-                        <option value="child">Child (with permission)</option>
-                        <option value="mentor">Mentor</option>
-                        <option value="educator">Educator/Teacher</option>
-                        <option value="other">Other</option>
-                      </Select>
-                    </FormField>
+                    <FormField
+                      label="I am a..."
+                      required
+                      fieldType="select"
+                      value={formData.userType}
+                      onChange={e => setFormData({ ...formData, userType: e.target.value as any })}
+                      options={userTypeOptions}
+                      {...({ disabled: isLoading } as React.SelectHTMLAttributes<HTMLSelectElement>)}
+                    />
 
                     <FormField
                       label="Category"
                       error={errors.category}
                       required
-                    >
-                      <Select
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        disabled={isLoading}
-                      >
-                        <option value="">Select a category</option>
-                        {contactCategories.map((cat) => (
-                          <option key={cat.value} value={cat.value}>
-                            {cat.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormField>
+                      fieldType="select"
+                      value={formData.category}
+                      onChange={e => setFormData({ ...formData, category: e.target.value })}
+                      options={contactCategories}
+                      {...({ disabled: isLoading } as React.SelectHTMLAttributes<HTMLSelectElement>)}
+                    />
                   </div>
 
                   {/* Subject */}
@@ -348,18 +334,15 @@ export default function ContactClient() {
                     label="Subject"
                     error={errors.subject}
                     required
-                  >
-                    <Input
-                      type="text"
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      placeholder="Brief description of your inquiry"
-                      disabled={isLoading}
-                    />
-                  </FormField>
+                    value={formData.subject}
+                    onChange={e => setFormData({ ...formData, subject: e.target.value })}
+                    placeholder="Brief description of your inquiry"
+                    {...({ placeholder: 'Brief description of your inquiry', disabled: isLoading } as React.InputHTMLAttributes<HTMLInputElement>)}
+                  />
 
                   {/* Priority */}
-                  <FormField label="Priority Level">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2">Priority Level</label>
                     <div className="flex gap-3">
                       {[
                         { value: 'low', label: 'Low', color: 'bg-green-100 text-green-700' },
@@ -381,22 +364,20 @@ export default function ContactClient() {
                         </button>
                       ))}
                     </div>
-                  </FormField>
+                  </div>
 
                   {/* Message */}
                   <FormField
                     label="Message"
                     error={errors.message}
                     required
-                  >
-                    <Textarea
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      placeholder="Please provide details about your inquiry..."
-                      rows={6}
-                      disabled={isLoading}
-                    />
-                  </FormField>
+                    fieldType="textarea"
+                    value={formData.message}
+                    onChange={e => setFormData({ ...formData, message: e.target.value })}
+                    placeholder="Please provide details about your inquiry..."
+                    rows={6}
+                    {...({ placeholder: 'Please provide details about your inquiry...', rows: 6, disabled: isLoading } as React.TextareaHTMLAttributes<HTMLTextAreaElement>)}
+                  />
 
                   {/* Submit Button */}
                   <Button

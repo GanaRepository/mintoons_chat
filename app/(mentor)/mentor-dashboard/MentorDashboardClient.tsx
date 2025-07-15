@@ -79,6 +79,16 @@ export default function MentorDashboardClient({
 
   const greeting = getGreeting();
 
+  // Helper for getting display name from UserType
+  const getUserName = (user: any) => {
+    if (!user) return '';
+    if (typeof user === 'string') return '';
+    if ('fullName' in user && user.fullName) return user.fullName;
+    if ('firstName' in user && user.firstName) return user.firstName + (user.lastName ? ' ' + user.lastName : '');
+    if ('name' in user && user.name) return user.name;
+    return '';
+  };
+
   const dashboardStats = [
     {
       label: 'Assigned Students',
@@ -131,7 +141,7 @@ export default function MentorDashboardClient({
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">👨‍🏫</span>
                   <h1 className="text-3xl lg:text-4xl font-bold">
-                    {greeting}, {mentor.name}!
+                    {greeting}, {getUserName(mentor)}!
                   </h1>
                 </div>
                 
@@ -142,11 +152,11 @@ export default function MentorDashboardClient({
                 <div className="flex flex-wrap items-center gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{formatDate(currentTime, 'full')}</span>
+                    <span>{formatDate(currentTime)}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Award className="w-4 h-4" />
-                    <span>Mentor since {formatDate(mentor.mentoringSince || mentor.createdAt, 'year')}</span>
+                    <span>Mentor since {formatDate(mentor.mentoringSince || mentor.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -219,24 +229,22 @@ export default function MentorDashboardClient({
 
                 <div className="space-y-4">
                   {pendingReviews.slice(0, 3).map((story) => (
-                    <div key={story.id} className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
+                    <div key={story._id} className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <h3 className="font-semibold text-gray-900 mb-1">
                             {story.title}
                           </h3>
                           <p className="text-sm text-gray-600 mb-2">
-                            by {story.authorId?.name}, age {story.authorId?.age}
+                            by {getUserName(story.authorId)}{(story.authorId && typeof story.authorId === 'object' && 'age' in story.authorId && (story.authorId as Partial<UserType>).age) ? `, age ${(story.authorId as Partial<UserType>).age}` : ''}
                           </p>
                           <div className="flex items-center gap-4 text-xs text-gray-500">
-                            <span>Published {formatDate(story.updatedAt, 'relative')}</span>
+                            <span>Published {formatDate(story.updatedAt)}</span>
                             <span>{story.wordCount} words</span>
-                            {story.aiAssessment && (
-                              <span>AI Score: {story.aiAssessment.overallScore}%</span>
-                            )}
+                            {/* AI Score display removed: assessment is a string id, not an object */}
                           </div>
                         </div>
-                        <Link href={`/student-stories/${story.id}`}>
+                        <Link href={`/student-stories/${story._id}`}>
                           <Button size="sm" variant="outline">
                             <Eye className="w-4 h-4 mr-1" />
                             Review
@@ -292,7 +300,7 @@ export default function MentorDashboardClient({
               ) : (
                 <div className="space-y-4">
                   {recentStories.slice(0, 5).map((story) => (
-                    <div key={story.id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
+                    <div key={story._id} className="flex items-center gap-4 p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow">
                       <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
                         story.status === 'published' ? 'bg-green-100 text-green-600' :
                         story.status === 'draft' ? 'bg-yellow-100 text-yellow-600' :
@@ -306,11 +314,11 @@ export default function MentorDashboardClient({
                           <div>
                             <h3 className="font-semibold text-gray-900">{story.title}</h3>
                             <p className="text-sm text-gray-600">
-                              by {story.authorId?.name}, age {story.authorId?.age}
+                              by {getUserName(story.authorId)}{(story.authorId && typeof story.authorId === 'object' && 'age' in story.authorId && (story.authorId as Partial<UserType>).age) ? `, age ${(story.authorId as Partial<UserType>).age}` : ''}
                             </p>
                             <div className="flex items-center gap-4 mt-1">
                               <span className="text-xs text-gray-500">
-                                {formatDate(story.updatedAt, 'relative')}
+                                {formatDate(story.updatedAt)}
                               </span>
                               <Badge
                                 variant={
@@ -321,25 +329,18 @@ export default function MentorDashboardClient({
                               >
                                 {story.status}
                               </Badge>
-                              {story.wordCount && (
-                                <span className="text-xs text-gray-500">
-                                  {formatNumber(story.wordCount)} words
-                                </span>
-                              )}
+                            {story.wordCount && (
+                              <span className="text-xs text-gray-500">
+                                {formatNumber(story.wordCount)} words
+                              </span>
+                            )}
                             </div>
                           </div>
 
                           <div className="flex items-center gap-2">
-                            {story.aiAssessment && (
-                              <div className="text-right mr-3">
-                                <div className="text-sm font-bold text-green-600">
-                                  {story.aiAssessment.overallScore}%
-                                </div>
-                                <div className="text-xs text-gray-500">AI Score</div>
-                              </div>
-                            )}
+                            {/* AI Score display removed: assessment is a string id, not an object */}
                             
-                            <Link href={`/student-stories/${story.id}`}>
+                            <Link href={`/student-stories/${story._id}`}>
                               <Button variant="outline" size="sm">
                                 <Eye className="w-4 h-4 mr-1" />
                                 View
@@ -376,7 +377,7 @@ export default function MentorDashboardClient({
               ) : (
                 <div className="space-y-4">
                   {myComments.map((comment) => (
-                    <div key={comment.id} className="p-4 border border-gray-200 rounded-lg">
+                    <div key={comment._id} className="p-4 border border-gray-200 rounded-lg">
                       <div className="flex items-start gap-3">
                         <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <MessageCircle className="w-4 h-4 text-green-600" />
@@ -384,18 +385,18 @@ export default function MentorDashboardClient({
                         <div className="flex-1">
                           <div className="flex items-center justify-between mb-2">
                             <h4 className="font-medium text-gray-900">
-                              Comment on "{comment.storyId?.title}"
+                              Comment on "{comment.storyId && typeof comment.storyId === 'object' && 'title' in comment.storyId ? (comment.storyId as { title?: string }).title : ''}"
                             </h4>
                             <span className="text-xs text-gray-500">
-                              {formatDate(comment.createdAt, 'relative')}
+                              {formatDate(comment.createdAt)}
                             </span>
                           </div>
                           <p className="text-sm text-gray-700 line-clamp-2">
                             {comment.content}
                           </p>
                           <div className="mt-2">
-                            <Badge variant="outline" size="sm">
-                              {comment.commentType}
+                            <Badge variant="default" size="sm">
+                              {comment.type}
                             </Badge>
                           </div>
                         </div>
@@ -432,11 +433,11 @@ export default function MentorDashboardClient({
                       <div className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:shadow-md transition-shadow cursor-pointer">
                         <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                           <span className="text-sm font-bold text-white">
-                            {student.name.charAt(0).toUpperCase()}
+                            {getUserName(student).charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1">
-                          <div className="font-medium text-gray-900">{student.name}</div>
+                          <div className="font-medium text-gray-900">{getUserName(student)}</div>
                           <div className="flex items-center gap-3 text-xs text-gray-500">
                             <span>Age {student.age}</span>
                             <span>{student.storyCount || 0} stories</span>
@@ -444,10 +445,10 @@ export default function MentorDashboardClient({
                           </div>
                         </div>
                         <div className="flex items-center gap-1">
-                          {student.streak?.current > 0 && (
+                          {student.streak && typeof student.streak === 'object' && 'current' in student.streak && (student.streak as any).current > 0 && (
                             <div className="flex items-center gap-1 text-orange-500">
                               <Activity className="w-3 h-3" />
-                              <span className="text-xs">{student.streak.current}</span>
+                              <span className="text-xs">{(student.streak as any).current}</span>
                             </div>
                           )}
                           <ChevronRight className="w-4 h-4 text-gray-400" />

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Track AI generation
     trackEvent(TRACKING_EVENTS.AI_GENERATION, {
-      userId: session.user.id,
+      userId: session.user._id,
       promptLength: prompt.length,
       responseLength: response.content.length,
       provider: response.provider,

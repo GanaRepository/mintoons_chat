@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import Story from '@models/Story';
+import User from '@models/User';
 import Comment from '@models/Comment';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -34,10 +35,13 @@ export async function GET(
     }
 
     // Check access permissions
+    const storyAuthorId = typeof (story as any).authorId === 'object' && (story as any).authorId !== null && '_id' in (story as any).authorId
+      ? String((story as any).authorId._id)
+      : String((story as any).authorId);
     const canAccess = 
-      story.authorId._id.toString() === session.user.id ||
+      storyAuthorId === String(session.user._id) ||
       session.user.role === 'admin' ||
-      (session.user.role === 'mentor' && await canMentorAccessStory(session.user.id, story.authorId._id));
+      (session.user.role === 'mentor' && await canMentorAccessStory(String(session.user._id), storyAuthorId));
 
     if (!canAccess) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
@@ -50,10 +54,10 @@ export async function GET(
       .lean();
 
     // Track story view
-    trackEvent(TRACKING_EVENTS.STORY_VIEWED, {
+    trackEvent(TRACKING_EVENTS.STORY_VIEW, {
       storyId: params.id,
-      viewerId: session.user.id,
-      authorId: story.authorId._id
+      viewerId: session.user._id,
+      authorId: storyAuthorId
     });
 
     return NextResponse.json({
@@ -89,7 +93,7 @@ export async function PUT(
     }
 
     // Check permissions
-    if (story.authorId.toString() !== session.user.id && session.user.role !== 'admin') {
+    if (String((story as any).authorId) !== String(session.user._id) && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -99,7 +103,7 @@ export async function PUT(
     // Content moderation if publishing
     let moderationResult = null;
     if (status === 'published' && story.status !== 'published') {
-      const user = await User.findById(session.user.id);
+      const user = await User.findById(session.user._id);
       moderationResult = await contentModerationSystem.moderateStory(
         content || story.content,
         user?.age || 18
@@ -135,9 +139,9 @@ export async function PUT(
     );
 
     // Track story update
-    trackEvent(TRACKING_EVENTS.STORY_UPDATED, {
+    trackEvent(TRACKING_EVENTS.STORY_EDIT, {
       storyId: params.id,
-      userId: session.user.id,
+      userId: session.user._id,
       changes: Object.keys(updateData)
     });
 
@@ -171,7 +175,7 @@ export async function DELETE(
     }
 
     // Check permissions
-    if (story.authorId.toString() !== session.user.id && session.user.role !== 'admin') {
+    if (String(story.authorId) !== String(session.user._id) && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
@@ -182,14 +186,14 @@ export async function DELETE(
     });
 
     // Update user story count
-    await User.findByIdAndUpdate(story.authorId, {
+    await User.findByIdAndUpdate((story as any).authorId, {
       $inc: { storyCount: -1 }
     });
 
     // Track story deletion
-    trackEvent(TRACKING_EVENTS.STORY_DELETED, {
+    trackEvent(TRACKING_EVENTS.STORY_DELETE, {
       storyId: params.id,
-      userId: session.user.id
+      userId: session.user._id
     });
 
     return NextResponse.json({ success: true });
@@ -205,6 +209,7 @@ export async function DELETE(
 
 // Helper function to check if mentor can access student story
 async function canMentorAccessStory(mentorId: string, studentId: string): Promise<boolean> {
-  const mentor = await User.findById(mentorId).select('assignedStudents');
-  return mentor?.assignedStudents?.includes(studentId) || false;
+  const mentor = await User.findById(mentorId).select('assignedStudents').lean();
+  const assigned = (mentor && (mentor as any).assignedStudents) || [];
+  return assigned.map((id: any) => String(id)).includes(String(studentId));
 }

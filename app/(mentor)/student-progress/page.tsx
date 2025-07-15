@@ -19,17 +19,22 @@ export const metadata: Metadata = {
 async function getStudentProgressData(mentorId: string) {
   await connectDB();
 
-  const mentor = await User.findById(mentorId)
+  const mentorRaw = await User.findById(mentorId)
     .select('-password')
     .populate('assignedStudents', 'name email age storyCount level points streak lastActiveAt createdAt')
     .lean();
+
+  const mentor = mentorRaw as unknown as import('@/types/user').User & { assignedStudents?: any[] };
+  // Defensive: filter out string ids and cast to UserType
+  const students = Array.isArray(mentor.assignedStudents)
+    ? mentor.assignedStudents.filter(s => typeof s === 'object' && s !== null) as import('@/types/user').User[]
+    : [];
 
   if (!mentor || mentor.role !== 'mentor') {
     return null;
   }
 
-  const students = mentor.assignedStudents || [];
-  const studentIds = students.map(s => s._id);
+  const studentIds = students.map(s => (s as import('@/types/user').User)._id);
 
   // Get stories for all students
   const [stories, analytics] = await Promise.all([
@@ -45,16 +50,19 @@ async function getStudentProgressData(mentorId: string) {
   ]);
 
   // Calculate statistics for each student
-  const studentsWithStats = students.map(student => {
-    const studentStories = stories.filter(s => s.authorId._id.toString() === student._id.toString());
+  const studentsWithStats = students.map((student: import('@/types/user').User) => {
+    const studentStories = stories.filter(s => {
+      const author = typeof s.authorId === 'object' && s.authorId !== null ? s.authorId as { _id: string } : null;
+      return author && author._id.toString() === student._id.toString();
+    });
     const publishedStories = studentStories.filter(s => s.status === 'published');
-    const totalWords = studentStories.reduce((sum, s) => sum + (s.wordCount || 0), 0);
+    const totalWords = studentStories.reduce((sum: number, s: any) => sum + (s.wordCount || 0), 0);
     const avgWordsPerStory = studentStories.length > 0 ? Math.round(totalWords / studentStories.length) : 0;
     
     // Calculate average scores
     const storiesWithAssessment = studentStories.filter(s => s.aiAssessment);
     const avgOverallScore = storiesWithAssessment.length > 0 
-      ? Math.round(storiesWithAssessment.reduce((sum, s) => sum + (s.aiAssessment?.overallScore || 0), 0) / storiesWithAssessment.length)
+      ? Math.round(storiesWithAssessment.reduce((sum: number, s: any) => sum + (s.aiAssessment?.overallScore || 0), 0) / storiesWithAssessment.length)
       : 0;
 
     // Recent activity (last 7 days)
@@ -71,7 +79,7 @@ async function getStudentProgressData(mentorId: string) {
         avgWordsPerStory,
         avgOverallScore,
         recentStories: recentStories.length,
-        isActive: new Date(student.lastActiveAt || 0) >= weekAgo,
+        isActive: new Date((student as any).lastActiveAt || 0) >= weekAgo,
         joinedDaysAgo: Math.floor((Date.now() - new Date(student.createdAt).getTime()) / (1000 * 60 * 60 * 24)),
       },
       recentStories: studentStories.slice(0, 3),
@@ -83,10 +91,10 @@ async function getStudentProgressData(mentorId: string) {
     students: studentsWithStats,
     totalStats: {
       totalStudents: students.length,
-      activeStudents: studentsWithStats.filter(s => s.statistics.isActive).length,
+      activeStudents: studentsWithStats.filter((s: any) => s.statistics.isActive).length,
       totalStories: stories.length,
       avgScoreAllStudents: studentsWithStats.length > 0 
-        ? Math.round(studentsWithStats.reduce((sum, s) => sum + s.statistics.avgOverallScore, 0) / studentsWithStats.length)
+        ? Math.round(studentsWithStats.reduce((sum: number, s: any) => sum + s.statistics.avgOverallScore, 0) / studentsWithStats.length)
         : 0,
     },
   };
@@ -99,7 +107,7 @@ export default async function StudentProgressPage() {
       redirect('/login?callbackUrl=/student-progress');
     }
    
-    const progressData = await getStudentProgressData(session.user.id);
+    const progressData = await getStudentProgressData(session.user._id);
    
     if (!progressData) {
       redirect('/unauthorized?role=mentor');

@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       contentType,
       contentId,
       action,
-      session.user.id,
+      session.user._id,
       message
     );
 

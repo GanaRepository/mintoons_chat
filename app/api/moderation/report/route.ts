@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
     if (contentType === 'story') {
       result = await contentModerationSystem.flagStoryForReview(
         contentId,
-        session.user.id,
+        session.user._id,
         `${reason}: ${description || ''}`
       );
     } else if (contentType === 'comment') {
       result = await contentModerationSystem.flagCommentForReview(
         contentId,
-        session.user.id,
+        session.user._id,
         `${reason}: ${description || ''}`
       );
     }
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       trackEvent(TRACKING_EVENTS.CONTENT_REPORTED, {
         contentType,
         contentId,
-        reporterId: session.user.id,
+        reporterId: session.user._id,
         reason
       });
 

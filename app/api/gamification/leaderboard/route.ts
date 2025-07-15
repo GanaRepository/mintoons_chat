@@ -56,8 +56,8 @@ export async function GET(request: NextRequest) {
     }
 
     const leaderboard = await User.find(query)
-      .select('firstName lastName age level points streak storyCount')
-      .sort({ points: -1, level: -1, storyCount: -1 })
+      .select('firstName lastName age level totalPoints streak storyCount')
+      .sort({ totalPoints: -1, level: -1, storyCount: -1 })
       .limit(limit)
       .lean();
 
@@ -68,16 +68,16 @@ export async function GET(request: NextRequest) {
       displayName: `${user.firstName} ${user.lastName?.charAt(0) || ''}.`,
       age: user.age,
       level: user.level || 1,
-      points: user.points || 0,
+      points: user.totalPoints || 0,
       storyCount: user.storyCount || 0,
       streak: user.streak || 0,
-      isCurrentUser: user._id.toString() === session.user.id
+      isCurrentUser: String(user._id) === session.user._id
     }));
 
     // Find current user's position if not in top results
     let currentUserRank = null;
     const currentUserIndex = leaderboard.findIndex(
-      user => user._id.toString() === session.user.id
+      user => String(user._id) === session.user._id
     );
 
     if (currentUserIndex === -1) {
@@ -85,13 +85,13 @@ export async function GET(request: NextRequest) {
       const usersAbove = await User.countDocuments({
         ...query,
         $or: [
-          { points: { $gt: session.user.points || 0 } },
+          { totalPoints: { $gt: session.user.totalPoints || 0 } },
           { 
-            points: session.user.points || 0,
+            totalPoints: session.user.totalPoints || 0,
             level: { $gt: session.user.level || 1 }
           },
           {
-            points: session.user.points || 0,
+            totalPoints: session.user.totalPoints || 0,
             level: session.user.level || 1,
             storyCount: { $gt: session.user.storyCount || 0 }
           }

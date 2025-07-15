@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
-import { uploadToCloudinary } from '@lib/upload/cloudinary';
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,28 +40,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Convert file to buffer
+    // Convert file to base64 string
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    const base64Avatar = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-    // Upload to Cloudinary (or your preferred storage)
-    const uploadResult = await uploadToCloudinary(buffer, {
-      folder: 'avatars',
-      public_id: `avatar_${session.user.id}`,
-      transformation: [
-        { width: 200, height: 200, crop: 'fill', gravity: 'face' },
-        { quality: 'auto', fetch_format: 'auto' }
-      ]
-    });
-
-    // Update user avatar
+    // Update user avatar in MongoDB
     await connectDB();
-    await User.findByIdAndUpdate(session.user.id, {
-      avatar: uploadResult.secure_url
+    await User.findByIdAndUpdate(session.user._id, {
+      avatar: base64Avatar
     });
 
     return NextResponse.json({
-      avatarUrl: uploadResult.secure_url,
+      avatarUrl: base64Avatar,
       message: 'Avatar updated successfully'
     });
 

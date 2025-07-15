@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
-import { gamificationManager } from '@lib/gamification/manager';
+import { achievementManager } from '@lib/gamification/achievements';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
 
@@ -27,16 +27,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Unlock achievement
-    const result = await gamificationManager.unlockAchievement(
-      session.user.id,
+    const result = await achievementManager.awardAchievement(
+      session.user._id,
       achievementId,
-      context
+      'manual', // or pass a real trigger event if available
+      context?.storyId
     );
 
     if (result.success) {
       // Track achievement unlock
-      trackEvent(TRACKING_EVENTS.ACHIEVEMENT_UNLOCKED, {
-        userId: session.user.id,
+      trackEvent(TRACKING_EVENTS.BUTTON_CLICK, {
+        userId: session.user._id,
         achievementId,
         pointsAwarded: result.pointsAwarded
       });

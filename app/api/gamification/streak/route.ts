@@ -3,7 +3,6 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@lib/auth/config';
 import { connectDB } from '@lib/database/connection';
 import User from '@models/User';
-import { gamificationManager } from '@lib/gamification/manager';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +14,9 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    const user = await User.findById(session.user.id)
+
+    // Use session.user._id and fetch streak info
+    const user = await User.findById(session.user._id)
       .select('streak lastActiveDate')
       .lean();
 
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json({
-      currentStreak: user.streak || 0,
-      lastActiveDate: user.lastActiveDate
+      currentStreak: (user as any).streak || 0,
+      lastActiveDate: (user as any).lastActiveDate
     });
 
   } catch (error) {
@@ -47,13 +48,23 @@ export async function PUT(request: NextRequest) {
 
     await connectDB();
 
-    // Update user's writing streak
-    const result = await gamificationManager.updateWritingStreak(session.user.id);
 
+    // Update user's writing streak using User model
+    const user = await User.findById(session.user._id);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    const oldStreak = user.streak;
+    await user.updateStreak();
+    const newStreak = user.streak;
+    // For demonstration, assume streakBroken if streak reset to 1
+    const streakBroken = newStreak === 1 && oldStreak > 1;
+    // Optionally award points for streak update
+    // await user.addPoints(10); // Uncomment if you want to award points
     return NextResponse.json({
-      streak: result.streak,
-      streakBroken: result.streakBroken,
-      pointsAwarded: result.pointsAwarded
+      streak: newStreak,
+      streakBroken,
+      pointsAwarded: 0 // Set to actual points if awarding
     });
 
   } catch (error) {

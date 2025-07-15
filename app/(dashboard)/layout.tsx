@@ -50,7 +50,7 @@ export default async function DashboardLayout({
       <div className="flex">
         {/* Sidebar */}
         <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-72 lg:flex-col">
-          <Sidebar user={userData} />
+          <Sidebar isOpen={true} />
         </aside>
 
         {/* Main content */}

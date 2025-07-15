@@ -84,7 +84,7 @@ export default function StudentStoriesClient({
       filtered = filtered.filter(story =>
         story.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         story.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        story.authorId?.name.toLowerCase().includes(searchQuery.toLowerCase())
+        getAuthorName(story.authorId).toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
@@ -106,23 +106,39 @@ export default function StudentStoriesClient({
   };
 
   const getStoryStatusColor = (story: Story) => {
-    if (story.needsMentorReview) return 'warning';
+    if ((story as any).needsMentorReview) return 'warning';
     if (story.status === 'published') return 'success';
     if (story.status === 'draft') return 'default';
     return 'default';
   };
 
   const getStoryPriority = (story: Story) => {
-    if (story.needsMentorReview) return 'high';
+    if ((story as any).needsMentorReview) return 'high';
     const daysSinceUpdate = Math.floor((Date.now() - new Date(story.updatedAt).getTime()) / (1000 * 60 * 60 * 24));
     if (daysSinceUpdate > 3) return 'medium';
     return 'low';
   };
 
-  const pendingCount = stories.filter(s => s.needsMentorReview).length;
+  const pendingCount = stories.filter(s => (s as any).needsMentorReview).length;
   const thisWeekCount = stories.filter(s => 
     new Date(s.createdAt) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length;
+
+  // Defensive: authorId may be string or object, so use helper to get name/age
+  const getAuthorName = (author: any) => {
+    if (!author) return '';
+    if (typeof author === 'string') return '';
+    if ('fullName' in author && author.fullName) return author.fullName;
+    if ('name' in author && author.name) return author.name;
+    if ('firstName' in author && author.firstName) return author.firstName + (author.lastName ? ' ' + author.lastName : '');
+    return '';
+  };
+  const getAuthorAge = (author: any) => {
+    if (!author) return '';
+    if (typeof author === 'string') return '';
+    if ('age' in author && author.age) return author.age;
+    return '';
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -222,54 +238,54 @@ export default function StudentStoriesClient({
             </div>
 
             {/* Filter by Type */}
-            <Select
+            <select
               value={filters.filter}
               onChange={(e) => updateFilters({ filter: e.target.value })}
-              className="w-full lg:w-48"
+              className="w-full lg:w-48 border rounded-md p-2 text-gray-700"
             >
               <option value="all">All Stories</option>
               <option value="pending">Need Review</option>
               <option value="recent">Recent (7 days)</option>
               <option value="commented">My Comments</option>
-            </Select>
+            </select>
 
             {/* Filter by Student */}
-            <Select
+            <select
               value={filters.student}
               onChange={(e) => updateFilters({ student: e.target.value })}
-              className="w-full lg:w-48"
+              className="w-full lg:w-48 border rounded-md p-2 text-gray-700"
             >
               <option value="all">All Students</option>
               {students.map((student) => (
                 <option key={student._id} value={student._id}>
-                  {student.name}
+                  {getAuthorName(student)}
                 </option>
               ))}
-            </Select>
+            </select>
 
             {/* Filter by Status */}
-            <Select
+            <select
               value={filters.status}
               onChange={(e) => updateFilters({ status: e.target.value })}
-              className="w-full lg:w-48"
+              className="w-full lg:w-48 border rounded-md p-2 text-gray-700"
             >
               <option value="all">All Status</option>
               <option value="published">Published</option>
               <option value="draft">Draft</option>
               <option value="reviewing">Under Review</option>
-            </Select>
+            </select>
 
             {/* View Mode */}
             <div className="flex items-center gap-2">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                variant={viewMode === 'grid' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
               >
                 <Grid3X3 className="w-4 h-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'outline'}
+                variant={viewMode === 'list' ? 'primary' : 'outline'}
                 size="sm"
                 onClick={() => setViewMode('list')}
               >
@@ -310,12 +326,12 @@ export default function StudentStoriesClient({
             : 'space-y-4'
         }`}>
           {filteredStories.map((story, index) => (
-            <SlideIn key={story.id} direction="up" delay={0.1 * (index % 6)}>
+            <SlideIn key={story._id} direction="up" delay={0.1 * (index % 6)}>
               {viewMode === 'grid' ? (
                 // Grid View
                 <Card className="p-6 hover:shadow-lg transition-all duration-300 hover:scale-105">
                   {/* Priority Indicator */}
-                  {story.needsMentorReview && (
+                  {(story as any).needsMentorReview && (
                     <div className="mb-4">
                       <Badge variant="warning" size="sm" className="flex items-center gap-1 w-fit">
                         <Flag className="w-3 h-3" />
@@ -332,11 +348,11 @@ export default function StudentStoriesClient({
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                         <span className="text-xs font-bold text-white">
-                          {story.authorId?.name.charAt(0).toUpperCase()}
+                          {getAuthorName(story.authorId).charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <span className="text-sm text-gray-600">
-                        {story.authorId?.name}, age {story.authorId?.age}
+                        {getAuthorName(story.authorId)}, age {getAuthorAge(story.authorId)}
                       </span>
                     </div>
                   </div>
@@ -351,7 +367,7 @@ export default function StudentStoriesClient({
                     <div className="flex items-center gap-3">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-3 h-3" />
-                        <span>{formatDate(story.updatedAt, 'relative')}</span>
+                        <span>{formatDate(story.updatedAt)}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock className="w-3 h-3" />
@@ -364,30 +380,39 @@ export default function StudentStoriesClient({
                   </div>
 
                   {/* AI Assessment */}
-                  {story.aiAssessment && (
+                  {typeof story.assessment === 'object' && story.assessment && (
                     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-gray-700">AI Assessment</span>
                         <span className="text-sm font-bold text-green-600">
-                          {story.aiAssessment.overallScore}%
+                          {/* --- Fix assessment property rendering: only render score spans if the property exists and is a number --- */}
+                          {typeof story.assessment === 'object' && story.assessment && typeof (story.assessment as any).overallScore === 'number' && (
+                            <span>{(story.assessment as any).overallScore}%</span>
+                          )}
                         </span>
                       </div>
                       <div className="grid grid-cols-3 gap-2 text-xs">
                         <div className="text-center">
                           <div className="font-medium text-blue-600">
-                            {story.aiAssessment.grammarScore}%
+                            {typeof story.assessment === 'object' && story.assessment && typeof (story.assessment as any).grammarScore === 'number' && (
+                              <span>{(story.assessment as any).grammarScore}%</span>
+                            )}
                           </div>
                           <div className="text-gray-500">Grammar</div>
                         </div>
                         <div className="text-center">
                           <div className="font-medium text-purple-600">
-                            {story.aiAssessment.creativityScore}%
+                            {typeof story.assessment === 'object' && story.assessment && typeof (story.assessment as any).creativityScore === 'number' && (
+                              <span>{(story.assessment as any).creativityScore}%</span>
+                            )}
                           </div>
                           <div className="text-gray-500">Creativity</div>
                         </div>
                         <div className="text-center">
                           <div className="font-medium text-green-600">
-                            {story.aiAssessment.overallScore}%
+                            {'overallScore' in story.assessment && (
+                              <span>{(story.assessment as { overallScore?: number }).overallScore}%</span>
+                            )}
                           </div>
                           <div className="text-gray-500">Overall</div>
                         </div>
@@ -399,7 +424,7 @@ export default function StudentStoriesClient({
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <MessageCircle className="w-4 h-4" />
-                      <span>{commentsByStory[story.id]?.length || 0} comments</span>
+                      <span>{commentsByStory[story._id]?.length || 0} comments</span>
                     </div>
                     {story.wordCount && (
                       <span className="text-xs text-gray-500">
@@ -410,14 +435,14 @@ export default function StudentStoriesClient({
 
                   {/* Actions */}
                   <div className="flex gap-2">
-                    <Link href={`/student-stories/${story.id}`} className="flex-1">
+                    <Link href={`/student-stories/${story._id}`} className="flex-1">
                       <Button size="sm" className="w-full">
                         <Eye className="w-4 h-4 mr-1" />
                         Review
                       </Button>
                     </Link>
                     
-                    {commentsByStory[story.id]?.length > 0 && (
+                    {commentsByStory[story._id]?.length > 0 && (
                       <Button variant="outline" size="sm">
                         <MessageCircle className="w-4 h-4" />
                       </Button>
@@ -430,7 +455,7 @@ export default function StudentStoriesClient({
                   <div className="flex items-start gap-6">
                     {/* Priority & Status */}
                     <div className="flex flex-col gap-2">
-                      {story.needsMentorReview ? (
+                      {(story as any).needsMentorReview ? (
                         <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
                       ) : (
                         <div className="w-3 h-3 bg-green-500 rounded-full"></div>
@@ -443,11 +468,11 @@ export default function StudentStoriesClient({
                         <div>
                           <div className="flex items-center gap-3 mb-2">
                             <h3 className="text-xl font-bold text-gray-900 hover:text-blue-600">
-                              <Link href={`/student-stories/${story.id}`}>
+                              <Link href={`/student-stories/${story._id}`}>
                                 {story.title}
                               </Link>
                             </h3>
-                            {story.needsMentorReview && (
+                            {(story as any).needsMentorReview && (
                               <Badge variant="warning" size="sm">
                                 <Flag className="w-3 h-3 mr-1" />
                                 Review Needed
@@ -462,14 +487,14 @@ export default function StudentStoriesClient({
                             <div className="flex items-center gap-2">
                               <div className="w-5 h-5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                                 <span className="text-xs font-bold text-white">
-                                  {story.authorId?.name.charAt(0).toUpperCase()}
+                                  {getAuthorName(story.authorId).charAt(0).toUpperCase()}
                                 </span>
                               </div>
-                              <span>{story.authorId?.name}, age {story.authorId?.age}</span>
+                              <span>{getAuthorName(story.authorId)}, age {getAuthorAge(story.authorId)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-                              <span>{formatDate(story.updatedAt, 'relative')}</span>
+                              <span>{formatDate(story.updatedAt)}</span>
                             </div>
                             <div className="flex items-center gap-1">
                               <Clock className="w-4 h-4" />
@@ -481,10 +506,13 @@ export default function StudentStoriesClient({
                           </div>
                         </div>
 
-                        {story.aiAssessment && (
+                        {typeof story.assessment === 'object' && story.assessment && (
                           <div className="text-right">
                             <div className="text-2xl font-bold text-green-600">
-                              {story.aiAssessment.overallScore}%
+                              {/* --- Fix assessment property rendering: only render score spans if the property exists and is a number --- */}
+                              {typeof story.assessment === 'object' && story.assessment && typeof (story.assessment as any).overallScore === 'number' && (
+                                <span>{(story.assessment as any).overallScore}%</span>
+                              )}
                             </div>
                             <div className="text-xs text-gray-500">AI Score</div>
                           </div>
@@ -499,30 +527,34 @@ export default function StudentStoriesClient({
                         <div className="flex items-center gap-4">
                           <div className="flex items-center gap-1 text-sm text-gray-600">
                             <MessageCircle className="w-4 h-4" />
-                            <span>{commentsByStory[story.id]?.length || 0} comments</span>
+                            <span>{commentsByStory[story._id]?.length || 0} comments</span>
                           </div>
                           
-                          {story.aiAssessment && (
+                          {story.assessment && (
                             <div className="flex items-center gap-3 text-xs">
                               <span className="text-blue-600">
-                                Grammar: {story.aiAssessment.grammarScore}%
+                                Grammar: {typeof story.assessment === 'object' && story.assessment && 'grammarScore' in story.assessment && (
+                                  <span>{(story.assessment as { grammarScore?: number }).grammarScore}%</span>
+                                )}
                               </span>
                               <span className="text-purple-600">
-                                Creativity: {story.aiAssessment.creativityScore}%
+                                Creativity: {typeof story.assessment === 'object' && story.assessment && 'creativityScore' in story.assessment && (
+                                  <span>{(story.assessment as { creativityScore?: number }).creativityScore}%</span>
+                                )}
                               </span>
                             </div>
                           )}
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <Link href={`/student-stories/${story.id}`}>
+                          <Link href={`/student-stories/${story._id}`}>
                             <Button variant="outline" size="sm">
                               <Eye className="w-4 h-4 mr-1" />
                               Review
                             </Button>
                           </Link>
                           
-                          {commentsByStory[story.id]?.some(c => c.commenterId === mentor._id) && (
+                          {commentsByStory[story._id]?.some(c => c.commenterId === mentor._id) && (
                             <Badge variant="info" size="sm">
                               <MessageCircle className="w-3 h-3 mr-1" />
                               Commented

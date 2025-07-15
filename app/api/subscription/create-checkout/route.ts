@@ -24,17 +24,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Stripe checkout session
-    const checkoutUrl = await stripeManager.createCheckoutSession({
-      priceId,
-      userId: session.user.id,
+    const checkoutUrl = await stripeManager.createCheckoutSession(
+      session.user._id,
       tier,
-      successUrl: successUrl || `${process.env.APP_URL}/dashboard?subscription=success`,
-      cancelUrl: cancelUrl || `${process.env.APP_URL}/pricing`
-    });
+      successUrl || `${process.env.APP_URL}/dashboard?subscription=success`,
+      cancelUrl || `${process.env.APP_URL}/pricing`
+    );
 
     // Track checkout initiation
-    trackEvent(TRACKING_EVENTS.CHECKOUT_STARTED, {
-      userId: session.user.id,
+    trackEvent(TRACKING_EVENTS.CHECKOUT_START, {
+      userId: session.user._id,
       tier,
       priceId
     });

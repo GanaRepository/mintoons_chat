@@ -1,4 +1,3 @@
-// app/(dashboard)/story/[id]/StoryViewClient.tsx
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -33,9 +32,8 @@ import { ProgressBar } from '@components/ui/progress-bar';
 import { StoryViewer } from '@components/stories/StoryViewer';
 import { CommentSystem } from '@components/stories/CommentSystem';
 import { AssessmentModal } from '@components/stories/AssessmentModal';
-import { FadeIn } from '@components/animations/FadeIn';
 import { SlideIn } from '@components/animations/SlideIn';
-
+import { FadeIn } from '@components/animations/FadeIn';
 import { formatDate, formatNumber } from '@utils/formatters';
 import { trackEvent } from '@lib/analytics/tracker';
 import { TRACKING_EVENTS } from '@utils/constants';
@@ -61,22 +59,32 @@ export default function StoryViewClient({
   const router = useRouter();
   const [showAssessment, setShowAssessment] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(story.likeCount || 0);
+  const [likeCount, setLikeCount] = useState(story.likes || 0);
+  const [assessment, setAssessment] = useState<
+    import('@/types/assessment').StoryAssessment | null
+  >(null);
 
   useEffect(() => {
     trackEvent(TRACKING_EVENTS.STORY_VIEW, {
       userId: user._id,
-      storyId: story.id,
+      storyId: story._id,
       isOwner,
     });
 
     // Check if user has liked this story
     setIsLiked(story.likedBy?.includes(user._id) || false);
-  }, [story.id, story.likedBy, user._id, isOwner]);
+    // Fetch assessment if needed
+    if (story.assessment) {
+      fetch(`/api/assessments/${story.assessment}`)
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => setAssessment(data))
+        .catch(() => setAssessment(null));
+    }
+  }, [story._id, story.likedBy, user._id, isOwner]);
 
   const handleLike = async () => {
     try {
-      const response = await fetch(`/api/stories/${story.id}/like`, {
+      const response = await fetch(`/api/stories/${story._id}/like`, {
         method: 'POST',
       });
 
@@ -87,36 +95,43 @@ export default function StoryViewClient({
 
         trackEvent(TRACKING_EVENTS.STORY_LIKE, {
           userId: user._id,
-          storyId: story.id,
+          storyId: story._id,
           liked: result.liked,
         });
+      } else {
+        toast.error('Failed to update like');
       }
     } catch (error) {
-      console.error('Like error:', error);
-      toast.error('Failed to update like');
+      toast.error('An error occurred while liking the story');
     }
   };
 
   const handleShare = async () => {
     const shareData = {
       title: `Check out "${story.title}" on MINTOONS!`,
-      text: story.description || `Read this amazing story by ${user.name}`,
-      url: `${window.location.origin}/story/${story.id}`,
+      text:
+        story.excerpt ||
+        `Read this amazing story by ${user.fullName || user.firstName}`,
+      url: `${window.location.origin}/story/${story._id}`,
     };
 
     try {
-      if (navigator.share) {
+      if (typeof navigator.share === 'function') {
         await navigator.share(shareData);
+        trackEvent(TRACKING_EVENTS.STORY_SHARE, {
+          userId: user._id,
+          storyId: story._id,
+          method: 'native_share',
+        });
       } else {
         await navigator.clipboard.writeText(shareData.url);
         toast.success('Story link copied to clipboard!');
+        trackEvent(TRACKING_EVENTS.STORY_SHARE, {
+          userId: user._id,
+          storyId: story._id,
+          method: 'clipboard',
+        });
       }
-
-      trackEvent(TRACKING_EVENTS.STORY_SHARE, {
-        userId: user._id,
-        storyId: story.id,
-        method: navigator.share ? 'native_share' : 'clipboard',
-      });
     } catch (error) {
       console.error('Share error:', error);
     }
@@ -125,7 +140,7 @@ export default function StoryViewClient({
   const handleDownload = async (format: 'pdf' | 'word') => {
     try {
       const response = await fetch(
-        `/api/stories/${story.id}/export?format=${format}`
+        `/api/stories/${story._id}/export?format=${format}`
       );
 
       if (response.ok) {
@@ -143,7 +158,7 @@ export default function StoryViewClient({
 
         trackEvent(TRACKING_EVENTS.DOWNLOAD, {
           userId: user._id,
-          storyId: story.id,
+          storyId: story._id,
           format,
         });
       } else {
@@ -201,12 +216,7 @@ export default function StoryViewClient({
                 <BookOpen className="h-4 w-4" />
                 <span>{formatNumber(story.wordCount || 0)} words</span>
               </div>
-              {story.averageRating && (
-                <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-current text-yellow-500" />
-                  <span>{story.averageRating}</span>
-                </div>
-              )}
+              {/* Removed averageRating display: not present in Story type */}
             </div>
           </div>
 
@@ -254,7 +264,7 @@ export default function StoryViewClient({
 
             {/* Edit Button (Owner only) */}
             {isOwner && story.status === 'draft' && (
-              <Link href={`/dashboard/story/${story.id}/edit`}>
+              <Link href={`/dashboard/story/${story._id}/edit`}>
                 <Button size="sm">
                   <Edit className="mr-1 h-4 w-4" />
                   Edit
@@ -270,19 +280,11 @@ export default function StoryViewClient({
         <div className="lg:col-span-3">
           {/* Story Content */}
           <FadeIn delay={0.1}>
-            <StoryViewer
-              story={story}
-              comments={comments}
-              canComment={canComment}
-              onHighlight={(text, position) => {
-                // Handle text highlighting for comments
-                console.log('Highlighted text:', text, position);
-              }}
-            />
+            <StoryViewer story={story} />
           </FadeIn>
 
           {/* AI Assessment */}
-          {story.aiAssessment && (
+          {assessment && (
             <SlideIn direction="up" delay={0.2}>
               <Card className="mt-8 p-6">
                 <div className="mb-6 flex items-center justify-between">
@@ -302,13 +304,13 @@ export default function StoryViewClient({
                 <div className="grid gap-6 md:grid-cols-3">
                   <div className="text-center">
                     <div className="mb-1 text-3xl font-bold text-blue-600">
-                      {story.aiAssessment.grammarScore}%
+                      {assessment.grammarScore}%
                     </div>
                     <div className="text-sm text-gray-600">Grammar</div>
                     <ProgressBar
-                      value={story.aiAssessment.grammarScore}
+                      value={assessment.grammarScore}
                       max={100}
-                      variant="blue"
+                      variant="default"
                       size="sm"
                       className="mt-2"
                     />
@@ -316,13 +318,13 @@ export default function StoryViewClient({
 
                   <div className="text-center">
                     <div className="mb-1 text-3xl font-bold text-purple-600">
-                      {story.aiAssessment.creativityScore}%
+                      {assessment.creativityScore}%
                     </div>
                     <div className="text-sm text-gray-600">Creativity</div>
                     <ProgressBar
-                      value={story.aiAssessment.creativityScore}
+                      value={assessment.creativityScore}
                       max={100}
-                      variant="purple"
+                      variant="warning"
                       size="sm"
                       className="mt-2"
                     />
@@ -330,27 +332,25 @@ export default function StoryViewClient({
 
                   <div className="text-center">
                     <div className="mb-1 text-3xl font-bold text-green-600">
-                      {story.aiAssessment.overallScore}%
+                      {assessment.overallScore}%
                     </div>
                     <div className="text-sm text-gray-600">Overall</div>
                     <ProgressBar
-                      value={story.aiAssessment.overallScore}
+                      value={assessment.overallScore}
                       max={100}
-                      variant="green"
+                      variant="success"
                       size="sm"
                       className="mt-2"
                     />
                   </div>
                 </div>
 
-                {story.aiAssessment.feedback && (
+                {assessment.feedback && (
                   <div className="mt-6 rounded-lg bg-gray-50 p-4">
                     <h4 className="mb-2 font-medium text-gray-900">
                       AI Feedback:
                     </h4>
-                    <p className="text-gray-700">
-                      {story.aiAssessment.feedback}
-                    </p>
+                    <p className="text-gray-700">{assessment.feedback}</p>
                   </div>
                 )}
               </Card>
@@ -358,23 +358,15 @@ export default function StoryViewClient({
           )}
 
           {/* Comments Section */}
-          {(canComment || comments.length > 0) && (
-            <SlideIn direction="up" delay={0.3}>
-              <Card className="mt-8 p-6">
-                <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
-                  <MessageCircle className="h-5 w-5 text-blue-600" />
-                  Mentor Comments ({comments.length})
-                </h3>
-
-                <CommentSystem
-                  storyId={story.id}
-                  comments={comments}
-                  canComment={canComment}
-                  currentUser={user}
-                />
-              </Card>
-            </SlideIn>
-          )}
+          <SlideIn direction="up" delay={0.3}>
+            <Card className="mt-8 p-6">
+              <h3 className="mb-6 flex items-center gap-2 text-xl font-bold text-gray-900">
+                <MessageCircle className="h-5 w-5 text-blue-600" />
+                Mentor Comments
+              </h3>
+              <CommentSystem storyId={story._id} onClose={() => {}} />
+            </Card>
+          </SlideIn>
         </div>
 
         {/* Sidebar */}
@@ -397,7 +389,7 @@ export default function StoryViewClient({
                         <span className="text-sm capitalize text-gray-600">
                           {key}:
                         </span>
-                        <Badge variant="outline" size="sm">
+                        <Badge variant="default" size="sm">
                           {value}
                         </Badge>
                       </div>
@@ -422,7 +414,7 @@ export default function StoryViewClient({
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-600">Views:</span>
                     <span className="font-medium">
-                      {formatNumber(story.viewCount || 0)}
+                      {formatNumber(story.views || 0)}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -441,14 +433,6 @@ export default function StoryViewClient({
                       {formatNumber(story.wordCount || 0)}
                     </span>
                   </div>
-                  {story.readingLevel && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">
-                        Reading Level:
-                      </span>
-                      <span className="font-medium">{story.readingLevel}</span>
-                    </div>
-                  )}
                 </div>
               </Card>
             </SlideIn>
@@ -497,7 +481,7 @@ export default function StoryViewClient({
                       className="w-full justify-start text-red-600 hover:text-red-700"
                       onClick={() => {
                         // Report inappropriate content
-                        toast.info(
+                        toast.success(
                           'Thank you for reporting. We will review this content.'
                         );
                       }}
@@ -579,11 +563,11 @@ export default function StoryViewClient({
       </div>
 
       {/* Assessment Modal */}
-      {story.aiAssessment && (
+      {assessment && (
         <AssessmentModal
           isOpen={showAssessment}
           onClose={() => setShowAssessment(false)}
-          assessment={story.aiAssessment}
+          assessment={assessment}
           storyTitle={story.title}
         />
       )}
