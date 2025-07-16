@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   const navigationItems = [
     {
       name: 'Dashboard',
-      href: '/dashboard',
+      href: '/user-dashboard',
       icon: LayoutDashboard,
     },
     {

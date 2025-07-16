@@ -32,7 +32,7 @@ export const Header: React.FC = () => {
       label: 'Dashboard',
       value: 'dashboard',
       icon: <User size={16} />,
-      onClick: () => router.push('/dashboard'),
+      onClick: () => router.push('/user-dashboard'),
     },
     {
       label: 'Settings',
@@ -65,13 +65,13 @@ export const Header: React.FC = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2" aria-label="Go to homepage">
-            <Image
+            {/* <Image
               src="/images/logo/logo.svg"
               alt="MINTOONS Logo - Home"
               width={40}
               height={40}
               className="h-10 w-10"
-            />
+            /> */}
             <span className="text-xl font-bold text-purple-600">MINTOONS</span>
           </Link>
 
@@ -93,11 +93,11 @@ export const Header: React.FC = () => {
               <Dropdown
                 trigger={<span className="text-gray-700 cursor-pointer hover:text-purple-600 dark:text-gray-300">Dashboard</span>}
                 items={[
-                  { label: 'Main', value: 'main', onClick: () => router.push('/dashboard/user-dashboard') },
-                  { label: 'My Stories', value: 'my-stories', onClick: () => router.push('/dashboard/my-stories') },
-                  { label: 'Create Story', value: 'create-story', onClick: () => router.push('/dashboard/create-stories') },
-                  { label: 'Progress', value: 'progress', onClick: () => router.push('/dashboard/progress') },
-                  { label: 'Profile', value: 'profile', onClick: () => router.push('/dashboard/profile') },
+                  { label: 'Main', value: 'main', onClick: () => router.push('/user-dashboard') },
+                  { label: 'My Stories', value: 'my-stories', onClick: () => router.push('/my-stories') },
+                  { label: 'Create Story', value: 'create-story', onClick: () => router.push('/create-stories') },
+                  { label: 'Progress', value: 'progress', onClick: () => router.push('/progress') },
+                  { label: 'Profile', value: 'profile', onClick: () => router.push('/profile') },
                 ]}
                 align="right"
               />
@@ -184,31 +184,31 @@ export const Header: React.FC = () => {
               {session ? (
                 <>
                   <Link
-                    href="/dashboard/user-dashboard"
+                    href="/user-dashboard"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     Dashboard
                   </Link>
                   <Link
-                    href="/dashboard/my-stories"
+                    href="/my-stories"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     My Stories
                   </Link>
                   <Link
-                    href="/dashboard/create-stories"
+                    href="/create-stories"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     Create Story
                   </Link>
                   <Link
-                    href="/dashboard/progress"
+                    href="/progress"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     Progress
                   </Link>
                   <Link
-                    href="/dashboard/profile"
+                    href="/profile"
                     className="block text-gray-700 hover:text-purple-600 dark:text-gray-300"
                   >
                     Profile

@@ -22,21 +22,31 @@ export const metadata: Metadata = {
 async function getMentorData(userId: string) {
   await connectDB();
 
-  let mentor = await User.findById(userId)
+  let mentorDoc = await User.findById(userId)
     .select('-password')
     .populate('assignedStudents', 'name email age storyCount level')
     .lean();
 
   // Defensive: sometimes Mongoose returns an array, ensure it's an object
-  if (Array.isArray(mentor)) {
-    mentor = mentor[0];
+  if (Array.isArray(mentorDoc)) {
+    mentorDoc = mentorDoc[0];
   }
 
-  if (!mentor || typeof mentor !== 'object' || mentor.role !== 'mentor') {
+  if (!mentorDoc || typeof mentorDoc !== 'object' || mentorDoc.role !== 'mentor') {
     return null;
   }
 
-  return mentor;
+  // Map to plain object with string _id and assignedStudents
+  return {
+    ...mentorDoc,
+    _id: mentorDoc._id?.toString?.() ?? '',
+    assignedStudents: Array.isArray(mentorDoc.assignedStudents)
+      ? mentorDoc.assignedStudents.map((s: any) => ({
+        ...s,
+        _id: s._id?.toString?.() ?? '',
+      }))
+      : [],
+  };
 }
 
 export default async function MentorLayout({

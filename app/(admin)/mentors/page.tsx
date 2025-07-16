@@ -71,7 +71,7 @@ async function getMentorManagementData(searchParams: any) {
     sort = { 'assignedStudents.length': -1 };
   else if (searchParams.sort === 'active') sort = { lastActiveAt: -1 };
 
-  const [mentors, totalMentors, unassignedStudents, recentComments] =
+  const [mentorsRaw, totalMentors, unassignedStudentsRaw, recentComments] =
     await Promise.all([
       User.find(query)
         .populate(
@@ -107,6 +107,23 @@ async function getMentorManagementData(searchParams: any) {
         .limit(10)
         .lean<CommentType[]>(),
     ]);
+
+  // Map mentors and assignedStudents to plain objects with string _id
+  const mentors = (mentorsRaw || []).map((mentor: any) => ({
+    ...mentor,
+    _id: mentor._id?.toString?.() ?? '',
+    assignedStudents: Array.isArray(mentor.assignedStudents)
+      ? mentor.assignedStudents.map((s: any) => ({
+        ...s,
+        _id: s._id?.toString?.() ?? '',
+      }))
+      : [],
+  }));
+
+  const unassignedStudents = (unassignedStudentsRaw || []).map((student: any) => ({
+    ...student,
+    _id: student._id?.toString?.() ?? '',
+  }));
 
   // Calculate mentor statistics
   const activeMentors = mentors.filter(m => {

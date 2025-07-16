@@ -21,10 +21,15 @@ export const metadata: Metadata = {
 
 async function getUserData(userId: string) {
   await connectDB();
-  const user = await User.findById(userId)
+  const userDoc = await User.findById(userId)
     .select('-password')
     .lean();
-  return user;
+  if (!userDoc) return null;
+  // Map to plain object with string _id
+  return {
+    ...userDoc,
+    _id: userDoc._id?.toString?.() ?? '',
+  };
 }
 
 export default async function DashboardLayout({
@@ -35,12 +40,12 @@ export default async function DashboardLayout({
   const session = await getServerSession(authOptions);
 
   if (!session?.user) {
-    redirect('/login?callbackUrl=/dashboard/dashboard');
+    redirect('/login?callbackUrl=/user-dashboard');
   }
 
   // Get fresh user data
   const userData = await getUserData(session.user._id);
-  
+
   if (!userData) {
     redirect('/login?error=SessionExpired');
   }
@@ -56,7 +61,7 @@ export default async function DashboardLayout({
         {/* Main content */}
         <div className="lg:pl-72 flex-1">
           <main className="py-6">
-            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-16">
               {children}
             </div>
           </main>

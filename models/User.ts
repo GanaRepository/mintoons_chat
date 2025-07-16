@@ -377,6 +377,10 @@ userSchema.methods.updateStreak = async function (this: UserDocument): Promise<v
   });
 };
 
+userSchema.statics.findByEmail = function (email: string) {
+  return this.findOne({ email }).select('+password');
+};
+
 userSchema.methods.incrementStoryCount = async function (this: UserDocument): Promise<void> {
   this.storyCount += 1;
   this.lastStoryCreated = new Date();
@@ -388,7 +392,15 @@ userSchema.methods.incrementStoryCount = async function (this: UserDocument): Pr
   });
 };
 
+interface UserModel extends mongoose.Model<UserDocument> {
+  findByEmail(email: string): Promise<UserDocument | null>;
+}
+
+userSchema.statics.findByEmail = function (email: string) {
+  return this.findOne({ email }).select('+password');
+};
+
 const User =
   mongoose.models.User ||
-  mongoose.model<UserDocument>('User', userSchema);
+  mongoose.model<UserDocument, UserModel>('User', userSchema);
 export default User;

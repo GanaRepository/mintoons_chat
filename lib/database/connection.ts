@@ -1,5 +1,5 @@
 // lib/database/connection.ts - MongoDB connection management
-import mongoose from 'mongoose';
+import * as mongoose from 'mongoose';
 
 interface ConnectionState {
   isConnected?: number;
@@ -16,9 +16,8 @@ export async function connectDB(): Promise<void> {
 
   try {
     // Connect to MongoDB
-    const db = await mongoose.connect(process.env.MONGODB_URI!, {
+    const db = await mongoose.default.connect(process.env.MONGODB_URI!, {
       dbName: process.env.MONGODB_DB_NAME || 'mintoons',
-      bufferCommands: false,
       maxPoolSize: 10,
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
@@ -29,22 +28,22 @@ export async function connectDB(): Promise<void> {
     console.log('MongoDB connected successfully');
 
     // Set up connection event listeners
-    mongoose.connection.on('connected', () => {
+    mongoose.default.connection.on('connected', () => {
       console.log('MongoDB connected');
     });
 
-    mongoose.connection.on('error', error => {
+    mongoose.default.connection.on('error', error => {
       console.error('MongoDB connection error:', error);
     });
 
-    mongoose.connection.on('disconnected', () => {
+    mongoose.default.connection.on('disconnected', () => {
       console.log('MongoDB disconnected');
       connection.isConnected = 0;
     });
 
     // Graceful shutdown
     process.on('SIGINT', async () => {
-      await mongoose.connection.close();
+      await mongoose.default.connection.close();
       console.log('MongoDB connection closed through app termination');
       process.exit(0);
     });
@@ -56,7 +55,7 @@ export async function connectDB(): Promise<void> {
 
 export async function disconnectDB(): Promise<void> {
   if (connection.isConnected) {
-    await mongoose.connection.close();
+    await mongoose.default.connection.close();
     connection.isConnected = 0;
     console.log('MongoDB disconnected');
   }
@@ -73,7 +72,7 @@ export async function checkDBHealth(): Promise<{
     }
 
     // Ping the database
-    const db = mongoose.connection.db;
+    const db = mongoose.default.connection.db;
     if (!db) {
       throw new Error('Database connection is not available');
     }
@@ -92,9 +91,9 @@ export async function checkDBHealth(): Promise<{
 export function getConnectionStats() {
   return {
     isConnected: !!connection.isConnected,
-    readyState: mongoose.connection.readyState,
-    host: mongoose.connection.host,
-    port: mongoose.connection.port,
-    name: mongoose.connection.name,
+    readyState: mongoose.default.connection.readyState,
+    host: mongoose.default.connection.host,
+    port: mongoose.default.connection.port,
+    name: mongoose.default.connection.name,
   };
 }
